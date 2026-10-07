@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보처리방침 · 나의도서관</title>
+<style>
+  :root { --bg: #f7f5f0; --fg: #26231f; --muted: #6f6a62; --line: #e2ddd3; --link: #3d5a80; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1c1b19; --fg: #ece8e1; --muted: #a39e95; --line: #34322e; --link: #9db7d8; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.75 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 72px 20px 96px; }
+  h1 { font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 40px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 36px 0 8px; }
+  p, li { margin: 0 0 10px; }
+  ul { padding-left: 20px; margin: 0; }
+  a { color: var(--link); }
+  .en { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+  .en h2 { color: var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>개인정보처리방침</h1>
+  <p class="sub">나의도서관 · 시행일 2026년 10월 7일</p>
+
+  <h2>1. 어떤 정보를 다루나요</h2>
+  <p>나의도서관은 사용자의 컴퓨터에서만 동작하는 개인용 프로그램입니다. 사용자가 입력한 내용은 사용자의 컴퓨터에 저장되며, 개발자를 포함한 누구에게도 전송되지 않습니다.</p>
+
+  <h2>2. Google 사용자 데이터의 사용</h2>
+  <ul>
+    <li>사용자가 직접 연결한 경우에만, 프로그램이 만든 백업 파일(zip)을 사용자 본인의 Google 드라이브에 올리고, 오래된 백업을 정리하며, 올라간 파일이 온전한지 확인합니다.</li>
+    <li>권한은 <code>drive.file</code>(이 프로그램이 만든 파일만)으로 한정되어, 드라이브의 다른 파일은 읽거나 바꿀 수 없습니다.</li>
+    <li>Google에서 받은 정보는 위 목적 외에 쓰지 않으며, 다른 곳에 전송 · 판매 · 공유하지 않습니다. 광고나 분석에 쓰지 않습니다.</li>
+    <li>연결 열쇠는 사용자 컴퓨터의 Windows 자격 증명 관리자에만 보관됩니다.</li>
+  </ul>
+  <p>Google API에서 받은 정보의 사용은 <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API 서비스 사용자 데이터 정책</a>(제한적 사용 요건 포함)을 따릅니다.</p>
+
+  <h2>3. 연결 해제와 삭제</h2>
+  <p>프로그램의 백업 센터에서 언제든 연결을 해제할 수 있고, <a href="https://myaccount.google.com/permissions">Google 계정의 서드파티 액세스</a>에서도 권한을 취소할 수 있습니다. 드라이브의 '나의도서관 백업' 폴더를 지우면 백업도 모두 지워집니다.</p>
+
+  <h2>4. 문의</h2>
+  <p><a href="https://github.com/caesarosler-lgtm">GitHub의 caesarosler-lgtm</a>으로 연락해 주세요.</p>
+
+  <div class="en">
+    <h2>Privacy Policy (English summary)</h2>
+    <p>나의도서관 ("My Library") is a personal desktop app that runs only on its user's computer. Content stays on that computer and is never sent to the developer or third parties. When the user connects a Google account, the app uses the <code>drive.file</code> scope solely to upload, prune and verify its own backup zip in the user's own Google Drive. Google user data is not transferred, sold, shared, or used for advertising or analytics, and its use complies with the Google API Services User Data Policy, including the Limited Use requirements. Access can be revoked at any time in the app or at myaccount.google.com/permissions.</p>
+  </div>
+</main>
+</body>
+</html>
