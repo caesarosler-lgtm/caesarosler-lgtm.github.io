@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내일의 할일</title>
+<style>
+/* =====================================================================
+   내일의 할일 — 웹판 (나의 도서관 통합판). 원래 Tkinter 프로그램(내일의_할일.pyw v2.114)의 기본 화면을 그대로 옮겼다.
+   색 · 글자 · 배치 규칙은 원래 프로그램(교정차트 계열: 연한 라벤더 바탕 + 흰 칸 + 인디고 포인트, 다크는 완전히 검은 배경)을 따른다.
+   ===================================================================== */
+:root{
+  --bg:#f3f2fa; --canvas:#ffffff; --line:#e2e1ec; --text:#1d1d1f; --muted:#6e6e73; --strong:#1d1d1f;
+  --accent:#5856d6; --accent-rgb:88,86,214; --accent-weak:#ecebfb; --accent-fg:#4745b8;
+  --btn:#e7e6f0; --btn-hover:#dbdae6; --btn-press:#cfcedc; --bar-btn:#efeef5; --bar-btn-hover:#e3e2ee;
+  --entry:#ffffff; --entry-fg:#1d1d1f; --chip:#e8e7f1; --chip-fg:#1d1d1f; --track:#e7e6f0;
+  --g60:#dcdbe6; --g60l:#6e6e73; --g30:#e7e6ef; --g30l:#8e8e93; --g15:#efeef5; --g15l:#b0b0b8; --g5:#f4f3f9; --g1:#f9f8fc;
+  --p-hi:#d3d1f8; --p-hi-b:#5856d6; --p-hi-t:#2a2970; --p-md:#e3e2fb; --p-md-b:#aeacee; --p-md-t:#34337f; --p-lo:#f1f0fc; --p-lo-b:#d5d4f2; --p-lo-t:#5d5c98;
+  --act:#d6efdf; --act-b:#7fc79b; --act-t:#14502a; --done:#ececf1; --done-b:#cdcdd5; --done-t:#8e8e93;
+  --now:#00c853; --focus-idle:#a5e9bd; --focus-run:#4CAF50; --focus-start:#3d8bd6; --focus-cancel:#87CEFA;
+  --sleep-bed:#e2defa; --sleep-bed-t:#332f5c; --sleep-wake:#fdedc9; --sleep-wake-t:#6b4b12;
+  --fl-info:#dbe9fb; --fl-info-t:#1d4e89; --fl-topic:#eeeeee; --fl-topic-t:#333333; --fl-start:#dff5e1; --fl-start-t:#1f7a34; --fl-stop:#fde2e2; --fl-stop-t:#a83232;
+  --cat-am:#d7f2ee; --cat-am-t:#0f3d37; --cat-pm:#d3e6f7; --cat-pm-t:#1a3550; --cat-daily:#e6ddf7; --cat-daily-t:#332452;
+  --cat-gap:#f3e1f1; --cat-gap-t:#4a2746; --cat-rest:#fbe9d2; --cat-rest-t:#4f3312; --cat-etc:#e9ebef; --cat-etc-t:#2d3238;
+  --praise-bg:#2b2a45; --praise-fg:#ffffff; --sel:#5856d6; --shadow:0 1px 3px rgba(0,0,0,.15);
+  --sat:#3d8bd6; --sun:#d9534f; --streak:#e0a83e;
+  --font:Pretendard,"Apple SD Gothic Neo","Noto Sans KR","맑은 고딕",system-ui,sans-serif; --input-font:"맑은 고딕",Pretendard,system-ui,sans-serif;
+}
+html[data-theme=dark]{
+  --bg:#000000; --canvas:#000000; --line:#2c2c2e; --text:#f2f2f7; --muted:#9b9ba3; --strong:#ffffff;
+  --accent:#7d7aff; --accent-rgb:125,122,255; --accent-weak:#1f1e3d; --accent-fg:#a9a7ff;
+  --btn:#26252e; --btn-hover:#363540; --btn-press:#44434f; --bar-btn:#26252e; --bar-btn-hover:#363540;
+  --entry:#16151c; --entry-fg:#f2f2f7; --chip:#26252e; --chip-fg:#f2f2f7; --track:#26252e;
+  --g60:#4a4956; --g60l:#d1d1d8; --g30:#34333e; --g30l:#9b9ba3; --g15:#25242d; --g15l:#70707a; --g5:#1c1b22; --g1:#141419;
+  --p-hi:#3f3d8c; --p-hi-b:#8f8dff; --p-hi-t:#f4f3ff; --p-md:#2b2a52; --p-md-b:#5b58c8; --p-md-t:#d6d5ff; --p-lo:#1b1a30; --p-lo-b:#38376a; --p-lo-t:#a3a2dc;
+  --act:#1e4a34; --act-b:#3f9e6b; --act-t:#bdeccf; --done:#26262c; --done-b:#4b4b54; --done-t:#8f8f98;
+  --sleep-bed:#241f3d; --sleep-bed-t:#c7bdf0; --sleep-wake:#3a2c0e; --sleep-wake-t:#f2d68f;
+  --fl-info:#0f2236; --fl-info-t:#7ec2f7; --fl-topic:#1c1c1e; --fl-topic-t:#e5e5ea; --fl-start:#0f2a17; --fl-start-t:#6fdd8f; --fl-stop:#2e1414; --fl-stop-t:#f29a9a;
+  --cat-am:#0e2b27; --cat-am-t:#8fe0d3; --cat-pm:#0f2236; --cat-pm-t:#9dc3e8; --cat-daily:#241a3a; --cat-daily-t:#c9b8ea;
+  --cat-gap:#2e1a2c; --cat-gap-t:#e6b8e0; --cat-rest:#33240f; --cat-rest-t:#f0cf98; --cat-etc:#1d2024; --cat-etc-t:#d4d8de;
+  --praise-bg:#e9e8f5; --praise-fg:#000000; --shadow:0 1px 3px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:13px/1.45 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;border:0;background:var(--btn);border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap;transition:background .12s}
+button:hover{background:var(--btn-hover)}button:active{background:var(--btn-press)}
+button.primary{background:var(--accent);color:#fff}button.primary:hover{background:var(--accent);filter:brightness(1.08)}
+button.icon{padding:5px 9px;min-width:32px}
+button:disabled{opacity:.45;cursor:default}
+input,select,textarea{font:13px var(--input-font);color:var(--entry-fg);background:var(--entry);border:1px solid var(--line);border-radius:6px;padding:4px 7px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+kbd{display:inline-block;min-width:16px;padding:0 4px;margin-left:5px;border-radius:4px;background:rgba(127,127,127,.18);font:600 10px/16px var(--font);color:var(--muted);text-align:center}
+#app{height:100%;display:flex;flex-direction:column}
+header{background:var(--canvas);border-bottom:1px solid var(--line);flex-shrink:0}
+.row{display:flex;align-items:center;gap:4px;padding:7px 12px 4px;min-height:38px;flex-wrap:wrap}
+.row > *{white-space:nowrap}
+.row.r2{padding:2px 12px 8px}
+.vsep{width:1px;height:18px;background:var(--line);margin:0 8px}
+.sp{flex:1}
+header button{background:var(--bar-btn);font-size:12px;padding:5px 10px}
+header button:hover{background:var(--bar-btn-hover)}
+/* 분할 버튼 (교정차트의 .seg) */
+.seg{display:inline-flex;background:var(--track);border-radius:999px;padding:2px;gap:0}
+.seg button{background:none;color:var(--muted);padding:3px 12px;border-radius:999px;font-size:12px}
+.seg button:hover{background:rgba(127,127,127,.12)}
+.seg button.on{background:var(--canvas);color:var(--accent-fg);font-weight:600;box-shadow:var(--shadow)}
+html[data-theme=dark] .seg button.on{background:#505054;color:#fff}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--accent-weak);color:var(--accent-fg);margin-left:8px}
+.praise{padding:3px 10px;border-radius:6px;background:var(--praise-bg);color:var(--praise-fg);font-size:12px;font-weight:600;margin-left:10px;animation:pop .18s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.dday{display:inline-flex;align-items:baseline;gap:6px;margin-right:12px;color:var(--accent-fg)}
+.dday small{font-size:11px;font-weight:600;letter-spacing:.02em}
+.dday b{font-size:15px;font-variant-numeric:tabular-nums}
+.info{color:var(--muted);font-weight:700;cursor:help;padding:0 6px}
+/* 활동 · 횟수 */
+.act{position:relative;font-weight:500}
+.act.run{color:var(--a-t);background:var(--a-fill)!important;box-shadow:inset 0 0 0 1.5px var(--a-b)}
+.act small{font-weight:600;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.cnt b{margin-left:5px;font-variant-numeric:tabular-nums}
+.quote{background:none!important;color:var(--accent-fg);font-weight:600;font-size:12px}
+/* 시간표 */
+main{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px 12px 8px}
+.group{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) 22px minmax(0,1fr);grid-template-rows:26px minmax(0,1fr);background:var(--canvas);border:1px solid var(--line);border-radius:10px;padding:4px;min-width:0}
+.glabel{grid-row:1;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;padding-left:6px}
+.glabel.p{grid-column:1/3}.glabel.a{grid-column:3/5}
+.gut{grid-row:2;position:relative;overflow:visible;user-select:none}
+.gut.a{grid-column:3}.gut.p{grid-column:1}
+.gut .hl{position:absolute;right:4px;transform:translateY(-50%);font-weight:700;color:var(--g60l);font-size:11px;white-space:nowrap}
+.gut .hl.h30{font-size:10px;color:var(--g30l)}.gut .hl.h15{font-size:9px;font-weight:400;color:var(--g15l)}
+.gut .mm{position:absolute;right:3px;transform:translateY(-50%);font:700 10px var(--font);padding:0 2px;background:var(--canvas);line-height:12px;z-index:3}
+.col{grid-row:2;position:relative;overflow:hidden;border-left:1px solid var(--line);border-right:1px solid var(--line);touch-action:none;cursor:crosshair;
+  background-image:
+    linear-gradient(var(--g60) 0 1.4px,transparent 1.4px),
+    linear-gradient(var(--g30) 0 1px,transparent 1px),
+    linear-gradient(var(--g15) 0 1px,transparent 1px),
+    linear-gradient(var(--g5) 0 1px,transparent 1px),
+    linear-gradient(var(--g1) 0 1px,transparent 1px);
+  background-size:100% var(--h60),100% var(--h30),100% var(--h15),100% var(--h5),100% var(--h1);
+  background-color:var(--canvas)}
+.col.no1{background-image:linear-gradient(var(--g60) 0 1.4px,transparent 1.4px),linear-gradient(var(--g30) 0 1px,transparent 1px),linear-gradient(var(--g15) 0 1px,transparent 1px),linear-gradient(var(--g5) 0 1px,transparent 1px);background-size:100% var(--h60),100% var(--h30),100% var(--h15),100% var(--h5)}
+.col.no5{background-image:linear-gradient(var(--g60) 0 1.4px,transparent 1.4px),linear-gradient(var(--g30) 0 1px,transparent 1px),linear-gradient(var(--g15) 0 1px,transparent 1px);background-size:100% var(--h60),100% var(--h30),100% var(--h15)}
+.col.plan{grid-column:2}.col.actual{grid-column:4}
+.task{position:absolute;left:2px;right:2px;border-radius:8px;border:2px solid var(--b);background:var(--f);color:var(--t);padding:3px 4px;font-size:11px;line-height:1.3;overflow:hidden;cursor:grab;user-select:none;word-break:keep-all;overflow-wrap:anywhere}
+.task.ghost{opacity:.65;pointer-events:none;border-style:dashed}
+.task.sel{outline:3px solid var(--sel);outline-offset:-1px}
+.task .x{white-space:pre-wrap}
+.task .dur{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-weight:700;font-size:11px;opacity:.9}
+.task .qc,.task .del{position:absolute;right:3px;width:16px;height:16px;border-radius:50%;background:#fff;border:1.5px solid var(--b);color:var(--b);font:700 10px/13px var(--font);text-align:center;padding:0;cursor:pointer}
+.task .qc{top:2px}.task .del{bottom:2px;font-size:9px}
+.task .qc:hover,.task .del:hover{filter:brightness(.92)}
+.task.tiny .dur,.task.tiny .qc,.task.tiny .del{display:none}
+.task.cont{cursor:grab}
+.now{position:absolute;left:0;right:0;height:1px;background:var(--now);pointer-events:none;z-index:4}
+.nowb{position:absolute;left:0;right:0;height:18px;transform:translateY(-50%);background:var(--now);color:#fff;font:700 10px/18px var(--font);text-align:center;z-index:5;border-radius:3px 0 0 3px}
+.fbox{position:absolute;left:0;right:0;height:18px;color:#fff;font:700 10px/18px var(--font);text-align:center;z-index:5;cursor:pointer;background:var(--focus-idle);border-radius:0 0 3px 3px}
+.fbox.run{background:var(--focus-run)}
+.fstart{position:absolute;left:0;right:0;height:18px;transform:translateY(-50%);background:var(--focus-start);color:#fff;font:700 10px/18px var(--font);text-align:center;z-index:5}
+.fh{position:absolute;left:4px;width:7px;border-radius:3px;background:var(--focus-start);opacity:.9}
+.fh.cancel{background:var(--focus-cancel)}
+/* 체크리스트 패널: 00:00~04:00 자리를 덮는다 */
+#panel{position:absolute;left:4px;right:4px;top:30px;height:calc((100% - 34px) * .6667);background:var(--bg);border-radius:8px;overflow:auto;padding:8px 8px 10px;z-index:6;scrollbar-width:none;display:flex;flex-direction:column;gap:6px}
+#panel::-webkit-scrollbar{display:none}
+.chip{display:inline-block;min-width:44px;padding:3px 5px;border-radius:7px;font:700 11px/1.2 var(--font);text-align:center;white-space:nowrap}
+.chip.btn{cursor:pointer;user-select:none}.chip.btn:hover{filter:brightness(.96)}
+.prow{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0}
+.prow select{width:46px;padding:3px 2px;font-size:12px}
+.sleepdur{font-weight:700;font-size:11px;color:var(--muted);margin-left:4px;white-space:nowrap}
+.fltxt{font-weight:700;font-size:11px;color:var(--muted);white-space:nowrap;margin-left:4px}
+.fltopic{font-size:11px;color:var(--muted);line-height:1.4;word-break:keep-all}
+.flstreak{font-size:11px;font-weight:700;color:var(--streak)}
+.flgrp{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.03em;margin:6px 0 1px}
+.flitem{display:flex;align-items:flex-start;gap:6px;font-size:11px;line-height:1.35;padding:1px 0;cursor:pointer;word-break:keep-all}
+.flitem input{margin:1px 0 0;accent-color:var(--accent);width:14px;height:14px;flex-shrink:0}
+.flitem.done span{color:var(--muted)}
+.flsum{font-size:11px;color:var(--muted);text-align:right}
+/* 미니 달력 */
+.cal{margin-top:8px}
+.calsum{padding:4px 8px;border-radius:6px;background:var(--accent-weak);color:var(--accent-fg);font-size:11px;font-weight:700;cursor:pointer;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calsum:hover{filter:brightness(.97)}
+.calh{display:flex;align-items:center;font-size:11px;font-weight:700;color:var(--muted)}
+.calh b{flex:1;text-align:center;font-weight:700}
+.calh button{background:none;padding:0 6px;color:var(--muted)}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0;text-align:center;font-size:12px}
+.calg .wd{font-size:10px;color:var(--muted);font-weight:400}
+.calg .wd.sat{color:var(--sat)}.calg .wd.sun{color:var(--sun)}
+.calg .d{position:relative;height:21px;line-height:21px;font-weight:700;border-radius:6px;cursor:pointer;margin:0 auto;width:24px}
+.calg .d:hover{background:var(--btn)}
+.calg .d.sat{color:var(--sat)}.calg .d.sun{color:var(--sun)}
+.calg .d.today{box-shadow:inset 0 0 0 1.4px var(--accent);background:var(--accent-weak);color:var(--accent-fg)}
+.calg .d.cur{background:var(--accent)!important;color:#fff!important;box-shadow:none}
+.calg .d.has::after{content:"";position:absolute;left:50%;bottom:1px;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:currentColor;opacity:.55}
+.keys{display:grid;grid-template-columns:auto auto 1fr;gap:3px 6px;align-items:center;margin-top:8px;font-size:10px;color:var(--muted)}
+.keys .kc{display:inline-block;width:22px;height:22px;border-radius:5px;background:var(--canvas);border:1px solid var(--line);font:700 11px/20px var(--font);text-align:center;color:var(--text);cursor:pointer;box-shadow:0 1px 0 var(--line)}
+html[data-theme=dark] .keys .kc{background:#26252e;border-color:#4a4956;box-shadow:0 1px 0 #4a4956}
+.keys .kc:active{transform:translateY(1px)}
+.keys .krow{display:flex;gap:3px}
+/* 하루 체크리스트 18칸 */
+.ck{display:grid;grid-template-columns:44px 16px 1fr;gap:5px;align-items:center;margin-top:4px}
+.ck input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.ck input[type=text]{width:100%;min-width:0;padding:3px 6px;font-size:12px;border-radius:5px}
+.ck input[type=text].done{text-decoration:line-through;color:var(--muted)}
+/* 미니 모드 */
+#mini{display:none;height:100%;padding:10px 14px;gap:14px;align-items:center;background:var(--canvas)}
+html.compact #hdr,html.compact main{display:none}
+html.compact #mini{display:flex}
+#mini .clock{font:700 34px/1 var(--font);font-variant-numeric:tabular-nums;color:var(--strong)}
+#mini .date{font-size:12px;color:var(--muted);margin-top:4px}
+#mini .nn{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+#mini .nn div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mini .nn b{font-weight:600}
+#mini .nn .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:middle}
+#mini .nn .dot.on{background:var(--now)}
+#mini .btns{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:420px}
+#mini .btns button{font-size:11px;padding:4px 9px}
+.vol{display:inline-flex;gap:2px}
+.vol .vnow{min-width:66px;font-variant-numeric:tabular-nums}
+/* 창 · 안내 */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:50}
+#modal .box{background:var(--canvas);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:16px 18px;min-width:320px;max-width:min(92vw,900px);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+#modal .box.wide{width:min(92vw,900px);height:min(85vh,700px)}
+#modal h3{margin:0;font-size:15px;font-weight:700}
+#modal .fld{display:grid;grid-template-columns:90px 1fr;gap:8px;align-items:center}
+#modal .fld label{color:var(--muted);font-size:12px;white-space:pre-line}
+#modal .fld input[type=text]{width:100%}
+#modal textarea{flex:1;min-height:200px;resize:none;line-height:1.6;padding:10px}
+#modal .bt{display:flex;gap:6px;justify-content:flex-end;margin-top:4px}
+#modal .bt .left{margin-right:auto}
+#modal .tip{color:var(--muted);font-size:12px;line-height:1.55;white-space:pre-line}
+#modal .danger{background:#fde2e2;color:#a83232}html[data-theme=dark] #modal .danger{background:#2e1414;color:#f29a9a}
+#modal .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px}
+#modal .kv span{color:var(--muted)}#modal .kv b{font-weight:600}
+#modal .bar{display:grid;grid-template-columns:150px 1fr;gap:6px 10px;align-items:center;font-size:12px}
+#modal .bar .tr{height:18px;background:var(--track);border-radius:4px;position:relative;overflow:hidden;width:240px}
+#modal .bar .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+#modal .bar .tr b{position:absolute;right:5px;top:0;line-height:18px;font-size:11px}
+#modal .bar .tr small{position:absolute;left:0;right:0;text-align:center;line-height:18px;color:var(--muted);font-size:11px}
+#modal .menu{display:flex;flex-wrap:wrap;gap:6px;max-width:360px}
+#modal .ql{display:flex;flex-direction:column;gap:4px}
+#modal .ql div{font-size:13px}#modal .ql div.on{color:var(--accent-fg);font-weight:700}
+#modal input[type=time]{width:92px}
+/* 계획 화면 (2 월간 · 3 연간 · 4 5년 · 5 5개년): 원래 프로그램의 전체화면 창 자리. 시간표 대신 창 전체를 쓴다 */
+#plan{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
+html.planview #hdr,html.planview main{display:none}
+#planBar{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--canvas);border-bottom:1px solid var(--line);flex-shrink:0}
+#planBar button{background:var(--bar-btn);font-size:12px;padding:5px 10px}
+#planBar button:hover{background:var(--bar-btn-hover)}
+#planBar .seg button{background:none}
+#planBar .seg button.on{background:var(--canvas)}
+html[data-theme=dark] #planBar .seg button.on{background:#505054}
+#planBody{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--praise-bg);color:var(--praise-fg);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+[hidden]{display:none!important}
+</style>
+<style>/* 웹판 (tools/build_web.py): PC 프로그램에서만 되는 것 */
+#bSolo,#qhdSeg,header button[onclick="newPostit()"],#actBar .vol{display:none!important}
+/* 휴대폰 (폭 820px 이하): 시간표 네 칸(0–6 · 6–12 · 12–18 · 18–24시)을 옆으로 붙이면 너무 좁다 → 위아래로 쌓고 칸마다 화면의 3/4 높이 (15분 ≈ 25px).
+   칸 안은 손가락으로 끌어 일정을 만드는 곳이라(touch-action:none) 화면은 시각 눈금 · 칸 바깥을 쓸어 넘긴다 — 그래서 눈금 폭을 조금 넓힌다 */
+@media (max-width: 820px){
+  html{height:auto;overflow:auto}
+  body{height:auto;overflow:visible}   /* 머리글은 위에 붙여 두지 않는다 — 휴대폰에서 화면의 1/3 을 가려서 */
+  #app{height:auto;min-height:100%}
+  main#boards{flex:none;grid-template-columns:minmax(0,1fr);grid-auto-rows:78vh;gap:12px;padding:10px 8px 28px}
+  .group{grid-template-columns:44px minmax(0,1fr) 34px minmax(0,1fr)}
+  header button{padding:7px 11px;font-size:13px}
+}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+</head>
+<body>
+<div id="app">
+<header id="hdr">
+  <div class="row r1">
+    <div class="seg" id="daySeg"><button data-k="today" onclick="goToday()">오늘</button><button data-k="tomorrow" onclick="goTomorrow()">내일</button></div>
+    <span class="vsep"></span>
+    <span class="badge" id="rate">계획 없음</span>
+    <button class="icon" onclick="openWeekly()" title="주간 이행률 - 최근 7일간의 이행률을 막대 그래프로 보기">📊</button>
+    <button class="icon" onclick="openReview()" title="오늘의 총평 쓰기/수정 - 하루를 마치고 스스로 돌아보는 메모">📝</button>
+    <button class="icon" onclick="deleteDay()" title="이 날짜 전체 삭제 - 계획/실제 · 체크리스트 · 수면 · 총평 · 챌린지 기록까지 이 날짜의 모든 데이터를 삭제">🗑</button>
+    <span class="vsep"></span>
+    <div class="seg viewSeg" title="화면 전환 (단축키 1~5) - 1 기본: 하루 시간표 · 2 월간 계획 · 3 연간 계획 · 4 5년 계획 · 5 5개년 계획 차수">
+      <button data-v="1" onclick="setView(1)">1 기본</button><button data-v="2" onclick="setView(2)">2 월간</button><button data-v="3" onclick="setView(3)">3 연간</button><button data-v="4" onclick="setView(4)">4 5년</button><button data-v="5" onclick="setView(5)">5 5개년</button>
+    </div>
+    <span class="vsep"></span>
+    <button onclick="openAnalysis(1)">하루 분석</button><button onclick="openAnalysis(7)">1주일 분석</button><button onclick="openAnalysis(30)">1달 분석</button>
+    <span class="praise" id="praise" hidden></span>
+    <span class="sp"></span>
+    <span class="dday" title="정해 둔 나이의 생일까지 남은 날 (생년월일은 내 드라이브의 비공개 설정에서)"><small>Days Until I Die</small><b id="dday">—</b></span>
+    <button id="bSolo" onclick="spawnSolo()" title="내일의 할일을 따로 띄워 둡니다 - 도서관을 닫아도 남아 있고, 두 창은 같은 기록을 씁니다">⧉ 독립 창</button>
+    <button onclick="newPostit()" title="포스트잇 (단축키 0) - 누를 때마다 한 장씩 새로. 화면 위에 늘 떠 있고, 오른쪽 버튼으로 색 · 펜 · 삭제">0 포스트잇</button>
+    <button onclick="toggleMini()" title="미니 모드 (단축키 8) - 시계 · 지금/다음 일정 · 활동/횟수 버튼만 있는 작은 창">8 미니</button>
+    <button id="bTheme" onclick="toggleTheme()" title="라이트 / 다크 (단축키 L)">L 🌙</button>
+    <div class="seg" id="qhdSeg" title="창 크기를 QHD 해상도로 - 가로 2560×1440 / 세로 1440×2560 (모니터가 작으면 그 크기까지)"><button data-k="landscape" onclick="setQhd('landscape')">QHD 가로</button><button data-k="portrait" onclick="setQhd('portrait')">QHD 세로</button></div>
+    <span class="info" title="빈 시간을 드래그하세요 (같은 칸 안에서 이어서 드래그하면 이어진 항목이 됩니다)
+박스 한 번 클릭: 선택 (Delete 키로 삭제) · 두 번 클릭: 수정 · 끌어서 옮기기 · 위아래 끝을 끌어 길이 조절
+✓: 계획대로 이행 (실제에 복사) · ✕: 삭제
+날짜 이동: A 하루 전 · D 하루 뒤 · W 전 달 · S 다음 달 · T 오늘 (한글 입력 상태에서도 동작)">ⓘ</span>
+  </div>
+  <div class="row r2" id="actBar"></div>
+</header>
+<main id="boards"></main>
+<div id="mini">
+  <div><div class="clock" id="mClock">--:--</div><div class="date" id="mDate"></div></div>
+  <div class="nn"><div id="mNow"></div><div id="mNext"></div></div>
+  <div class="btns" id="mBtns"></div>
+  <div style="display:flex;flex-direction:column;gap:4px"><button onclick="toggleMini()" title="크게 보기 (8)">⤢</button><button id="mQuit" onclick="quitApp()" title="프로그램 종료">⏻</button></div>
+</div>
+<div id="plan" hidden>
+  <div id="planBar">
+    <button id="planBack" onclick="window.__toParent && __toParent({back: 1})" title="책장에 다시 꽂고 도서관으로 (Alt+←)">◀ 책장</button>
+    <div class="seg viewSeg" title="화면 전환 (단축키 1~5)"><button data-v="1" onclick="setView(1)">1 기본</button><button data-v="2" onclick="setView(2)">2 월간</button><button data-v="3" onclick="setView(3)">3 연간</button><button data-v="4" onclick="setView(4)">4 5년</button><button data-v="5" onclick="setView(5)">5 5개년</button></div>
+    <span class="sp"></span>
+    <button class="bTheme" onclick="toggleTheme()" title="라이트 / 다크 (단축키 L)">L 🌙</button>
+    <button onclick="setView(1)" title="닫고 기본 화면으로 (Esc)">닫기</button>
+  </div>
+  <div id="planBody"></div>
+</div>
+</div>
+<div id="modal" hidden></div>
+<div id="toast" hidden></div>
+<script>
+'use strict';
+/* ---------- 상수 (원래 프로그램과 같은 값) ---------- */
+const DAY = 1440, COLS = 4, COLMIN = 360, MIN_DUR = 1, EDGE_PX = 7, DRAG_PX = 4;
+const PRIORITIES = ['높음', '보통', '낮음'];
+const CATS = ['AM', 'PM', '매일', '틈새', '여가', '기타'], CAT_CSS = {AM: 'am', PM: 'pm', '매일': 'daily', '틈새': 'gap', '여가': 'rest', '기타': 'etc'};
+const ACTIVITIES = ['독서', '글쓰기', '운동', '찬물샤워', '공부'];
+const ACT_STYLE = {'독서': ['#f8c8d4', '#d98ba0', '#3a2a2f'], '글쓰기': ['#c9dcf7', '#7fa3d6', '#243349'], '운동': ['#c8ecc4', '#7fbf78', '#243a22'], '찬물샤워': ['#bfeef0', '#6ec3c8', '#1f3b3d'], '공부': ['#f8e3a8', '#d4b25a', '#3d3218']};
+const COUNTERS = [['dopamine_detox', '도파민 디톡스', '도파민 디톡스 오늘 {}번째 👏'], ['youtube_visits', '유튜브 접속', '유튜브 접속 오늘 {}번째'], ['upbit_visits', '업비트 접속', '업비트 접속 오늘 {}번째']];
+const QUOTES = ['확고한 목적의식 + 강렬한 의욕', '명확한 계획 + 착실한 실행', '주변인의 부정적 견해를 깨끗이 무시', '나의 목표와 계획에 찬성하여 용기를 주는 사람만 친구'];
+const FOCUS_OPTS = [[1, '1분'], [3, '3분'], [5, '5분'], [10, '10분'], [20, '20분'], [30, '30분'], [40, '40분'], [50, '50분'], [60, '60분'], [120, '2시간']];
+const FLOW_ITEMS = [['시작 전', 'narrow_question', '오늘 풀 문제를 구체적인 질문 하나로 좁혔다'], ['시작 전', 'relaxed_posture', '편안하게 이완된 자세로 앉았다'], ['시작 전', 'remove_distraction', '폰 등 방해 요소를 치웠다'], ['시작 전', 'focus_on_process', '결과보다 과정에 집중하기로 했다'],
+  ['이어가기', 'week_long', '같은 문제를 최소 일주일 이상 이어갈 계획이다'], ['이어가기', 'keep_thinking', '밥 먹을 때, 쉴 때도 생각의 끈을 놓지 않는다'], ['이어가기', 'one_at_a_time', '여러 문제를 벌이지 않고 하나에만 집중한다'], ['이어가기', 'understand_not_memorize', '암기보다 원리를 이해하려 하고, 스스로 풀어본다'],
+  ['몸 컨디션', 'aerobic_exercise', '땀 흘리는 유산소 운동 (하루 30분 정도)'], ['몸 컨디션', 'meat_veggie_meal', '고기와 야채 위주 식사'], ['몸 컨디션', 'omega3_vitamins', '오메가3, 비타민 B·C·D 섭취'], ['몸 컨디션', 'enough_sleep', '밤잠은 충분히 잔다'], ['몸 컨디션', 'power_nap', '선잠(잠들고 10~15분 구간)을 활용한다'],
+  ['마무리', 'think_before_sleep', '잠들기 직전 문제를 한 번 더 떠올린다'], ['마무리', 'clear_motivation', '몰입하는 이유(동기)가 분명하다']];
+const WD = ['월', '화', '수', '목', '금', '토', '일'];
+const DEATH_DAY = WEB_LIFE ? new Date(WEB_LIFE.y + WEB_LIFE.age, WEB_LIFE.m - 1, WEB_LIFE.d) : null;   // 웹판: 생년월일은 내 드라이브의 비공개 파일에서 (shim)
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const inFrame = window.parent !== window;
+const pad2 = n => String(n).padStart(2, '0');
+const hhmm = m => { m = Math.max(0, Math.min(DAY, Math.round(m))); return pad2(Math.floor(m / 60) % 24) + ':' + pad2(m % 60); };
+const iso = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fromIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const todayIso = () => iso(new Date());
+const kdate = s => { const d = fromIso(s); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[(d.getDay() + 6) % 7]})`; };
+const fmtHM = mins => { mins = Math.max(0, Math.round(mins)); const h = Math.floor(mins / 60), m = mins % 60; return h && m ? `${h}시간 ${m}분` : h ? `${h}시간` : `${m}분`; };
+const nowMinute = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
+const nowFrac = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes() + n.getSeconds() / 60; };
+
+/* ---------- 데이터 ---------- */
+let store = {}, cur = todayIso(), ETAG = null, SET = {qhdMode: 'portrait', miniPos: null, quoteIndex: 0, live: {}}, THEME = 'light';
+let serverOK = false, NATIVE = false, saveT = null, saving = false, dirty = false;
+let selected = null;        // 선택한 박스 {kind, id}
+let compact = false, calY = null, calM = null;
+const CID = Math.random().toString(36).slice(2, 10);
+function entry(d){ const e = store[d] || (store[d] = {tasks: [], actual_tasks: []}); e.tasks = e.tasks || []; e.actual_tasks = e.actual_tasks || []; return e; }
+function ensureShape(e){
+  const want = new Set(CATS.flatMap(c => [1, 2, 3].map(s => c + '|' + s)));
+  const ok = Array.isArray(e.checklist) && e.checklist.length === 18 && new Set(e.checklist.map(i => i && i.category + '|' + i.slot)).size === 18 && e.checklist.every(i => i && want.has(i.category + '|' + i.slot));
+  if (!ok) e.checklist = CATS.flatMap(c => [1, 2, 3].map(s => ({category: c, slot: s, text: '', done: false})));
+  e.sleep = e.sleep && typeof e.sleep === 'object' ? e.sleep : {}; e.sleep.bed_time = e.sleep.bed_time || ''; e.sleep.wake_time = e.sleep.wake_time || '';
+  e.focus_challenges = e.focus_challenges || []; e.flow_minutes = e.flow_minutes || 0;
+  return e;
+}
+const E = () => ensureShape(entry(cur));
+const nextId = list => Math.max(0, ...list.map(t => t.id || 0)) + 1;
+
+/* ---------- 저장 (두 창이 같은 파일을 쓴다: 내가 읽은 뒤 바뀌었으면 409 → 다시 읽는다) ---------- */
+function save(){ clearTimeout(saveT); saveT = setTimeout(flush, 300); dirty = true; updateRate(); }
+async function flush(){
+  clearTimeout(saveT); saveT = null;
+  if (!serverOK || saving) return;
+  saving = true; dirty = false;
+  try {
+    const r = await fetch('api/data', {method: 'POST', headers: {'X-Base': ETAG || ''}, body: JSON.stringify(store), keepalive: true});
+    if (r.status === 409){ saving = false; await reload(true); return; }
+    if (!r.ok) throw 0;
+    const j = await r.json(); if (!j.merged) ETAG = j.etag;   // 합쳐졌으면(다른 창 · 다른 기기의 것과) 옛 판 표시를 그대로 두어, 손을 멈추면 pollState 가 합친 것을 다시 읽는다
+  } catch(e){ toast('⚠ 드라이브에 저장하지 못했습니다 — 인터넷 연결을 확인한 뒤 한 번 더 고쳐 주세요'); }
+  saving = false;
+  if (dirty) save();
+}
+async function reload(conflict){
+  try {
+    const r = await fetch('api/data', {cache: 'no-store'}); if (!r.ok) return;
+    ETAG = r.headers.get('ETag'); const d = await r.json();
+    store = d && typeof d === 'object' ? d : {};
+    render();
+    if (conflict) toast('다른 창에서 먼저 고쳐서 다시 불러왔어요 — 방금 바꾼 것을 한 번 더 해 주세요');
+  } catch(e){}
+}
+addEventListener('beforeunload', () => { if (saveT || dirty) flush(); flushAllPlans(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden){ if (saveT || dirty) flush(); flushAllPlans(); } });
+async function pollState(){
+  if (!serverOK) return;
+  try {
+    const s = await (await fetch('api/state', {cache: 'no-store'})).json();
+    if (s.theme && s.theme !== THEME && !inFrame) applyTheme(s.theme);
+    const liveOld = JSON.stringify(SET.live || {});
+    SET = {...SET, ...s.settings};
+    if (JSON.stringify(SET.live || {}) !== liveOld) drawNow();
+    if (s.etag && s.etag !== ETAG && !saveT && !saving && !dirty) await reload(false);
+    for (const [k, tag] of Object.entries(s.planEtags || {}))   // 계획 · 포스트잇: 다른 창이 바꿨으면 다시 읽는다 (불러온 적 있는 것만)
+      if (PLANS[k] && tag !== PLAN_ETAG[k] && !planBusy(k)){ await loadPlan(k); planChanged(k); }
+  } catch(e){}
+}
+async function setLive(patch){ SET.live = {...(SET.live || {}), ...patch}; for (const k in SET.live) if (SET.live[k] == null) delete SET.live[k]; try { await fetch('api/settings', {method: 'POST', body: JSON.stringify({live: SET.live})}); } catch(e){} }
+async function setSetting(patch){ Object.assign(SET, patch); try { await fetch('api/settings', {method: 'POST', body: JSON.stringify(patch)}); } catch(e){} }
+
+/* ---------- 이행률 (원래 compute_compliance_rate 와 같은 계산) ---------- */
+function complianceRate(plan, actual){
+  const total = plan.reduce((s, t) => s + Math.max(0, t.end - t.start), 0);
+  if (total <= 0) return null;
+  const iv = actual.filter(t => t.end > t.start).map(t => [t.start, t.end]).sort((a, b) => a[0] - b[0]), merged = [];
+  for (const [s, e] of iv){ if (merged.length && s <= merged[merged.length - 1][1]) merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e); else merged.push([s, e]); }
+  let covered = 0;
+  for (const t of plan) for (const [s, e] of merged){ const lo = Math.max(t.start, s), hi = Math.min(t.end, e); if (hi > lo) covered += hi - lo; }
+  return Math.max(0, Math.min(100, Math.round(covered / total * 100)));
+}
+function hexRgb(h){ return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function updateRate(){
+  const e = E(), rate = complianceRate(e.tasks, e.actual_tasks), b = $('#rate');
+  if (rate == null){ b.textContent = '계획 없음'; b.style.background = ''; b.style.color = ''; return; }
+  const dark = THEME === 'dark', lo = hexRgb(dark ? '#1f1e3d' : '#ecebfb'), hi = hexRgb(dark ? '#7d7aff' : '#5856d6'), t = rate / 100;
+  const rgb = lo.map((v, i) => Math.round(v + (hi[i] - v) * t)), lum = .299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2];
+  b.textContent = `이행률 ${rate}%`; b.style.background = `rgb(${rgb.join(',')})`; b.style.color = lum < 165 ? '#fff' : (dark ? '#a9a7ff' : '#4745b8');
+}
+
+/* ---------- 날짜 이동 ---------- */
+function goDate(d){
+  if (d === cur) return;
+  if (saveT) flush();
+  cur = d; selected = null;
+  const dd = fromIso(d);
+  if (calY != null && (dd.getFullYear() !== calY || dd.getMonth() + 1 !== calM)){ calY = dd.getFullYear(); calM = dd.getMonth() + 1; }
+  render();
+}
+function goToday(){ goDate(todayIso()); const n = new Date(); calY = n.getFullYear(); calM = n.getMonth() + 1; drawCal(); }
+function goTomorrow(){ const d = new Date(); d.setDate(d.getDate() + 1); goDate(iso(d)); }
+function dateNav(a){
+  if (a === 'today') goToday();
+  else {
+    const d = fromIso(cur);
+    if (a === 'prev_day' || a === 'next_day') d.setDate(d.getDate() + (a === 'prev_day' ? -1 : 1));
+    else { const step = a === 'prev_month' ? -1 : 1, y = d.getFullYear(), m = d.getMonth() + step, last = new Date(y, m + 1, 0).getDate(); d.setFullYear(y, m, Math.min(d.getDate(), last)); }
+    goDate(iso(d));
+  }
+  praise(kdate(cur), 900);
+}
+
+/* ---------- 머리글 ---------- */
+function drawHeader(){
+  $$('#daySeg button').forEach(b => b.classList.toggle('on', (b.dataset.k === 'today' && cur === todayIso()) || (b.dataset.k === 'tomorrow' && cur === iso(new Date(Date.now() + 864e5)))));
+  $$('#qhdSeg button').forEach(b => b.classList.toggle('on', b.dataset.k === SET.qhdMode));
+  $$('#bTheme,.bTheme').forEach(b => b.textContent = THEME === 'dark' ? 'L ☀️' : 'L 🌙');
+  $$('.viewSeg button').forEach(b => b.classList.toggle('on', +b.dataset.v === VIEW));
+  $('#planBack').hidden = !inFrame;
+  const days = DEATH_DAY ? Math.ceil((DEATH_DAY - new Date().setHours(0, 0, 0, 0)) / 864e5) : null; $('#dday').textContent = days == null ? '—' : days.toLocaleString();
+  $('#bSolo').hidden = !inFrame; $('#mQuit').hidden = !(NATIVE && !inFrame);
+  updateRate(); drawActBar();
+}
+function drawActBar(){
+  const e = E(), today = todayIso();
+  const act = ACTIVITIES.map(name => {
+    const run = findRunning(name), [f, b, t] = ACT_STYLE[name];
+    let label = name;
+    if (run){ const el = (run.date !== today ? DAY : 0) + nowMinute() - run.task.start; label = `${name}<small>${fmtHM(el)}</small>`; }
+    else { const tot = e.actual_tasks.filter(x => x.activity === name && !x.running).reduce((s, x) => s + Math.max(0, x.end - x.start), 0); if (tot) label = `${name}<small>${fmtHM(tot)}</small>`; }
+    return `<button class="act${run ? ' run' : ''}" style="--a-fill:${f};--a-b:${b};--a-t:${t}" onclick="toggleActivity('${name}')" title="${name} - 누르면 지금부터 '실제'에 ${name} 기록 시작, 한 번 더 누르면 종료">${label}</button>`;
+  }).join('');
+  const cnt = COUNTERS.map(([k, l]) => `<button class="cnt" onclick="addCounter('${k}')" oncontextmenu="event.preventDefault();undoCounter('${k}')" title="${l} - 누를 때마다 오늘 횟수 +1 (잘못 눌렀으면 오른쪽 클릭으로 -1). 숫자는 지금 보고 있는 날짜에 누른 횟수">${l}<b>${+(e[k] || 0)}</b></button>`).join('');
+  $('#actBar').innerHTML = act + '<span style="width:6px"></span>' + cnt + '<span style="width:12px"></span>' + volHTML() + `<span class="sp"></span><button class="quote" onclick="showQuotes()" title="누르면 나폴레온 힐의 문구 4개를 모두 보여줍니다">“${esc(QUOTES[SET.quoteIndex || 0])}” — 나폴레온 힐</button>`;
+  drawMini();
+}
+let praiseT = null;
+function praise(text, ms = 3500){ const p = $('#praise'); p.textContent = text; p.hidden = false; clearTimeout(praiseT); praiseT = setTimeout(() => p.hidden = true, ms); if (compact) miniMsg(text); }
+let toastT = null;
+function toast(t, ms = 3200){ const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, ms); }
+
+/* ---------- 계획 화면 (2단계): 2 월간 · 3 연간 · 4 5년 · 5 5개년 ----------
+   원래 프로그램에서는 전체화면 창이었다. 여기서는 시간표 대신 창 전체(#plan)에 그린다. 화면마다 따로 나눈 스크립트(todo_*.js)가
+   TD.views[번호] = {mount(el, opts), unmount(), onKey(e) → 처리했으면 true, onTheme(), onData(kind), escBack() → Esc 를 화면이 썼으면 true} 로 붙는다.
+   데이터: 원래 파일과 같은 모양 — annual {groups, projects} · monthly {goals, notes} · five {goals, year_goals, block_goals} · postit {notes, next_color} */
+let VIEW = 1;
+const PLAN_KINDS = ['annual', 'monthly', 'five', 'postit'];
+const PROJECT_COLOR_PALETTE = ['#3d8bd6', '#e0a83e', '#4CAF50', '#c0562f', '#8e6bc4', '#2fa7a0'];
+const PLANS = {}, PLAN_ETAG = {}, planSaveT = {}, planSaving = {}, planDirty = {};
+const strMap = o => Object.fromEntries(Object.entries(o && typeof o === 'object' && !Array.isArray(o) ? o : {}).filter(([, v]) => typeof v === 'string'));
+const PLAN_NORM = {
+  annual(raw){   // 원래 load_annual_plan_data: 그룹이 없으면 '미분류' 하나, 없는 그룹을 가리키는 할 일은 첫 그룹으로, 색 없는 그룹은 팔레트 순서대로
+    const d = raw && typeof raw === 'object' ? raw : {};
+    const projects = (Array.isArray(d.projects) ? d.projects : []).filter(p => p && typeof p === 'object');
+    let groups = (Array.isArray(d.groups) ? d.groups : []).filter(g => g && typeof g === 'object');
+    if (!groups.length){ const id = Math.random().toString(16).slice(2, 10); groups = [{id, name: '미분류', collapsed: false, color: PROJECT_COLOR_PALETTE[0]}]; projects.forEach(p => p.group_id = id); }
+    else { const ids = new Set(groups.map(g => g.id)); projects.forEach(p => { if (!ids.has(p.group_id)) p.group_id = groups[0].id; }); }
+    groups.forEach((g, i) => { if (!g.color) g.color = PROJECT_COLOR_PALETTE[i % PROJECT_COLOR_PALETTE.length]; });
+    return {...d, groups, projects};
+  },
+  monthly(raw){ const d = raw && typeof raw === 'object' ? raw : {}; return {...d, goals: strMap(d.goals), notes: strMap(d.notes)}; },
+  five(raw){ const d = raw && typeof raw === 'object' ? raw : {}; return {...d, goals: (Array.isArray(d.goals) ? d.goals : []).filter(g => g && typeof g === 'object' && g.start && g.end), year_goals: strMap(d.year_goals), block_goals: strMap(d.block_goals)}; },
+  postit(raw){ const d = raw && typeof raw === 'object' ? raw : {}; return {...d, notes: (Array.isArray(d.notes) ? d.notes : []).filter(n => n && typeof n === 'object' && n.id), next_color: +d.next_color || 0}; },
+};
+async function loadPlan(kind){
+  try {
+    const r = await fetch('api/plan?kind=' + kind, {cache: 'no-store'}); if (!r.ok) throw 0;
+    PLAN_ETAG[kind] = r.headers.get('ETag'); PLANS[kind] = PLAN_NORM[kind](await r.json());
+  } catch(e){ if (!PLANS[kind]) PLANS[kind] = PLAN_NORM[kind]({}); }
+  return PLANS[kind];
+}
+function savePlan(kind){ clearTimeout(planSaveT[kind]); planDirty[kind] = true; planSaveT[kind] = setTimeout(() => flushPlan(kind), 300); }
+async function flushPlan(kind){
+  clearTimeout(planSaveT[kind]); planSaveT[kind] = null;
+  if (!serverOK || planSaving[kind] || !PLANS[kind]) return;
+  planSaving[kind] = true; planDirty[kind] = false;
+  try {
+    const r = await fetch('api/plan?kind=' + kind, {method: 'POST', headers: {'X-Base': PLAN_ETAG[kind] || ''}, body: JSON.stringify(PLANS[kind]), keepalive: true});
+    if (r.status === 409){ planSaving[kind] = false; await loadPlan(kind); planChanged(kind); toast('다른 창에서 먼저 고쳐서 다시 불러왔어요 — 방금 바꾼 것을 한 번 더 해 주세요'); return; }
+    if (!r.ok) throw 0;
+    const j = await r.json(); if (!j.merged) PLAN_ETAG[kind] = j.etag;   // 합쳐졌으면 손을 멈춘 뒤 pollState 가 다시 읽는다
+  } catch(e){ toast('⚠ 계획을 드라이브에 저장하지 못했습니다 — 인터넷 연결을 확인한 뒤 한 번 더 고쳐 주세요'); }
+  planSaving[kind] = false;
+  if (planDirty[kind]) savePlan(kind);
+}
+const planBusy = k => planSaveT[k] || planSaving[k] || planDirty[k];
+function flushAllPlans(){ for (const k of PLAN_KINDS) if (planSaveT[k] || planDirty[k]) flushPlan(k); }
+function planChanged(kind){   // 다른 창이 바꿨거나 다시 불러왔을 때: 보고 있는 화면 · 미니 달력에 알린다
+  const v = TD.views[VIEW]; if (VIEW !== 1 && v && v.onData) try { v.onData(kind); } catch(e){ console.error(e); }
+  if (kind === 'annual' && VIEW === 1) drawCal();
+}
+async function setView(n, opts = {}){
+  n = +n || 1;
+  if (n !== 1 && !TD.views[n]){ toast('이 화면을 불러오지 못했어요'); return; }
+  if (compact) await toggleMini();
+  closeModal();
+  const old = TD.views[VIEW];
+  if (VIEW !== 1 && old && old.unmount) try { old.unmount(); } catch(e){ console.error(e); }
+  VIEW = n;
+  const body = $('#planBody'); body.innerHTML = '';
+  document.documentElement.classList.toggle('planview', n !== 1); $('#plan').hidden = n === 1;
+  drawHeader();
+  if (n === 1){ selected = null; setTimeout(layout, 30); drawCal(); return; }
+  await Promise.all(PLAN_KINDS.filter(k => !PLANS[k]).map(loadPlan));
+  if (VIEW !== n) return;
+  try { TD.views[n].mount(body, opts); } catch(e){ console.error(e); toast('화면을 그리다 문제가 생겼어요'); }
+}
+/* 화면 스크립트들이 쓰는 도구 모음 */
+const TD = window.TD = {
+  views: {}, PLANS, PROJECT_COLOR_PALETTE, WD,
+  get store(){ return store; }, get theme(){ return THEME; }, get view(){ return VIEW; },
+  esc, pad2, iso, fromIso, todayIso, kdate, fmtHM, hhmm,
+  modal: (h, c) => modal(h, c), closeModal: () => closeModal(), confirmBox: (t, f, l) => confirmBox(t, f, l), toast: (t, ms) => toast(t, ms),
+  plan: kind => PLANS[kind], savePlan,
+  setView, goDay(d){ setView(1).then(() => goDate(d)); },
+  newId: () => Math.random().toString(16).slice(2, 10),
+  lighten,
+};
+/* 원래 lighten_color: 라이트는 바탕(흰색) 쪽으로 factor 만큼, 다크는 검은색이 아니라 테두리 회색(#2c2c2e) 쪽으로 최대 0.5 만큼 섞는다 */
+function lighten(hex, f = .6){
+  const c = /^#[0-9a-f]{6}$/i.test(hex || '') ? hexRgb(hex) : hexRgb('#3d8bd6'), dark = THEME === 'dark';
+  const bg = hexRgb(dark ? '#2c2c2e' : '#ffffff'); if (dark) f = Math.min(f, .5);
+  return '#' + c.map((v, i) => Math.trunc(v + (bg[i] - v) * f).toString(16).padStart(2, '0')).join('');
+}
+
+
+/* ---------- 활동 · 횟수 (기록은 늘 '오늘'에 남는다) ---------- */
+function findRunning(name){
+  const t = new Date(), y = new Date(Date.now() - 864e5);
+  for (const d of [iso(t), iso(y)]){ const e = store[d]; if (!e) continue; const task = (e.actual_tasks || []).find(x => x.running && x.activity === name); if (task) return {date: d, task}; }
+  return null;
+}
+function actualOverlap(d, lo, hi, exclude){ return ((store[d] || {}).actual_tasks || []).find(t => t !== exclude && t.start < hi && lo < Math.max(t.end, t.start + MIN_DUR)) || null; }
+function nextActualStart(d, after, exclude){ return Math.min(DAY, ...((store[d] || {}).actual_tasks || []).filter(t => t !== exclude && t.start >= after).map(t => t.start)); }
+function finishActivity(name, run, today, nowMin){
+  const {date: d, task} = run; let total;
+  if (d !== today){ task.end = DAY; total = DAY - task.start + nowMin; if (nowMin > 0){ const a = entry(today).actual_tasks; a.push({id: nextId(a), start: 0, end: nowMin, text: name, priority: '보통', done: true, result: '총 ' + fmtHM(total), activity: name}); } }
+  else { task.end = Math.max(task.start + 1, Math.min(DAY, nowMin)); total = task.end - task.start; }
+  delete task.running; task.done = true; task.result = '총 ' + fmtHM(total);
+  return total;
+}
+function toggleActivity(name){
+  const today = todayIso(); if (cur !== today) goToday();
+  const nowMin = nowMinute(), run = findRunning(name);
+  if (!run){
+    const stopped = [];
+    for (const other of ACTIVITIES){ const r = findRunning(other); if (r) stopped.push(`${other} 종료(${fmtHM(finishActivity(other, r, today, nowMin))})`); }
+    let start = nowMin, blocking = actualOverlap(today, start, start + 1);
+    if (blocking && blocking.end - start <= 1){ start = blocking.end; blocking = actualOverlap(today, start, start + 1); }
+    if (blocking || start >= DAY){ save(); render(); modal(`<h3>${name}을(를) 시작할 수 없어요</h3><div class="tip">지금(${hhmm(nowMin)})은 실제 칸에 이미 '${esc(blocking?.text || '')}' 기록(${hhmm(blocking?.start || 0)}~${hhmm(blocking?.end || 0)})이 있어요.\n같은 시간에 두 가지 일을 기록하지 않도록, 그 기록을 줄이거나 지운 뒤 다시 눌러 주세요.</div><div class="bt"><button class="primary" onclick="closeModal()">확인</button></div>`); return; }
+    const a = entry(today).actual_tasks;
+    a.push({id: nextId(a), start, end: Math.min(DAY, start + 1), text: name, priority: '보통', done: false, result: '진행 중', activity: name, running: true});
+    praise([...stopped, `${name} 시작 ${hhmm(nowMin)}`].join(' → '));
+  } else praise(`${name} 종료 · ${fmtHM(finishActivity(name, run, today, nowMin))}`);
+  save(); render();
+}
+function growRunning(){   // 1분마다: 진행 중인 활동 박스의 끝을 지금까지 늘린다 (다음 박스를 넘지 않게)
+  const today = todayIso(), nowMin = nowMinute(); let changed = false;
+  for (const name of ACTIVITIES){
+    const r = findRunning(name); if (!r) continue;
+    const want = r.date !== today ? DAY : Math.max(r.task.start + 1, Math.min(nowMin, nextActualStart(today, r.task.start + 1, r.task)));
+    if (r.task.end !== want){ r.task.end = want; changed = true; }
+  }
+  if (changed){ save(); if (cur === today) drawTasks('actual'); drawActBar(); }
+}
+function addCounter(k){ const e = entry(todayIso()); e[k] = (+e[k] || 0) + 1; save(); drawActBar(); const p = COUNTERS.find(c => c[0] === k); if (p) praise(p[2].replace('{}', e[k])); }
+function undoCounter(k){ const e = store[todayIso()]; if (!e || !(+e[k] > 0)) return; e[k] = +e[k] - 1; save(); drawActBar(); }
+
+/* ---------- 시간표 ---------- */
+let PPM = 1;   // 1분 = 몇 px
+function colOf(m){ return Math.max(0, Math.min(COLS - 1, Math.floor(m / COLMIN))); }
+function buildBoards(){
+  const main = $('#boards'); main.innerHTML = '';
+  for (let i = 0; i < COLS; i++){
+    const g = document.createElement('section'); g.className = 'group'; g.dataset.col = i;
+    g.innerHTML = `<div class="glabel p">계획</div><div class="glabel a">실제</div>
+      <div class="gut p" data-col="${i}"></div><div class="col plan" data-kind="plan" data-col="${i}"></div>
+      <div class="gut a" data-col="${i}"></div><div class="col actual" data-kind="actual" data-col="${i}"></div>` + (i === 0 ? '<div id="panel"></div>' : '');
+    main.appendChild(g);
+  }
+  layout();
+}
+function layout(){
+  const c = $('.col'); if (!c) return;
+  PPM = c.clientHeight / COLMIN;
+  document.documentElement.style.setProperty('--h60', (60 * PPM) + 'px'); document.documentElement.style.setProperty('--h30', (30 * PPM) + 'px');
+  document.documentElement.style.setProperty('--h15', (15 * PPM) + 'px'); document.documentElement.style.setProperty('--h5', (5 * PPM) + 'px'); document.documentElement.style.setProperty('--h1', PPM + 'px');
+  $$('.col').forEach(el => { el.classList.toggle('no1', PPM < 1.6); el.classList.toggle('no5', PPM < .8); });
+  $$('.gut.p').forEach(g => { const i = +g.dataset.col; let h = '';
+    for (let m = 0; m < COLMIN; m += 15){ const y = m * PPM, abs = i * COLMIN + m; if (m % 60 === 0) h += `<span class="hl" style="top:${y}px">${pad2(abs / 60)}:00</span>`; else if (m % 30 === 0) h += `<span class="hl h30" style="top:${y}px">:30</span>`; else if (PPM >= 1.1) h += `<span class="hl h15" style="top:${y}px">:${pad2(m % 60)}</span>`; }
+    g.innerHTML = h; });
+  drawTasks('plan'); drawTasks('actual'); drawNow();
+}
+addEventListener('resize', () => { if (VIEW === 1 && !compact) layout(); });
+function segs(t){ const out = []; for (let c = colOf(t.start); c <= colOf(Math.max(t.start, t.end - 1)); c++){ const lo = Math.max(t.start, c * COLMIN), hi = Math.min(t.end, (c + 1) * COLMIN); if (hi > lo) out.push({c, lo, hi}); } return out; }
+function styleOf(kind, t){
+  if (t.activity && ACT_STYLE[t.activity]) return ACT_STYLE[t.activity];
+  if (t.done) return ['var(--done)', 'var(--done-b)', 'var(--done-t)'];
+  if (kind === 'actual') return ['var(--act)', 'var(--act-b)', 'var(--act-t)'];
+  const p = {'높음': 'hi', '보통': 'md', '낮음': 'lo'}[t.priority] || 'md';
+  return [`var(--p-${p})`, `var(--p-${p}-b)`, `var(--p-${p}-t)`];
+}
+function drawTasks(kind, ghost){
+  const e = E(), list = kind === 'plan' ? e.tasks : e.actual_tasks, html = Array(COLS).fill(''), marks = Array(COLS).fill('');
+  const all = ghost ? [...list, ghost] : list;
+  for (const t of all){
+    const [f, b, tc] = styleOf(kind, t), sg = segs(t), nextHere = list.some(o => o !== t && o.start === t.end), isGhost = t === ghost;
+    sg.forEach((s, idx) => {
+      const y0 = (s.lo - s.c * COLMIN) * PPM, y1 = (s.hi - s.c * COLMIN) * PPM, h = y1 - y0, first = idx === 0, last = idx === sg.length - 1;
+      const extra = kind === 'plan' ? t.goal : t.result, mark = t.done ? '✔ ' : '';
+      const label = first ? [(t.text || t.done) ? mark + (t.text || '') : '', extra ? `${kind === 'plan' ? '🎯' : '✅'} ${extra}` : ''].filter(Boolean).join('\n') : mark + '(계속)';
+      const tiny = h < 22, dur = sg.length === 1 || h === Math.max(...sg.map(x => (x.hi - x.lo) * PPM)) ? `<span class="dur">${t.end - t.start}</span>` : '';
+      const qc = kind === 'plan' && first && !t.done && !isGhost && h >= 20 ? `<button class="qc" data-act="qc" title="계획대로 이행했음 - 같은 시간으로 실제에 복사">✓</button>` : '';
+      const del = last && !isGhost && h >= (qc ? 40 : 20) ? `<button class="del" data-act="del" title="삭제">✕</button>` : '';
+      html[s.c] += `<div class="task${isGhost ? ' ghost' : ''}${selected && selected.kind === kind && selected.id === t.id ? ' sel' : ''}${tiny ? ' tiny' : ''}${first ? '' : ' cont'}" data-id="${t.id}" data-seg="${idx}" style="--f:${f};--b:${b};--t:${tc};top:${y0}px;height:${Math.max(3, h)}px"><div class="x">${esc(label)}</div>${dur}${qc}${del}</div>`;
+      if (first) marks[s.c] += `<span class="mm" style="top:${y0}px;color:${b}">${pad2(s.lo % 60)}</span>`;
+      if (last && !nextHere && h >= 14) marks[s.c] += `<span class="mm" style="top:${y1}px;color:${b}">${pad2(s.hi % 60)}</span>`;
+    });
+  }
+  for (let i = 0; i < COLS; i++){
+    const col = $(`.col.${kind}[data-col="${i}"]`); if (!col) continue;
+    const keep = col.querySelector('.now'); col.innerHTML = html[i]; if (keep) col.appendChild(keep);
+    const gut = $(`.gut.${kind === 'plan' ? 'p' : 'a'}[data-col="${i}"]`);
+    gut.querySelectorAll('.mm').forEach(x => x.remove()); gut.insertAdjacentHTML('beforeend', marks[i]);
+  }
+  if (kind === 'actual') drawFocusHistory();
+}
+function drawFocusHistory(){
+  $$('.gut.a .fh').forEach(x => x.remove());
+  for (const rec of E().focus_challenges || []){
+    for (const s of segs({start: rec.start, end: Math.max(rec.end, rec.start + 1)})){
+      const y0 = (s.lo - s.c * COLMIN) * PPM, y1 = (s.hi - s.c * COLMIN) * PPM;
+      $(`.gut.a[data-col="${s.c}"]`).insertAdjacentHTML('beforeend', `<i class="fh${rec.result === 'canceled' ? ' cancel' : ''}" style="top:${y0}px;height:${Math.max(2, y1 - y0)}px" title="집중 챌린지 ${rec.result === 'success' ? '성공' : '취소'} ${hhmm(rec.start)}~${hhmm(rec.end)}"></i>`);
+    }
+  }
+}
+/* 현재 시각 선 · 배지 · 집중 챌린지 상자 (오늘을 볼 때만) */
+function focusStatus(){
+  const L = SET.live || {};
+  if (!L.focusEnd) return {running: false, label: '챌린지'};
+  const remain = (new Date(L.focusEnd) - Date.now()) / 1000;
+  if (remain <= 0){ finishFocus('success'); return {running: false, label: '챌린지'}; }
+  const st = new Date(L.focusStart), r = Math.floor(remain);
+  return {running: true, label: `${pad2(Math.floor(r / 60))}:${pad2(r % 60)}`, startMin: st.getHours() * 60 + st.getMinutes() + st.getSeconds() / 60, startText: `${pad2(st.getHours())}:${pad2(st.getMinutes())}`};
+}
+function drawNow(){
+  $$('.now,.nowb,.fbox,.fstart').forEach(x => x.remove());
+  if (cur !== todayIso()) return;
+  const m = nowFrac(), c = colOf(m), y = (m - c * COLMIN) * PPM;
+  $$(`.col[data-col="${c}"]`).forEach(col => col.insertAdjacentHTML('beforeend', `<div class="now" style="top:${y}px"></div>`));
+  const gut = $(`.gut.p[data-col="${c}"]`);
+  const st = focusStatus();
+  gut.insertAdjacentHTML('beforeend', `<div class="nowb" style="top:${y}px">${hhmm(m)}</div><div class="fbox${st.running ? ' run' : ''}" style="top:${y + 9}px" onclick="focusClick(event)" title="${st.running ? '집중 챌린지 진행 중 - 누르면 그만두기' : '집중 챌린지 - 누르면 시간을 골라 시작'}">${st.label}</div>`);
+  if (st.running && st.startMin != null){ const sc = colOf(st.startMin), sy = (st.startMin - sc * COLMIN) * PPM; $(`.gut.p[data-col="${sc}"]`).insertAdjacentHTML('beforeend', `<div class="fstart" style="top:${sy}px">${st.startText}</div>`); }
+}
+function focusClick(ev){
+  ev.stopPropagation();
+  if ((SET.live || {}).focusEnd){ confirmBox('진행 중인 집중 챌린지를 그만할까요?', () => finishFocus('canceled'), '그만하기'); return; }
+  modal(`<h3>집중 챌린지</h3><div class="tip">정한 시간 동안 한 가지에만 집중합니다. 끝나면 계획/실제 사이에 파란 막대로 남습니다.</div><div class="menu">${FOCUS_OPTS.map(([m, l]) => `<button onclick="startFocus(${m})">${l}</button>`).join('')}</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`);
+}
+function startFocus(mins){ closeModal(); const now = new Date(); setLive({focusStart: now.toISOString(), focusEnd: new Date(now.getTime() + mins * 60000).toISOString(), focusDate: cur}); drawNow(); }
+function finishFocus(result){
+  const L = SET.live || {}; if (!L.focusStart) return;
+  const st = new Date(L.focusStart), en = new Date(), d = L.focusDate || todayIso(), rec = {start: st.getHours() * 60 + st.getMinutes(), end: en.getHours() * 60 + en.getMinutes(), result};
+  setLive({focusStart: null, focusEnd: null, focusDate: null});
+  const e = ensureShape(entry(d));
+  if (!e.focus_challenges.some(r => r.start === rec.start && r.result === rec.result)) e.focus_challenges.push(rec);
+  save(); if (d === cur) drawFocusHistory(); drawNow();
+  if (result === 'success') modal(`<h3>집중 챌린지 완료! 🎉</h3><div class="tip">수고하셨어요. ${fmtHM(rec.end - rec.start)} 동안 집중했습니다.</div><div class="bt"><button class="primary" onclick="closeModal()">확인</button></div>`);
+}
+
+/* ---------- 마우스: 빈 곳 끌기 = 새 박스 · 박스 끌기 = 옮기기 · 위아래 끝 끌기 = 길이 · 클릭 = 선택 · 두 번 = 수정 ---------- */
+let PD = null;
+function minuteAt(kind, clientX, clientY){
+  const cols = $$(`.col.${kind}`); let best = cols[0], bd = 1e9;
+  for (const c of cols){ const r = c.getBoundingClientRect(), d = (clientX < r.left ? r.left - clientX : clientX > r.right ? clientX - r.right : 0) + (clientY < r.top ? r.top - clientY : clientY > r.bottom ? clientY - r.bottom : 0); if (d < bd){ bd = d; best = c; } }
+  const r = best.getBoundingClientRect(), i = +best.dataset.col;
+  return Math.round(Math.max(0, Math.min(DAY, i * COLMIN + Math.max(0, Math.min(COLMIN, (clientY - r.top) / PPM)))));
+}
+document.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || compact || !$('#modal').hidden) return;
+  const col = e.target.closest('.col'); if (!col) return;
+  const kind = col.dataset.kind, list = kind === 'plan' ? E().tasks : E().actual_tasks, tEl = e.target.closest('.task');
+  if (tEl){
+    const t = list.find(x => x.id === +tEl.dataset.id); if (!t) return;
+    if (e.target.dataset.act === 'qc'){ quickComplete(t); return; }
+    if (e.target.dataset.act === 'del'){ deleteTask(kind, t); return; }
+    const r = tEl.getBoundingClientRect(), sg = segs(t), idx = +tEl.dataset.seg;
+    let mode = 'move';
+    if (e.clientY - r.top <= EDGE_PX && idx === 0) mode = 'start'; else if (r.bottom - e.clientY <= EDGE_PX && idx === sg.length - 1) mode = 'end';
+    PD = {kind, t, mode, m0: minuteAt(kind, e.clientX, e.clientY), s0: t.start, e0: t.end, x: e.clientX, y: e.clientY, moved: false};
+  } else PD = {kind, mode: 'create', m0: minuteAt(kind, e.clientX, e.clientY), x: e.clientX, y: e.clientY, moved: false};
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e => {
+  if (!PD) return;
+  if (!PD.moved && Math.hypot(e.clientX - PD.x, e.clientY - PD.y) < DRAG_PX) return;
+  PD.moved = true;
+  const m = minuteAt(PD.kind, e.clientX, e.clientY), list = PD.kind === 'plan' ? E().tasks : E().actual_tasks;
+  if (PD.mode === 'create'){ const lo = Math.min(PD.m0, m), hi = Math.max(PD.m0, m) + 1; PD.ghost = {id: -1, start: Math.max(0, lo), end: Math.min(DAY, Math.max(hi, lo + MIN_DUR)), text: '', priority: '보통'}; drawTasks(PD.kind, PD.ghost); return; }
+  const t = PD.t, d = m - PD.m0; let s = t.start, en = t.end;
+  if (PD.mode === 'move'){ const dur = PD.e0 - PD.s0; s = Math.max(0, Math.min(DAY - dur, PD.s0 + d)); en = s + dur; }
+  else if (PD.mode === 'start') s = Math.max(0, Math.min(PD.e0 - MIN_DUR, PD.s0 + d));
+  else en = Math.max(PD.s0 + MIN_DUR, Math.min(DAY, PD.e0 + d));
+  if (PD.kind === 'actual' && list.some(o => o !== t && o.start < en && s < Math.max(o.end, o.start + MIN_DUR))) return;   // 실제 칸은 박스가 겹치지 않는다
+  if (s !== t.start || en !== t.end){ t.start = s; t.end = en; PD.changed = true; drawTasks(PD.kind); }
+});
+document.addEventListener('pointerup', e => {
+  if (!PD) return; const p = PD; PD = null;
+  const list = p.kind === 'plan' ? E().tasks : E().actual_tasks;
+  if (p.mode === 'create'){
+    if (!p.moved){ selected = null; drawTasks('plan'); drawTasks('actual'); return; }
+    const g = p.ghost;
+    if (p.kind === 'actual' && list.some(o => o.start < g.end && g.start < Math.max(o.end, o.start + MIN_DUR))){ drawTasks(p.kind); toast('실제 칸은 박스가 겹칠 수 없어요'); return; }
+    const t = {id: nextId(list), start: g.start, end: g.end, text: '', priority: '보통', done: false, [p.kind === 'plan' ? 'goal' : 'result']: ''};
+    list.push(t); save(); drawTasks(p.kind); editTask(p.kind, t);
+    return;
+  }
+  if (p.changed){ save(); return; }
+  if (!p.moved){
+    const now = Date.now();
+    if (p.lastClick && selected && selected.id === p.t.id && now - (window.__lastClickT || 0) < 400){ editTask(p.kind, p.t); window.__lastClickT = 0; return; }
+    if (selected && selected.kind === p.kind && selected.id === p.t.id && now - (window.__lastClickT || 0) < 400){ editTask(p.kind, p.t); window.__lastClickT = 0; return; }
+    window.__lastClickT = now; selected = {kind: p.kind, id: p.t.id}; drawTasks('plan'); drawTasks('actual');
+  }
+});
+function quickComplete(t){
+  t.done = true;
+  const e = E(), b = actualOverlap(cur, t.start, t.end);
+  if (b) praise(`완료 표시만 했어요 - 실제 칸의 같은 시간에 이미 '${b.text || ''}' 기록이 있어요`);
+  else { e.actual_tasks.push({id: nextId(e.actual_tasks), start: t.start, end: t.end, text: t.text || '', priority: t.priority || '보통', done: true, result: '계획대로 완료'}); praise(['잘했어요! 계획대로 이행했습니다 👏', '좋아요, 또 하나 지켰네요 ✨', '계획 → 실행. 멋집니다 💪'][Math.floor(Math.random() * 3)]); }
+  save(); drawTasks('plan'); drawTasks('actual');
+}
+function deleteTask(kind, t){
+  const e = E(); if (kind === 'plan') e.tasks = e.tasks.filter(x => x !== t); else e.actual_tasks = e.actual_tasks.filter(x => x !== t);
+  if (selected && selected.id === t.id && selected.kind === kind) selected = null;
+  save(); drawTasks(kind); drawActBar();
+}
+function editTask(kind, t){
+  const extraKey = kind === 'plan' ? 'goal' : 'result', extraLabel = kind === 'plan' ? '목표 기여\n(선택)' : '성과 기록\n(선택)';
+  modal(`<h3>${kind === 'plan' ? '계획' : '실제'} 항목</h3>
+    <div class="fld"><label>시간</label><div style="display:flex;gap:6px;align-items:center"><input type="time" id="edS" value="${hhmm(t.start)}"> ~ <input type="time" id="edE" value="${t.end >= DAY ? '23:59' : hhmm(t.end)}"><span class="tip" id="edDur">${t.end - t.start}분</span></div></div>
+    <div class="fld"><label>내용</label><input type="text" id="edT" value="${esc(t.text || '')}"></div>
+    <div class="fld"><label>${extraLabel}</label><input type="text" id="edX" value="${esc(t[extraKey] || '')}"></div>
+    <div class="fld"><label>우선순위</label><select id="edP">${PRIORITIES.map(p => `<option ${p === (t.priority || '보통') ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+    <div class="fld"><label></label><label style="display:flex;gap:6px;align-items:center;color:var(--text)"><input type="checkbox" id="edD" ${t.done ? 'checked' : ''}> 완료됨</label></div>
+    <div class="bt"><button class="danger left" id="edDel">삭제</button><button onclick="closeModal()">취소</button><button class="primary" id="edOk">저장</button></div>`);
+  const upd = () => { const s = toMin($('#edS').value), en = toMin($('#edE').value, true); $('#edDur').textContent = en > s ? `${en - s}분` : '끝이 시작보다 뒤여야 해요'; };
+  $('#edS').oninput = $('#edE').oninput = upd;
+  $('#edOk').onclick = () => {
+    let s = toMin($('#edS').value), en = toMin($('#edE').value, true); if (!(en > s)){ upd(); return; }
+    const list = kind === 'plan' ? E().tasks : E().actual_tasks;
+    if (kind === 'actual' && list.some(o => o !== t && o.start < en && s < Math.max(o.end, o.start + MIN_DUR))){ toast('실제 칸은 박스가 겹칠 수 없어요 — 시간을 다시 정해 주세요'); return; }
+    t.start = s; t.end = en; t.text = $('#edT').value.trim(); t[extraKey] = $('#edX').value.trim(); t.priority = $('#edP').value; t.done = $('#edD').checked;
+    closeModal(); save(); drawTasks(kind);
+  };
+  $('#edDel').onclick = () => { closeModal(); deleteTask(kind, t); };
+  $('#edT').focus(); $('#edT').select();
+  $('#modal').onkeydown = ev => { if (ev.key === 'Enter' && ev.target.tagName !== 'TEXTAREA'){ ev.preventDefault(); $('#edOk').click(); } };
+}
+function toMin(v, end){ if (!v) return 0; const [h, m] = v.split(':').map(Number); const t = h * 60 + m; return end && v === '23:59' ? DAY : t; }
+
+/* ---------- 체크리스트 패널 ---------- */
+function drawPanel(){
+  const e = E(), p = $('#panel'); if (!p) return;
+  const sl = e.sleep, hours = ['--', ...Array.from({length: 24}, (_, i) => pad2(i))], mins = ['--', ...Array.from({length: 12}, (_, i) => pad2(i * 5))];
+  const sel = (id, vals, v) => `<select id="${id}" onchange="sleepChange()">${vals.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
+  const [bh, bm] = splitHM(sl.bed_time), [wh, wm] = splitHM(sl.wake_time);
+  const fs = flowStatus();
+  const fc = e.flow_checklist || {}, groups = [...new Set(FLOW_ITEMS.map(x => x[0]))];
+  const fcDone = FLOW_ITEMS.filter(x => fc[x[1]]).length;
+  p.innerHTML = `
+    <div class="prow"><span class="chip" style="background:var(--sleep-bed);color:var(--sleep-bed-t)">취침</span>${sel('slBH', hours, bh)}:${sel('slBM', mins, bm)}<span style="color:var(--muted);margin:0 2px">→</span><span class="chip" style="background:var(--sleep-wake);color:var(--sleep-wake-t)">기상</span>${sel('slWH', hours, wh)}:${sel('slWM', mins, wm)}<span class="sleepdur" id="slDur">${sleepText(sl) || ''}</span></div>
+    <div>
+      <div class="prow" id="flowRow"><span class="chip btn" style="background:var(--fl-info);color:var(--fl-info-t)" onclick="flowInfo()">몰입</span><span class="chip btn" style="background:var(--fl-topic);color:var(--fl-topic-t)" onclick="flowTopic()">문제</span><span class="chip btn" style="background:var(--fl-start);color:var(--fl-start-t);${fs.running ? 'opacity:.45' : ''}" onclick="flowStart()">시작</span><span class="chip btn" style="background:var(--fl-stop);color:var(--fl-stop-t);${fs.running ? '' : 'opacity:.45'}" onclick="flowStop()">정지</span><span class="fltxt" id="flToday">오늘 ${fs.todayText}</span><span class="fltxt" id="flTotal">총 ${fs.totalText}</span></div>
+      <div class="fltopic" id="flTopic">${fs.topic ? '문제: ' + esc(fs.topic) : ''}</div>
+      <div class="flstreak" id="flStreak">${fs.streak >= 1 ? `같은 문제로 ${fs.streak}일째 이어가는 중` : ''}</div>
+    </div>
+    <div>${groups.map(g => `<div class="flgrp">${g}</div>` + FLOW_ITEMS.filter(x => x[0] === g).map(([_, k, l]) => `<label class="flitem${fc[k] ? ' done' : ''}"><input type="checkbox" ${fc[k] ? 'checked' : ''} onchange="flowCheck('${k}',this.checked)"><span>${l}</span></label>`).join('')).join('')}<div class="flsum">몰입 체크 ${fcDone} / ${FLOW_ITEMS.length}</div></div>
+    <div class="cal" id="cal"></div>
+    <div class="ck" id="ck">${e.checklist.map((it, i) => `<span class="chip" style="background:var(--cat-${CAT_CSS[it.category]});color:var(--cat-${CAT_CSS[it.category]}-t)">${it.category} ${it.slot}</span><input type="checkbox" ${it.done ? 'checked' : ''} onchange="ckDone(${i},this.checked)"><input type="text" class="${it.done ? 'done' : ''}" value="${esc(it.text)}" oninput="ckText(${i},this.value)" placeholder=""></div>`.replace('</div>', '')).join('')}</div>`;
+  drawCal();
+}
+function splitHM(s){ const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? [pad2(+m[1]), pad2(+m[2])] : ['--', '--']; }
+function parseHM(s){ const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); if (!m) return null; const h = +m[1], mm = +m[2]; return h < 24 && mm < 60 ? h * 60 + mm : null; }
+function sleepMinutes(sl){ const b = parseHM(sl.bed_time), w = parseHM(sl.wake_time); if (b == null || w == null) return null; let d = w - b; if (d <= 0) d += DAY; return d; }
+function sleepText(sl){ const d = sleepMinutes(sl); if (d == null) return null; const h = Math.floor(d / 60), m = d % 60; return m ? `${h}시간 ${m}분` : `${h}시간`; }
+function sleepChange(){ const sl = E().sleep, j = (h, m) => (h === '--' || m === '--') ? '' : `${h}:${m}`; sl.bed_time = j($('#slBH').value, $('#slBM').value); sl.wake_time = j($('#slWH').value, $('#slWM').value); $('#slDur').textContent = sleepText(sl) || ''; save(); }
+function ckDone(i, v){ const it = E().checklist[i]; it.done = v; const inp = $$('#ck input[type=text]')[i]; if (inp) inp.classList.toggle('done', v); save(); }
+function ckText(i, v){ E().checklist[i].text = v; save(); }
+function flowCheck(k, v){ const e = E(); e.flow_checklist = e.flow_checklist || {}; e.flow_checklist[k] = v; save(); drawPanel(); }
+/* 몰입 (시작 · 정지는 '지금 흐르는' 상태라 설정 live 에 — 두 창이 같이 본다) */
+function flowStatus(){
+  const L = SET.live || {}, running = !!L.flowStart, live = running ? Math.max(0, (Date.now() - new Date(L.flowStart)) / 60000) : 0;
+  let today = E().flow_minutes || 0; if (running && L.flowDate === cur) today += live;
+  const total = Object.values(store).reduce((s, e) => s + (+(e && e.flow_minutes) || 0), 0) + live;
+  return {running, todayText: fmtHM(today), totalText: fmtHM(total), topic: E().flow_topic || '', streak: flowStreak()};
+}
+function flowStreak(){
+  const topic = (E().flow_topic || '').trim(); if (!topic) return 0;
+  const L = SET.live || {}; let n = 0; const d = fromIso(cur);
+  for (;;){ const k = iso(d), e = store[k] || {}; const prog = (e.flow_minutes || 0) > 0 || (L.flowStart && L.flowDate === k); if ((e.flow_topic || '').trim() !== topic || !prog) break; n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function flowStart(){ if ((SET.live || {}).flowStart) return; setLive({flowStart: new Date().toISOString(), flowDate: cur}); drawPanel(); }
+function flowStop(){ const L = SET.live || {}; if (!L.flowStart) return; const mins = (Date.now() - new Date(L.flowStart)) / 60000, d = L.flowDate || cur; setLive({flowStart: null, flowDate: null}); const e = ensureShape(entry(d)); e.flow_minutes = (e.flow_minutes || 0) + mins; save(); drawPanel(); }
+function flowInfo(){ const L = SET.live || {}; modal(`<h3>몰입</h3><div class="tip">${L.flowStart ? `몰입 시작 시각: ${new Date(L.flowStart).toTimeString().slice(0, 5)}` : '아직 몰입을 시작하지 않았습니다.'}</div><div class="bt"><button class="primary" onclick="closeModal()">확인</button></div>`); }
+function flowTopic(){
+  modal(`<h3>몰입 문제</h3><div class="tip">이번에 몰입해서 풀어볼 주제/과제를 한 줄로. 같은 문제를 여러 날 이어가면 '며칠째'가 셉니다.</div><input type="text" id="ftIn" value="${esc(E().flow_topic || '')}" placeholder="예) 눌림매매의 안전한 진입 조건은?"><div class="bt"><button onclick="closeModal()">취소</button><button class="primary" id="ftOk">저장</button></div>`);
+  $('#ftOk').onclick = () => { E().flow_topic = $('#ftIn').value.trim(); closeModal(); save(); drawPanel(); };
+  $('#ftIn').focus(); $('#modal').onkeydown = ev => { if (ev.key === 'Enter'){ ev.preventDefault(); $('#ftOk').click(); } };
+}
+function tickFlow(){ if (!$('#flToday')) return; const fs = flowStatus(); $('#flToday').textContent = '오늘 ' + fs.todayText; $('#flTotal').textContent = '총 ' + fs.totalText; }
+/* 미니 달력 (월요일 시작 · ◀ ▶ · 날짜 누르면 이동 · 기록 있는 날은 점) */
+function drawCal(){
+  const box = $('#cal'); if (!box) return;
+  if (calY == null){ const d = fromIso(cur); calY = d.getFullYear(); calM = d.getMonth() + 1; }
+  const first = new Date(calY, calM - 1, 1), lead = (first.getDay() + 6) % 7, days = new Date(calY, calM, 0).getDate(), t = todayIso();
+  const mm = minimapColors(), projects = (PLANS.annual || {}).projects || [];
+  let cells = WD.map((w, i) => `<span class="wd${i === 5 ? ' sat' : i === 6 ? ' sun' : ''}">${w}</span>`).join('');
+  for (let i = 0; i < 42; i++){
+    const n = i - lead + 1;
+    if (n < 1 || n > days){ cells += '<span></span>'; continue; }
+    const k = `${calY}-${pad2(calM)}-${pad2(n)}`, e = store[k], has = e && ((e.tasks || []).length || (e.actual_tasks || []).length || (e.review || '').trim() || (e.checklist || []).some(x => x.done || (x.text || '').trim()));
+    const wd = i % 7, c = k === cur || k === t ? null : mm[k] || (projects.length ? {fg: THEME === 'dark' ? '#4a4a54' : '#c3c3cc'} : null);
+    cells += `<span class="d${k === cur ? ' cur' : k === t ? ' today' : ''}${wd === 5 ? ' sat' : wd === 6 ? ' sun' : ''}${has ? ' has' : ''}" onclick="goDate('${k}')"${c ? ` style="${c.bg ? `background:${c.bg};` : ''}color:${c.fg}"` : ''}>${n}</span>`;
+  }
+  const avg = projects.length ? Math.round(projects.reduce((s, p) => s + (+p.progress || 0), 0) / projects.length) : 0;
+  box.innerHTML = `<div class="calsum" onclick="setView(3)" title="연간 계획 열기 (단축키 3)">${projects.length ? `📊 프로젝트 ${projects.length}개 · 평균 진행률 ${avg}% (눌러서 연간 계획 보기)` : '📊 눌러서 1년 계획 세우기'}</div>
+    <div class="calh"><button onclick="calNav(-1)">◀</button><b onclick="setView(3, {year: ${calY}})" style="cursor:pointer" title="${calY}년 연간 계획 열기">${calY}년 ${calM}월</b><button onclick="calNav(1)">▶</button></div><div class="calg">${cells}</div>
+    <div class="keys"><span>‹ 어제</span><div class="krow"><span></span><span class="kc" onclick="dateNav('prev_month')">W</span><span></span></div><span style="text-align:left">∧ 전 달</span>
+      <span></span><div class="krow"><span class="kc" onclick="dateNav('prev_day')">A</span><span class="kc" onclick="dateNav('next_month')">S</span><span class="kc" onclick="dateNav('next_day')">D</span></div><span>내일 › &nbsp; <span class="kc" onclick="dateNav('today')">T</span> 오늘</span>
+      <span></span><span style="text-align:center">∨ 다음 달</span><span></span></div>`;
+}
+/* 연간 계획 미니맵 (원래 _apply_annual_plan_minimap): 프로젝트가 있으면 평범한 날짜는 옅게, 프로젝트 기간의 날짜는 그룹 색으로 —
+   진행률만큼(앞쪽 날짜부터)은 진하게(흰 글자), 나머지는 옅게. 오늘 · 보고 있는 날짜는 원래 색 그대로. → {날짜: {bg, fg}} */
+function minimapColors(){
+  const a = PLANS.annual, out = {}; if (!a || !(a.projects || []).length) return out;
+  const gc = Object.fromEntries((a.groups || []).map(g => [g.id, g.color]));
+  a.projects.forEach((p, i) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.start || '') || !/^\d{4}-\d{2}-\d{2}$/.test(p.end || '')) return;
+    const s = fromIso(p.start), e = fromIso(p.end); if (e < s) return;
+    const color = gc[p.group_id] || p.color || PROJECT_COLOR_PALETTE[i % PROJECT_COLOR_PALETTE.length], light = lighten(color, .72);
+    const total = Math.round((e - s) / 864e5) + 1, done = Math.round(total * Math.max(0, Math.min(100, +p.progress || 0)) / 100);
+    for (let d = new Date(s), idx = 0; d <= e; d.setDate(d.getDate() + 1), idx++) out[iso(d)] = idx < done ? {bg: color, fg: '#ffffff'} : {bg: light, fg: 'var(--text)'};
+  });
+  return out;
+}
+function calNav(d){ let m = calM + d, y = calY; if (m < 1){ m = 12; y--; } if (m > 12){ m = 1; y++; } calY = y; calM = m; drawCal(); }
+
+/* ---------- 총평 · 삭제 · 보고 ---------- */
+function openReview(){
+  modal(`<h3>오늘의 총평 <small style="font-weight:400;color:var(--muted)">${kdate(cur)}</small></h3>
+    <div class="tip">Follow effective action with quiet reflection. From the quiet reflection will come even more effective action.\n(효과적인 행동 뒤에는 조용한 성찰을 하라. 그 성찰에서 더 효과적인 행동이 나온다)</div>
+    <textarea id="rvIn">${esc(E().review || '')}</textarea><div class="bt"><button onclick="closeModal()">취소</button><button class="primary" id="rvOk">저장</button></div>`, 'wide');
+  $('#rvOk').onclick = () => { E().review = $('#rvIn').value; closeModal(); save(); drawCal(); };
+  $('#rvIn').focus();
+}
+function deleteDay(){
+  const e = E(), has = e.tasks.length || e.actual_tasks.length || (e.review || '').trim() || e.checklist.some(i => i.done || (i.text || '').trim()) || e.sleep.bed_time || e.sleep.wake_time || e.focus_challenges.length || e.flow_minutes || (e.flow_topic || '').trim() || Object.values(e.flow_checklist || {}).some(Boolean) || COUNTERS.some(([k]) => +e[k]);
+  if (!has){ toast('이 날짜에는 지울 기록이 없어요'); return; }
+  confirmBox(`${kdate(cur)}의 모든 기록(계획 · 실제 · 체크리스트 · 수면 · 총평 · 챌린지 · 몰입 · 횟수)을 지울까요?`, () => { delete store[cur]; selected = null; save(); render(); toast('지웠습니다'); }, '모두 삭제');
+}
+function rangeDays(n){ const out = []; const b = fromIso(cur); for (let i = -(n - 1); i <= 0; i++){ const d = new Date(b); d.setDate(d.getDate() + i); out.push(iso(d)); } return out; }
+function openWeekly(){
+  const rows = rangeDays(7).map(d => { const e = store[d]; return [d, e ? complianceRate(e.tasks || [], e.actual_tasks || []) : null]; });
+  const rated = rows.filter(r => r[1] != null); let sum = '';
+  if (rated.length >= 2){ const best = rated.reduce((a, b) => b[1] > a[1] ? b : a), worst = rated.reduce((a, b) => b[1] < a[1] ? b : a), avg = Math.round(rated.reduce((s, r) => s + r[1], 0) / rated.length);
+    sum = best[1] === worst[1] ? `최근 ${rated.length}일 평균 이행률은 ${avg}% 입니다.` : `최근 ${rated.length}일 평균 이행률은 ${avg}% 입니다. 가장 잘 지킨 날: ${kdate(best[0])} (${best[1]}%) · 가장 아쉬웠던 날: ${kdate(worst[0])} (${worst[1]}%)`; }
+  modal(`<h3>최근 7일 이행률 추이</h3><div class="bar">${rows.map(([d, r]) => `<span>${kdate(d)}</span><div class="tr">${r == null ? '<small>계획 없음</small>' : `<i style="width:${Math.max(1, r)}%;background:${r >= 70 ? '#3f9e6b' : r >= 40 ? '#e0a83e' : '#d9534f'}"></i><b>${r}%</b>`}</div>`).join('')}</div>${sum ? `<div class="tip">${sum}</div>` : ''}<div class="bt"><button class="primary" onclick="closeModal()">닫기</button></div>`);
+}
+function openAnalysis(n){
+  const days = rangeDays(n); let planMin = 0, actMin = 0, withPlan = 0, fs = 0, fcN = 0, fMin = 0, ckD = 0, ckT = 0, sleeps = [], reviews = 0, planCount = 0, planDone = 0, actCount = 0; const rates = [];
+  for (const d of days){ const e = store[d]; if (!e){ rates.push(null); continue; } const p = e.tasks || [], a = e.actual_tasks || []; rates.push(complianceRate(p, a)); if (p.length) withPlan++;
+    planCount += p.length; planDone += p.filter(t => t.done).length; actCount += a.length;
+    planMin += p.reduce((s, t) => s + Math.max(0, t.end - t.start), 0); actMin += a.reduce((s, t) => s + Math.max(0, t.end - t.start), 0);
+    for (const r of e.focus_challenges || []){ if (r.result === 'success'){ fs++; fMin += Math.max(0, r.end - r.start); } else if (r.result === 'canceled') fcN++; }
+    if (Array.isArray(e.checklist) && e.checklist.length){ ckT += e.checklist.length; ckD += e.checklist.filter(i => i && i.done).length; }
+    const sm = e.sleep ? sleepMinutes(e.sleep) : null; if (sm != null) sleeps.push(sm); if ((e.review || '').trim()) reviews++; }
+  const rated = rates.filter(r => r != null), avg = rated.length ? Math.round(rated.reduce((s, r) => s + r, 0) / rated.length) : null;
+  const kv = n === 1 ? [['이행률', rated.length ? rated[0] + '%' : '계획 없음'], ['계획 항목', `${planCount}개 (완료 ${planDone}개)`], ['실제 기록', `${actCount}개`], ['계획 시간', fmtHM(planMin)], ['실제 기록 시간', fmtHM(actMin)], ['체크리스트', `${ckD} / ${ckT}`], ['수면 시간', sleeps.length ? fmtHM(sleeps[0]) : '기록 없음'], ['집중 챌린지', `성공 ${fs}회 (총 ${fmtHM(fMin)}) · 취소 ${fcN}회`]]
+    : [['기간', `${kdate(days[0])} ~ ${kdate(days[days.length - 1])}`], ['평균 이행률', avg == null ? '계획 없음' : `${avg}% (계획 있는 날 ${withPlan}/${n})`], ['계획 시간 합계', fmtHM(planMin)], ['실제 기록 시간', fmtHM(actMin)], ['체크리스트 완료율', ckT ? Math.round(ckD / ckT * 100) + '%' : '기록 없음'], ['평균 수면', sleeps.length ? fmtHM(sleeps.reduce((a, b) => a + b, 0) / sleeps.length) : '기록 없음'], ['집중 챌린지', `성공 ${fs}회 (총 ${fmtHM(fMin)}) · 취소 ${fcN}회`], ['총평 쓴 날', `${reviews}일`]];
+  const rv = n === 1 ? (E().review || '').trim() : '';
+  modal(`<h3>${n === 1 ? kdate(cur) + ' 하루 분석' : n === 7 ? '1주일 분석' : '1달 분석'}</h3><div class="kv">${kv.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('')}</div>${rv ? `<div class="tip"><b style="color:var(--text)">오늘의 총평</b>\n${esc(rv)}</div>` : ''}<div class="bt"><button class="primary" onclick="closeModal()">닫기</button></div>`);
+}
+function showQuotes(){ modal(`<h3 style="color:var(--muted);font-size:12px">나폴레온 힐</h3><div class="ql">${QUOTES.map((q, i) => `<div class="${i === (SET.quoteIndex || 0) ? 'on' : ''}">${i + 1}. ${q}</div>`).join('')}</div><div class="bt"><button class="primary" onclick="closeModal()">닫기</button></div>`); }
+
+/* ---------- 창 (모달 · 확인) ---------- */
+function modal(html, cls = ''){ const m = $('#modal'); m.innerHTML = `<div class="box ${cls}">${html}</div>`; m.hidden = false; m.onkeydown = null; }
+function closeModal(){ const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
+function confirmBox(text, fn, okLabel = '확인'){ modal(`<div class="tip" style="color:var(--text)">${esc(text)}</div><div class="bt"><button onclick="closeModal()">취소</button><button class="danger" id="cfOk">${okLabel}</button></div>`); $('#cfOk').onclick = () => { closeModal(); fn(); }; }
+$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
+
+/* ---------- 미니 모드 (8): 시계 · 지금/다음 · 활동/횟수 버튼만 — 독립 창이면 창 자체가 작아져 늘 위에 뜬다 ---------- */
+let miniMsgT = null;
+function nowNext(){
+  const e = store[todayIso()] || {}, nowMin = nowMinute(), plan = (e.tasks || []).filter(t => !t.done).sort((a, b) => a.start - b.start || a.end - b.end);
+  let now = null;
+  for (const name of ACTIVITIES){ const r = findRunning(name); if (r){ now = `<span class="dot on"></span>${name} <b>${fmtHM((r.date !== todayIso() ? DAY : 0) + nowMin - r.task.start)}</b>`; break; } }
+  if (!now){ const c = plan.find(t => t.start <= nowMin && nowMin < t.end); now = c ? `<span class="dot on"></span>지금 <b>${esc(c.text || '(제목 없음)')}</b> (${c.end - nowMin}분 남음)` : '<span class="dot"></span>지금 계획된 일정 없음'; }
+  const nx = plan.find(t => t.start > nowMin);
+  return [now, nx ? `다음 ${hhmm(nx.start)} <b>${esc(nx.text || '(제목 없음)')}</b> (${fmtHM(nx.start - nowMin)} 후)` : '다음 남은 계획 없음'];
+}
+function drawMini(){
+  if (!compact) return;
+  const n = new Date(); $('#mClock').textContent = `${pad2(n.getHours())}:${pad2(n.getMinutes())}`; $('#mDate').textContent = `${n.getMonth() + 1}월 ${n.getDate()}일 (${WD[(n.getDay() + 6) % 7]})`;
+  const [a, b] = nowNext(); $('#mNow').innerHTML = a; if (!miniMsgT) $('#mNext').innerHTML = b;
+  const e = store[todayIso()] || {};
+  $('#mBtns').innerHTML = ACTIVITIES.map(name => { const r = findRunning(name), [f, bb, t] = ACT_STYLE[name]; return `<button class="act${r ? ' run' : ''}" style="--a-fill:${f};--a-b:${bb};--a-t:${t}" onclick="toggleActivity('${name}')">${name}${r ? `<small>${fmtHM((r.date !== todayIso() ? DAY : 0) + nowMinute() - r.task.start)}</small>` : ''}</button>`; }).join('')
+    + COUNTERS.map(([k, l]) => `<button class="cnt" onclick="addCounter('${k}')" oncontextmenu="event.preventDefault();undoCounter('${k}')">${l.split(' ')[0]}<b>${+(e[k] || 0)}</b></button>`).join('')
+    + '<span style="flex-basis:100%;height:0"></span>' + volHTML();
+}
+
+/* ---------- 음량 (원래 v2.88~v2.99): 윈도우 전체 음량. [음량 −] [🔊 45%] [음량 +] · 버튼 위 휠 1% · 터치패드 두 손가락 · - = + 키 5% ----------
+   실제로 바꾸는 일은 서버(todo_room.SystemVolume)가 한다. 키보드 음량 키나 윈도우 설정에서 바꾼 값도 1.5초마다 따라온다. */
+const VOL_STEP = 5, VOL_TOUCH_PX = 16;
+let VOL = {level: null, muted: false}, volAccWheel = 0, volAccTouch = 0;
+function volText(){ return VOL.level == null ? '🔊 --' : `${VOL.muted ? '🔇' : '🔊'} ${VOL.level}%`; }
+function volHTML(){
+  return `<span class="vol" onwheel="volWheel(event)"><button onclick="volChange(-${VOL_STEP})" title="음량 줄이기 (- 키) · 이 버튼들 위에서 휠이나 터치패드로도 조절">음량 −</button><button class="vnow" onclick="volMute()" title="현재 음량 · 누르면 음소거/해제">${volText()}</button><button onclick="volChange(${VOL_STEP})" title="음량 키우기 (+ 또는 = 키)">음량 +</button></span>`;
+}
+function volPaint(){ $$('.vol .vnow').forEach(b => { if (b.textContent !== volText()) b.textContent = volText(); }); }
+async function volCall(body){
+  try { const r = await (await fetch('api/volume', {method: body ? 'POST' : 'GET', body: body ? JSON.stringify(body) : undefined, cache: 'no-store'})).json(); VOL = {level: r.level, muted: !!r.muted}; volPaint(); return true; } catch(e){ return false; }
+}
+async function volChange(d, quiet){ await volCall({action: 'change', delta: d}); if (!quiet && VOL.level != null) praise(VOL.muted ? `🔇 음소거 (음량 ${VOL.level}%)` : `🔊 음량 ${VOL.level}%`, 900); }
+async function volMute(){ await volCall({action: 'mute'}); if (VOL.level != null) praise(VOL.muted ? `🔇 음소거 (음량 ${VOL.level}%)` : `🔊 음량 ${VOL.level}%`, 900); }
+/* 휠: 마우스 휠 한 칸(약 100px)마다 1% · 터치패드(잘게 오는 값)는 16px 모일 때마다 1% — 위로 굴리거나 쓸면 커진다 */
+function volWheel(e){
+  e.preventDefault();
+  const dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+  if (Math.abs(dy) >= 50){ volAccTouch = 0; if (volAccWheel && (volAccWheel > 0) !== (dy > 0)) volAccWheel = 0; volAccWheel += dy; const st = Math.trunc(volAccWheel / 100); volAccWheel -= st * 100; if (st) volChange(-st, true); }
+  else { volAccTouch += dy; const st = Math.trunc(volAccTouch / VOL_TOUCH_PX); volAccTouch -= st * VOL_TOUCH_PX; if (st) volChange(-st, true); }
+}
+function miniMsg(t){ $('#mNext').textContent = t; clearTimeout(miniMsgT); miniMsgT = setTimeout(() => { miniMsgT = null; drawMini(); }, 4000); }
+async function toggleMini(){
+  closeModal(); compact = !compact; document.documentElement.classList.toggle('compact', compact);
+  if (compact) drawMini(); else setTimeout(layout, 50);
+  const r = await winApi({action: 'compact', on: compact, w: 820, h: 196, key: 'todo'});
+  if (r && r.ok === false && r.error) toast(r.error);
+  if (!compact) setTimeout(layout, 400);
+}
+/* 포스트잇 (3단계): 화면 위에 늘 떠 있는 작은 창 한 장. 창은 서버를 가진 프로그램(도서관 창 또는 독립 창)이 띄운다 — postit_room.py */
+async function newPostit(){
+  try { const r = await (await fetch('api/postit', {method: 'POST', body: JSON.stringify({op: 'new'})})).json(); if (!r.ok) toast(r.error || '포스트잇을 만들지 못했어요'); }
+  catch(e){ toast('포스트잇을 만들지 못했어요 — 나의도서관.pyw 로 실행해야 합니다'); }
+}
+async function quitApp(){ if (saveT || dirty) await flush(); winApi({action: 'close'}); }
+
+/* ---------- 창 제어: 이 창이 pywebview 창이면 js_api 로 바로, 도서관 안(iframe)이면 도서관에 부탁, 아니면 서버에 ---------- */
+async function winApi(p){
+  try {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.window) return await window.pywebview.api.window(p);
+    if (inFrame){ parent.postMessage({room: 'todo', win: p}, location.origin); return {ok: true}; }
+    return await (await fetch('api/window', {method: 'POST', body: JSON.stringify(p)})).json();
+  } catch(e){ return {ok: false, error: '창 모양을 바꾸지 못했어요'}; }
+}
+async function setQhd(mode){ await setSetting({qhdMode: mode}); drawHeader(); const r = await winApi({action: 'qhd', mode}); if (r && r.ok === false && r.error) toast(r.error); setTimeout(layout, 400); }
+async function spawnSolo(){ const r = await (await fetch('api/spawn', {method: 'POST', body: '{}'})).json().catch(() => ({ok: false})); toast(r.ok ? '독립 창을 띄웠어요 — 도서관을 닫아도 남아 있습니다' : (r.error || '독립 창을 띄우지 못했어요')); }
+
+/* ---------- 테마 ---------- */
+function applyTheme(t){
+  const was = THEME;
+  THEME = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; document.documentElement.dataset.theme = THEME; drawHeader();
+  if (was !== THEME){ drawCal(); const v = TD.views[VIEW]; if (VIEW !== 1 && v && v.onTheme) try { v.onTheme(); } catch(e){ console.error(e); } }
+}
+function toggleTheme(){ const n = THEME === 'dark' ? 'light' : 'dark'; if (inFrame){ parent.postMessage({room: 'todo', theme: 'toggle'}, location.origin); return; } applyTheme(n); fetch('api/settings', {method: 'POST', body: JSON.stringify({theme: n})}).catch(() => {}); }
+window.__roomTheme = t => applyTheme(t);
+window.__roomShown = () => { if (VIEW === 1) setTimeout(layout, 30); pollState(); };
+window.__roomHidden = () => { if (saveT || dirty) flush(); flushAllPlans(); };
+window.__roomEscBack = e => $('#modal').hidden && !isTyping(e.target) && !compact && !selected && VIEW === 1;
+
+/* ---------- 키보드 (한글 입력 상태에서도: e.code 기준) ----------
+   단축키를 멈추는 곳은 '글자를 쓰는 칸'뿐이다 (원래 프로그램과 같은 기준). 체크박스 · 취침/기상 선택 상자 · 버튼을 누른 뒤에도 단축키는 그대로 된다. */
+const isTyping = t => !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|range|color|file)$/i.test(t.type || '')));
+document.addEventListener('keydown', e => {
+  if (!$('#modal').hidden){ if (e.key === 'Escape'){ e.preventDefault(); closeModal(); } return; }
+  if (isTyping(e.target)){ if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.target.tagName === 'SELECT' && /^(Arrow|Enter|Space|Tab)/.test(e.code)) return;   // 선택 상자의 위아래 · 엔터는 원래대로
+  if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+  const vk = {Minus: -VOL_STEP, NumpadSubtract: -VOL_STEP, Equal: VOL_STEP, NumpadAdd: VOL_STEP}[e.code];
+  if (vk){ e.preventDefault(); volChange(vk); return; }   // - = + : 음량 (미니 모드에서도)
+  if (e.code === 'Digit0' || e.code === 'Numpad0'){ e.preventDefault(); newPostit(); return; }   // 0 = 포스트잇 한 장 (미니 모드 · 계획 화면에서도)
+  if (compact){ if (e.code === 'Digit8' || e.code === 'Numpad8') toggleMini(); return; }
+  if (VIEW !== 1){   // 계획 화면: 1~5 화면 전환 · L 테마 · 8 미니 · 나머지는 그 화면이 먼저, Esc = 닫고 기본 화면으로
+    if (e.code === 'KeyL'){ e.preventDefault(); toggleTheme(); return; }
+    if (/^(Digit|Numpad)[1-5]$/.test(e.code)){ e.preventDefault(); setView(+e.code.slice(-1)); return; }
+    if (e.code === 'Digit8' || e.code === 'Numpad8'){ e.preventDefault(); setView(1).then(toggleMini); return; }
+    const v = TD.views[VIEW];
+    try { if (v && v.onKey && v.onKey(e)) return; } catch(err){ console.error(err); }
+    if (e.key === 'Escape'){ e.preventDefault(); if (!(v && v.escBack && v.escBack())) setView(1); }
+    return;
+  }
+  if (/^(Digit|Numpad)[2-5]$/.test(e.code)){ e.preventDefault(); setView(+e.code.slice(-1)); return; }
+  const nav = {KeyA: 'prev_day', KeyD: 'next_day', KeyW: 'prev_month', KeyS: 'next_month', KeyT: 'today'}[e.code];
+  if (nav){ e.preventDefault(); dateNav(nav); return; }
+  if (e.code === 'KeyL'){ e.preventDefault(); toggleTheme(); return; }
+  if (e.code === 'Digit8' || e.code === 'Numpad8'){ e.preventDefault(); toggleMini(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selected){ e.preventDefault(); const list = selected.kind === 'plan' ? E().tasks : E().actual_tasks; const t = list.find(x => x.id === selected.id); if (t) deleteTask(selected.kind, t); return; }
+  if (e.key === 'Escape' && selected){ selected = null; drawTasks('plan'); drawTasks('actual'); }
+});
+
+/* ---------- 그리기 · 시계 ---------- */
+function render(){ drawHeader(); drawTasks('plan'); drawTasks('actual'); drawNow(); drawPanel(); }
+let lastMin = -1;
+function tick(){
+  if (cur === todayIso()) drawNow();
+  const m = nowMinute();
+  if (m !== lastMin){ lastMin = m; growRunning(); drawActBar(); if (compact) drawMini(); }
+  if ((SET.live || {}).flowStart) tickFlow();
+  if (compact){ const n = new Date(); $('#mClock').textContent = `${pad2(n.getHours())}:${pad2(n.getMinutes())}`; }
+}
+// 살아 있음 신호: 프로그램 창(pywebview)이면 파이썬 쪽이 5초마다 대신 보내므로 보내지 않는다 — 그래야 창을 닫는 순간 '닫힘'으로 보이고 포스트잇도 바로 닫힌다
+async function hello(){ if (inFrame || !serverOK || NATIVE || window.pywebview) return; try { await fetch('api/hello', {method: 'POST', body: JSON.stringify({id: CID, role: 'todo'})}); } catch(e){} }
+addEventListener('pagehide', () => { if (!inFrame && serverOK) fetch('api/bye', {method: 'POST', keepalive: true, body: JSON.stringify({id: CID})}).catch(() => {}); });
+
+/* ---------- 시작 ---------- */
+async function boot(){
+  const pre = window.__CFG || {};
+  try {
+    const s = await (await fetch('api/settings', {cache: 'no-store'})).json();
+    SET = {...SET, ...s}; serverOK = true; NATIVE = !!window.pywebview;   // 이 창이 pywebview 창인가 (독립 창 · 도서관 창). 늦게 준비되면 아래 pywebviewready 에서
+    applyTheme(pre.theme || s.theme || 'light');
+    const r = await fetch('api/data', {cache: 'no-store'}); ETAG = r.headers.get('ETag'); const d = await r.json(); store = d && typeof d === 'object' ? d : {};
+  } catch(e){ applyTheme(pre.theme || 'light'); toast('파일 저장이 꺼져 있습니다 — 나의도서관.pyw 로 실행해야 기록이 저장됩니다'); }
+  buildBoards(); render();
+  if (serverOK) loadPlan('annual').then(drawCal);   // 미니 달력의 연간 계획 미니맵
+  // 나폴레온 힐 문구: 켤 때마다 1 → 2 → 3 → 4 → 1 (지난번 번호를 설정에 기억)
+  if (serverOK){ const idx = ((SET.quoteIndex || 0) + 1) % QUOTES.length; SET.quoteIndex = idx; setSetting({quoteIndex: idx}); drawActBar(); }
+  setInterval(tick, 1000); setInterval(pollState, 3000); setTimeout(hello, 1500); setInterval(hello, 5000);
+  if (serverOK){ volCall(); setInterval(() => { if (!document.hidden) volCall(); }, 1500); }
+  requestAnimationFrame(layout);
+}
+addEventListener('pywebviewready', () => { NATIVE = true; drawHeader(); });
+/* 도서관 안에서 열렸을 때: 다리가 머리글 맨 위에 따로 한 줄로 넣는 [◀ 책장] 을 첫 줄(오늘/내일 앞)로 옮겨 한 줄을 아낀다 */
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('libBack'), r1 = document.querySelector('#hdr .row.r1');
+  if (b && r1){ r1.prepend(b); b.insertAdjacentHTML('afterend', '<span class="vsep"></span>'); }
+});
+boot();
+</script>
+<!-- 2단계: 계획 화면들 (TD.views[2~5] 로 붙는다) -->
+<script src="todo_monthly.js"></script>
+<script src="todo_annual.js"></script>
+<script src="todo_five.js"></script>
+<script src="todo_life.js"></script>
+</body>
+</html>
