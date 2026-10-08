@@ -296,14 +296,20 @@ async function postDataNow(page){
   return same ? {gen: W.gen} : {gen: W.gen, db: d};
 }
 // 다른 기기에서 바뀐 것을 받아 화면에 (쓰는 중 · 저장 대기 중이면 기다린다)
+// 화면이 window.webPage = {ok(), db(), adopt(d), retry()} 를 두면 그것으로 (휴대폰 화면 m.html), 없으면 큰 저널 화면의 것으로
 async function refresh(){
   try {
-    if (typeof db === 'undefined' || saveT || pushing || tMode === 'edit' || document.getElementById('modal')) return;
-    const a = document.activeElement; if (a && ['INPUT', 'TEXTAREA', 'SELECT'].includes(a.tagName) && a.id !== 'q') return;
+    const pg = window.webPage;
+    if (pg){ if (!pg.ok()) return; }
+    else {
+      if (typeof db === 'undefined' || saveT || pushing || tMode === 'edit' || document.getElementById('modal')) return;
+      const a = document.activeElement; if (a && ['INPUT', 'TEXTAREA', 'SELECT'].includes(a.tagName) && a.id !== 'q') return;
+    }
     await busy; await load();
     const recs = journalRecs();
     if (js(recs) === js(W.base.recs)) return;
     W.base = {recs, win: snapWin()};
+    if (pg){ pg.adopt(fix(join(recs, pg.db()))); return; }
     db = normDb(fix(join(recs, db))); CACHE.clear(); EV = null; fillNameList(); render();
   } catch(e){}
 }
@@ -575,10 +581,11 @@ async function start(interactive){
     await load();
     const g = document.getElementById('webgate'); if (g) g.style.display = 'none';
     if (first){ first = false; readyRes(); }
+    else if (window.webPage) window.webPage.retry();
     else if (typeof push === 'function' && (typeof saveT !== 'undefined' && saveT || typeof dirty !== 'undefined' && dirty)) push();   // 로그인이 끊겨 못 한 저장을 이어서
     else refresh();
   } catch(e){ gate(e.message === 'login' || e.message === 'popup_closed' ? '' : e.message); }
 }
 addEventListener('DOMContentLoaded', () => { if (TOKEN) start(false); else gate(''); });
-window.WEB = {img};
+window.WEB = {img, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
 })();

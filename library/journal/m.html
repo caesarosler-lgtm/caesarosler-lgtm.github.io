@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>매매 장부</title>
+<!--
+  트레이딩 저널 — 휴대폰 화면 (2026-10-08). tools/build_web.py 가 web/journal/m.html 로 만든다 (스크립트 맨 위 CONSTS 자리에 저널의 질문 · 등급 목록을 그대로).
+  큰 저널 화면(index.html)은 2560×1440 무대를 줄여 보여 주므로 휴대폰에서는 글자가 너무 작다 → 휴대폰에서 자주 하는 일만 휴대폰 크기로:
+  매매 목록 · 매매 한 건 보기 · 복기 쓰기 · 오늘 일지 · 주간 복기. 계획 · 체결 입력(봉인 규칙이 있는 것)과 통계 · AI 는 큰 화면에서.
+  자료 · 저장은 shim.js (큰 화면과 같은 대리인 — 드라이브 동기화). 계산은 journal_calc.js (큰 화면 · PC 와 같은 코드).
+-->
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--line:rgba(0,0,0,.09);--line2:rgba(0,0,0,.055);--text:#1d1d1f;--sub:#6e6e73;--muted:#9a9aa0;
+  --accent:#0071e3;--accent-weak:rgba(0,113,227,.1);--up:#d1242f;--dn:#1a5fd0;--up-weak:#fdecee;--dn-weak:#e9f0fc;--warn:#b25000;--warn-weak:#fff1e0;
+  --r2:10px;--r3:14px;color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#1c1c1e;--panel:#2c2c2e;--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.07);--text:#f2f2f7;--sub:#a1a1a8;--muted:#77777e;
+    --accent:#0a84ff;--accent-weak:rgba(10,132,255,.18);--up:#ff6b6b;--dn:#5ea2ff;--up-weak:rgba(255,107,107,.16);--dn-weak:rgba(94,162,255,.16);--warn:#ffb340;--warn-weak:rgba(255,179,64,.14);color-scheme:dark}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:16px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",sans-serif;letter-spacing:-.012em;-webkit-font-smoothing:antialiased;
+  padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+input,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+textarea{resize:vertical;min-height:64px;line-height:1.55}
+.hidden{display:none!important}
+.up{color:var(--up)}.dn{color:var(--dn)}
+
+/* 위 · 아래 막대 */
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.8) blur(18px);-webkit-backdrop-filter:saturate(1.8) blur(18px);
+  padding-top:env(safe-area-inset-top);border-bottom:1px solid var(--line2)}
+.bar{max-width:640px;margin:0 auto;height:48px;padding:0 8px;display:flex;align-items:center;gap:4px}
+.bar h1{flex:1;margin:0;font-size:17px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .side{width:88px;display:flex;align-items:center}.bar .side.r{justify-content:flex-end}
+.nav{color:var(--accent);font-size:16px;padding:10px 8px;white-space:nowrap;text-decoration:none}
+.nav.b{font-weight:600}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.8) blur(18px);-webkit-backdrop-filter:saturate(1.8) blur(18px);
+  border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .in{max-width:640px;margin:0 auto;display:flex}
+nav.tabs button{flex:1;height:52px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--accent)}
+main{max-width:640px;margin:0 auto;padding:12px 16px calc(84px + env(safe-area-inset-bottom))}
+main.form{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+
+/* 묶음 */
+.sec{margin:22px 4px 8px;font-size:13px;color:var(--sub);font-weight:600;letter-spacing:0}
+.sec:first-child{margin-top:6px}
+.card{background:var(--panel);border-radius:var(--r3);overflow:hidden}
+.card+.card{margin-top:10px}
+.pad{padding:14px 16px}
+.kv{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid var(--line2)}
+.kv:first-child{border-top:0}
+.kv span{color:var(--sub);font-size:15px;flex-shrink:0}.kv b{font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+.para{padding:12px 16px;border-top:1px solid var(--line2)}.para:first-child{border-top:0}
+.para span{display:block;color:var(--sub);font-size:13px;margin-bottom:2px}.para p{margin:0;white-space:pre-wrap;word-break:break-word}
+.empty{color:var(--muted);text-align:center;padding:36px 16px;font-size:15px}
+
+/* 요약 */
+.sum{display:grid;grid-template-columns:repeat(3,1fr)}
+.sum div{padding:14px 12px;text-align:center;border-left:1px solid var(--line2)}.sum div:first-child{border-left:0}
+.sum small{display:block;color:var(--sub);font-size:12px}.sum b{display:block;font-size:19px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.focus{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;background:var(--accent-weak);border-radius:var(--r3);margin-bottom:10px;font-size:15px}
+.focus small{display:block;color:var(--accent);font-size:12px;font-weight:600}
+
+/* 고르기 */
+.seg{display:flex;background:var(--line2);border-radius:9px;padding:2px;gap:2px}
+.seg button{flex:1;height:32px;border-radius:7px;font-size:14px;color:var(--text)}
+.seg button.on{background:var(--panel);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.tools{display:flex;flex-direction:column;gap:10px;margin:4px 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 13px;font-size:14px;line-height:1.3}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.grade{display:grid;gap:8px}
+.grade button{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:var(--r2);padding:10px 12px;font-size:15px}
+.grade button.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+.gr{font-style:normal;width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.gr.A{background:#248a3d}.gr.B{background:#5b9a3a}.gr.C{background:#c77700}.gr.D{background:#c4302b}
+.dots{display:flex;gap:10px}
+.dots button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--panel);font-size:15px;font-weight:600;color:var(--sub)}
+.dots button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* 매매 목록 */
+.row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line2);width:100%;text-align:left}
+.row:first-child{border-top:0}
+.row:active{background:var(--line2)}
+.row .no{width:30px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.row .mid{flex:1;min-width:0}
+.row .nm{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.row .sub{color:var(--sub);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .rt{text-align:right;flex-shrink:0}
+.row .rt b{display:block;font-weight:600;font-variant-numeric:tabular-nums}
+.row .rt small{color:var(--muted);font-size:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex-shrink:0}
+.badge{font-size:11px;font-weight:600;border-radius:5px;padding:1px 6px;color:var(--sub);background:var(--line2)}
+.badge.open{color:var(--accent);background:var(--accent-weak)}
+.more{display:block;width:100%;padding:13px;color:var(--accent);font-size:15px;border-top:1px solid var(--line2)}
+
+/* 매매 한 건 */
+.hero{padding:18px 16px;text-align:center}
+.hero .nm{font-size:22px;font-weight:700}
+.hero .meta{color:var(--sub);font-size:14px;margin-top:2px}
+.hero .res{font-size:30px;font-weight:700;margin-top:10px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.hero .res2{color:var(--sub);font-size:14px;font-variant-numeric:tabular-nums}
+.fills{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.fills td{padding:9px 16px;border-top:1px solid var(--line2)}
+.fills tr:first-child td{border-top:0}
+.fills td.r{text-align:right}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px}
+.thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:var(--line2);display:block}
+.cta{display:block;width:100%;margin-top:16px;padding:14px;border-radius:var(--r3);background:var(--accent);color:#fff;font-weight:600;font-size:16px;text-align:center}
+.cta.sub{background:var(--panel);color:var(--accent)}
+
+/* 쓰기 */
+.fld{padding:12px 16px;border-top:1px solid var(--line2)}
+.fld:first-child{border-top:0}
+.fld>label,.fld>.lb{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+.fld>.lb small,.fld>label small{font-weight:400;color:var(--muted);margin-left:4px}
+.fld textarea+textarea,.fld .chips+textarea{margin-top:8px}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:saturate(1.8) blur(18px);-webkit-backdrop-filter:saturate(1.8) blur(18px);border-top:1px solid var(--line2)}
+.savebar .in{max-width:608px;margin:0 auto;display:flex;gap:10px}
+.savebar button{flex:1;height:48px;border-radius:var(--r3);font-weight:600;font-size:16px;background:var(--panel)}
+.savebar button.primary{background:var(--accent);color:#fff;flex:2}
+.saved{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;background:rgba(0,0,0,.78);color:#fff;font-size:14px;padding:8px 14px;border-radius:999px;pointer-events:none;
+  opacity:0;transition:opacity .2s}
+.saved.show{opacity:1}
+.datenav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px}
+.datenav b{font-size:17px;font-weight:600}
+.datenav button{color:var(--accent);font-size:22px;width:44px;height:40px}
+.datenav .today{font-size:14px;width:auto;padding:0 6px}
+.report{white-space:pre-wrap;font-size:15px}
+.viewer{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer p{position:absolute;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));color:#fff;font-size:14px;text-align:center;margin:0}
+</style>
+</head>
+<body>
+<header><div class="bar"><div class="side" id="hl"></div><h1 id="title">매매 장부</h1><div class="side r" id="hr"></div></div></header>
+<main id="main"><div class="empty">불러오는 중…</div></main>
+<nav class="tabs" id="tabs"><div class="in">
+  <button data-t="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>매매</button>
+  <button data-t="day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>오늘</button>
+  <button data-t="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V11M12 19V5M19 19v-6"/></svg>주간</button>
+</div></nav>
+<div class="saved" id="saved"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+<script src="journal_calc.js"></script>
+<script>
+'use strict';
+// ↓ apps/journal.html 에서 그대로 (tools/build_web.py)
+const REVIEW_Q = [['whyWatch', '왜 이 종목을 봤는가', '검색식 · 뉴스 · 거래대금 · 관심 종목 …'], ['whyEntry', '왜 이 자리에서 들어갔는가', '어떤 신호 · 가격 · 호가를 보고'],
+  ['expectActual', '예상한 움직임과 실제 움직임', '예상: … / 실제: …'], ['handling', '어떻게 대처했는가', '손절 · 익절 · 버티기를 어떻게 정했는지']];
+const GRADES = {A: '계획대로 · 셋업 정확', B: '대체로 계획대로 (작은 흠)', C: '계획에서 벗어남', D: '계획 없음 · 충동'};
+const MISTAKES = ['추격매수', '손절 지연', '손절가 미설정', '조기 익절', '계획 외 매매', '비중 과다', '물타기', '뇌동매매', '복수매매', '과매매'];
+const EMOTIONS = ['차분', '확신', '불안', '조급', '욕심', '두려움', '지루함', '복수심'];
+const DEF = {feeRate: 0.015, taxKospi: 0.20, taxKosdaq: 0.20, taxEtf: 0, capital: 10000000, hideMoney: true, riskPct: 1};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const n0 = v => Number(String(v ?? '').replace(/,/g, '')) || 0;
+const fmt = n => Math.round(n0(n)).toLocaleString('ko-KR');
+const iso = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
+const today = () => iso(new Date());
+const addDays = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return iso(d); };
+const DOW = '일월화수목금토', dow = s => new Date(s + 'T00:00').getDay();
+const monday = s => addDays(s, -((dow(s) + 6) % 7));
+const dLong = s => s ? `${+s.slice(5, 7)}월 ${+s.slice(8, 10)}일 (${DOW[dow(s)]})` : '';
+const dShort = s => s ? s.slice(2).replace(/-/g, '.') : '';
+const cls = n => n > 1e-9 ? 'up' : n < -1e-9 ? 'dn' : '';
+const sum = a => a.reduce((x, y) => x + y, 0);
+const stName = {plan: '계획', open: '보유 중', closed: '청산'};
+
+let DB = null, TAB = 'trades', V = {k: 'list'}, FILTER = 'all', Q = '', LIMIT = 40, DAY = today(), WEEK = monday(today()), EDIT = null, DIRTY = false, SAVING = null;
+const S = () => ({...DEF, ...(DB.settings || {})});
+window.toast = m => flash(m);   // shim.js 의 안내도 같은 자리에
+const HM = () => !!S().hideMoney;
+const trades = () => (DB.trades || []).filter(t => t && typeof t === 'object');
+const review = t => t.review || {};
+
+/* ---------- 계산 (큰 화면의 calc 와 같은 규칙 — 선입선출 · 원 단위 정수는 journal_calc.js) ---------- */
+const CACHE = new Map();
+function taxRate(t){ const s = S(); return t.market === 'ETF' ? n0(s.taxEtf) : t.market === 'KOSDAQ' ? n0(s.taxKosdaq) : n0(s.taxKospi); }
+function calc(t){
+  if (CACHE.has(t)) return CACHE.get(t);
+  const s = S(), k = JC.tradeCalc(t.fills || [], {feeUnits: JC.rateUnits(s.feeRate), taxUnits: JC.rateUnits(taxRate(t))});
+  const avgBuy = k.buyQty ? k.buyAmt / k.buyQty : 0, avgSell = k.sellQty ? k.sellAmt / k.sellQty : 0;
+  const stop = n0(t.seal?.stop) || n0(t.plan?.stop), riskPS = stop && avgBuy > stop ? avgBuy - stop : 0, risk = Math.round(riskPS * k.maxQty);
+  const riskX = risk || Math.round(n0(s.capital) * n0(s.riskPct) / 100) || 1;
+  const r = {...k, avgBuy, avgSell, stop, risk, riskX, rr: k.realized / riskX, ret: k.closedCost ? k.realized / k.closedCost * 100 : 0, events: k.events.map(e => ({...e, r: e.pnl / riskX}))};
+  CACHE.set(t, r); return r;
+}
+const fR = r => (r > 0.004 ? '+' : r < -0.004 ? '−' : '') + Math.abs(r).toFixed(2) + 'R';
+const sgn = n => (n > 0.5 ? '+' : n < -0.5 ? '−' : '') + fmt(Math.abs(n));
+const money = (won, r) => HM() ? fR(r) : sgn(won) + '원';
+const tv = c => HM() ? fR(c.rr) + (c.risk ? '' : '*') : sgn(c.realized) + '원';
+const reviewed = t => { const r = review(t); return !!(r.grade || r.good || r.bad || r.lesson || r.again || REVIEW_Q.some(([k]) => (r[k] || '').trim())); };
+const needReview = (t, c) => c.status === 'closed' && !reviewed(t);
+const lastDate = (t, c) => c.close || (t.fills || []).map(f => f.date).filter(Boolean).sort().pop() || t.created || '';
+function rangePnl(a, b){   // a ≤ 날짜 ≤ b 에 실현된 손익 (원, R) · 청산 매매 수 · 이긴 수
+  let won = 0, r = 0, n = 0, w = 0;
+  for (const t of trades()){
+    const c = calc(t);
+    for (const e of c.events) if (e.date >= a && e.date <= b){ won += e.pnl; r += e.r; }
+    if (c.status === 'closed' && c.close >= a && c.close <= b){ n++; if (c.realized > 0) w++; }
+  }
+  return {won, r, n, w};
+}
+const focusFor = d => ((DB.weeks || {})[addDays(monday(d), -7)] || {}).focus || '';
+
+/* ---------- 저장 (shim.js → 드라이브) ---------- */
+function flash(m){ const s = $('saved'); s.textContent = m; s.classList.add('show'); clearTimeout(s._t); s._t = setTimeout(() => s.classList.remove('show'), 1600); }
+let saveT = null;
+function save(soon){ DIRTY = true; CACHE.clear(); clearTimeout(saveT); saveT = setTimeout(persist, soon ? 0 : 900); }
+async function persist(){
+  clearTimeout(saveT); saveT = null;
+  if (SAVING) return SAVING.then(() => DIRTY && persist());
+  SAVING = (async () => {
+    try {
+      DIRTY = false;
+      const r = await fetch('api/data', {method: 'POST', body: JSON.stringify(DB)});
+      const j = await r.json();
+      if (j.db && !DIRTY){ DB = j.db; CACHE.clear(); if (!EDIT) render(); }
+      flash('저장됨');
+    } catch(e){ DIRTY = true; flash('⚠ 저장하지 못했어요 — ' + e.message); }
+    SAVING = null;
+  })();
+  return SAVING;
+}
+window.webPage = {ok: () => !EDIT && !SAVING && !DIRTY && !saveT && !(document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)),
+  db: () => DB, adopt: d => { DB = d; CACHE.clear(); render(); }, retry: () => { if (DIRTY) persist(); }};
+addEventListener('pagehide', () => { if (DIRTY || saveT) persist(); });
+addEventListener('beforeunload', e => { if (EDIT && EDIT.changed) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- 이동 (휴대폰의 뒤로 가기 몸짓과 함께) ---------- */
+function go(v, push = true){
+  if (EDIT && EDIT.changed && !confirm('저장하지 않은 복기가 있습니다. 버리고 나갈까요?')) return;
+  if (v.k !== 'review') EDIT = null;
+  V = v; if (push) history.pushState({v, tab: TAB}, ''); render(); scrollTo(0, 0);
+}
+function tab(t){ if (EDIT && EDIT.changed && !confirm('저장하지 않은 복기가 있습니다. 버리고 나갈까요?')) return; EDIT = null; TAB = t; V = {k: 'list'}; history.replaceState({v: V, tab: t}, ''); render(); scrollTo(0, 0); }
+addEventListener('popstate', e => {
+  if (EDIT && EDIT.changed && !confirm('저장하지 않은 복기가 있습니다. 버리고 나갈까요?')){ history.pushState({v: V, tab: TAB}, ''); return; }
+  EDIT = null; const s = e.state || {}; V = s.v || {k: 'list'}; TAB = s.tab || TAB; render();
+});
+const back = () => history.length > 1 ? history.back() : go({k: 'list'}, false);
+$('tabs').onclick = e => { const b = e.target.closest('button[data-t]'); if (b) tab(b.dataset.t); };
+const fullUrl = () => { const p = new URLSearchParams(location.search); p.set('full', '1'); return 'index.html?' + p; };
+
+/* ---------- 그리기 ---------- */
+function bar(title, left, right){ $('title').textContent = title; $('hl').innerHTML = left || ''; $('hr').innerHTML = right || ''; }
+function render(){
+  if (!DB) return;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === TAB));
+  $('tabs').classList.toggle('hidden', V.k === 'review');
+  const m = $('main'); m.classList.toggle('form', V.k === 'review');
+  if (V.k === 'trade') return tradeV(m);
+  if (V.k === 'review') return reviewV(m);
+  if (TAB === 'day') return dayV(m);
+  if (TAB === 'week') return weekV(m);
+  return listV(m);
+}
+
+/* 매매 목록 */
+function listV(m){
+  bar('매매 장부', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
+  const all = trades().map(t => ({t, c: calc(t)}));
+  const nRev = all.filter(x => needReview(x.t, x.c)).length, nOpen = all.filter(x => x.c.status === 'open').length;
+  const wk = rangePnl(monday(today()), addDays(monday(today()), 6)), mo = rangePnl(today().slice(0, 8) + '01', today());
+  let L = all.filter(x => FILTER === 'all' || (FILTER === 'rev' ? needReview(x.t, x.c) : x.c.status === 'open'));
+  const q = Q.trim().toLowerCase();
+  if (q) L = L.filter(x => [x.t.name, x.t.code, x.t.setup, ...(x.t.tags || [])].some(s => String(s || '').toLowerCase().includes(q)));
+  L.sort((a, b) => lastDate(b.t, b.c).localeCompare(lastDate(a.t, a.c)) || n0(b.t.no) - n0(a.t.no));
+  const focus = focusFor(today());
+  m.innerHTML = `${focus ? `<div class="focus"><div><small>이번 주 과제</small>${esc(focus)}</div></div>` : ''}
+    <div class="card sum"><div><small>이번 주</small><b class="${cls(wk.won)}">${wk.n || wk.won ? money(wk.won, wk.r) : '–'}</b></div><div><small>이번 달</small><b class="${cls(mo.won)}">${mo.n || mo.won ? money(mo.won, mo.r) : '–'}</b></div>
+      <div><small>복기할 매매</small><b style="color:${nRev ? 'var(--warn)' : 'inherit'}">${nRev}</b></div></div>
+    <div class="tools" style="margin-top:14px"><div class="seg">${[['all', '전체'], ['rev', `복기 필요${nRev ? ' ' + nRev : ''}`], ['open', `보유 중${nOpen ? ' ' + nOpen : ''}`]].map(([k, l]) => `<button class="${FILTER === k ? 'on' : ''}" onclick="FILTER='${k}';LIMIT=40;render()">${l}</button>`).join('')}</div>
+      <input type="search" id="q" placeholder="종목 · 셋업 · 태그 찾기" value="${esc(Q)}" autocomplete="off"></div>
+    <div class="card">${L.length ? L.slice(0, LIMIT).map(({t, c}) => {
+      const g = review(t).grade, nr = needReview(t, c);
+      return `<button class="row" onclick="go({k:'trade',id:'${esc(t.id)}'})"><span class="no">${esc(t.no ?? '')}</span><span class="mid">
+        <span class="nm">${nr ? '<i class="dot" title="복기 필요"></i>' : ''}${esc(t.name || '(이름 없음)')}${g ? `<i class="gr ${esc(g)}" style="width:20px;height:20px;font-size:12px;border-radius:5px">${esc(g)}</i>` : ''}</span>
+        <span class="sub">${esc(dShort(c.open || t.created))}${c.close && c.close !== c.open ? ' – ' + esc(dShort(c.close)) : ''}${t.setup ? ' · ' + esc(t.setup) : ''}${t.tf ? ' · ' + esc(t.tf) : ''}</span></span>
+        <span class="rt">${c.status === 'closed' ? `<b class="${cls(c.realized)}">${tv(c)}</b><small>${c.ret ? (c.ret > 0 ? '+' : '−') + Math.abs(c.ret).toFixed(1) + '%' : ''}</small>` : `<span class="badge ${c.status === 'open' ? 'open' : ''}">${stName[c.status]}</span>`}</span></button>`;
+    }).join('') + (L.length > LIMIT ? `<button class="more" onclick="LIMIT+=40;render()">더 보기 (${L.length - LIMIT}건 더)</button>` : '')
+      : `<div class="empty">${FILTER === 'rev' ? '복기할 매매가 없어요 — 모두 돌아봤습니다' : q ? '찾는 매매가 없어요' : '매매 기록이 없어요'}</div>`}</div>
+    ${HM() ? '<p style="color:var(--muted);font-size:12px;margin:10px 4px">R = 계획한 손절 폭 대비 손익 · * 는 손절가 없이 들어간 매매 (계좌의 ' + n0(S().riskPct) + '% 를 1R 로)</p>' : ''}`;
+  const qi = $('q'); qi.oninput = () => { Q = qi.value; LIMIT = 40; const p = qi.selectionStart; render(); const n = $('q'); n.focus(); n.setSelectionRange(p, p); };
+}
+
+/* 매매 한 건 */
+function tradeV(m){
+  const t = trades().find(x => x.id === V.id); if (!t){ V = {k: 'list'}; return render(); }
+  const c = calc(t), p = t.plan || {}, r = review(t), seal = t.seal || {};
+  bar(`#${t.no ?? ''}`, `<button class="nav" onclick="back()">‹ 목록</button>`, '');
+  const kv = (k, v) => v === '' || v == null ? '' : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  const para = (k, v) => (v || '').trim() ? `<div class="para"><span>${k}</span><p>${esc(v)}</p></div>` : '';
+  const price = v => n0(v) ? fmt(v) + '원' : '';
+  const planBody = [kv('진입 계획가', price(seal.entry || p.entry)), kv('목표가', price(seal.target || p.target)), kv('손절가', price(c.stop)), kv('계획 수량', n0(seal.qty || p.qty) ? fmt(seal.qty || p.qty) + '주' : ''),
+    para('진입 근거', seal.why || p.why), para('재료 · 시장 상황', seal.catalyst || p.catalyst), para('시나리오', seal.scenario || p.scenario), kv('매매 전 감정', esc(p.emo || ''))].join('');
+  const judge = [...REVIEW_Q.map(([k, l], i) => para(`${i + 1}. ${l}`, r[k])), r.again ? `<div class="para"><span>5. 다시 돌아가도 같은 매매를 할 것인가</span><p>${r.again === 'y' ? '예' : '아니오'}${r.againWhy ? ' — ' + esc(r.againWhy) : ''}</p></div>` : ''].join('');
+  const rv = [r.grade ? `<div class="kv"><span>결정 등급</span><b><i class="gr ${esc(r.grade)}" style="width:22px;height:22px;font-size:12px;vertical-align:-5px">${esc(r.grade)}</i> ${esc(GRADES[r.grade] || '')}</b></div>` : '',
+    kv('원칙 준수', n0(r.follow) ? '●'.repeat(n0(r.follow)) + '<span style="color:var(--line)">' + '●'.repeat(5 - n0(r.follow)) + '</span>' : ''), kv('매매 후 감정', esc(r.emo || '')),
+    (r.mistakes || []).length ? `<div class="para"><span>실수</span><p>${r.mistakes.map(esc).join(' · ')}</p></div>` : '', para('잘한 결정', r.good), para('아쉬운 결정', r.bad), para('교훈', r.lesson), para('다음에는 이렇게', r.next), para('메모', t.memo)].join('');
+  const fills = [...(t.fills || [])].filter(f => f.date).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  m.innerHTML = `<div class="card hero"><div class="nm">${esc(t.name || '(이름 없음)')}</div>
+      <div class="meta">${[t.code, t.market, t.setup, t.tf].filter(Boolean).map(esc).join(' · ')}</div>
+      ${c.status === 'closed' ? `<div class="res ${cls(c.realized)}">${tv(c)}</div><div class="res2">${HM() ? '' : (c.ret > 0 ? '+' : c.ret < 0 ? '−' : '') + Math.abs(c.ret).toFixed(2) + '% · '}${esc(dShort(c.open))}${c.close !== c.open ? ' – ' + esc(dShort(c.close)) : ''}${c.holdMin != null ? ' · ' + (c.holdMin < 60 ? c.holdMin + '분' : c.holdMin < 1440 ? Math.floor(c.holdMin / 60) + '시간 ' + c.holdMin % 60 + '분' : Math.round(c.holdMin / 1440) + '일') : ''}</div>`
+        : `<div class="res" style="font-size:20px;color:var(--sub)">${stName[c.status]}</div>${c.status === 'open' ? `<div class="res2">${fmt(c.qty)}주 보유 · 평균 ${fmt(c.avgBuy)}원</div>` : ''}`}</div>
+    ${needReview(t, c) ? `<button class="cta" onclick="go({k:'review',id:'${esc(t.id)}'})">복기 쓰기</button>` : ''}
+    ${planBody ? `<div class="sec">계획${t.seal ? ' · 🔒 봉인됨' : ''}</div><div class="card">${planBody}</div>` : ''}
+    ${fills.length ? `<div class="sec">체결 ${fills.length}건</div><div class="card"><table class="fills">${fills.map(f => `<tr><td>${esc(dShort(f.date))} ${esc((f.time || '').slice(0, 5))}</td>
+      <td class="${f.side === 'B' ? 'up' : 'dn'}">${f.side === 'B' ? '매수' : '매도'}</td><td class="r">${fmt(f.qty)}주</td><td class="r">${fmt(f.price)}원</td></tr>`).join('')}</table></div>` : ''}
+    ${(t.images || []).length ? `<div class="sec">차트 ${t.images.length}장</div><div class="card"><div class="thumbs">${t.images.map((im, i) => `<img src="${esc(im.file ? WEB.img(im.file) : im.data || '')}" alt="" onclick="viewImg('${esc(t.id)}',${i})">`).join('')}</div></div>` : ''}
+    ${judge || rv ? `<div class="sec">복기</div>${judge ? `<div class="card">${judge}</div>` : ''}${rv ? `<div class="card">${rv}</div>` : ''}` : ''}
+    ${!needReview(t, c) ? `<button class="cta sub" onclick="go({k:'review',id:'${esc(t.id)}'})">${reviewed(t) ? '복기 고치기' : '복기 쓰기'}</button>` : ''}`;
+}
+function viewImg(id, i){
+  const t = trades().find(x => x.id === id), im = t && t.images[i]; if (!im) return;
+  const v = document.createElement('div'); v.className = 'viewer'; v.innerHTML = `<img src="${esc(im.file ? WEB.img(im.file) : im.data || '')}" alt="">${im.cap ? `<p>${esc(im.cap)}</p>` : ''}`;
+  v.onclick = () => v.remove(); document.body.appendChild(v);
+}
+
+/* 복기 쓰기 — 큰 화면의 ③ 복기와 같은 칸 (계획 · 체결은 봉인 규칙이 있어 큰 화면에서) */
+function reviewV(m){
+  const t = trades().find(x => x.id === V.id); if (!t){ V = {k: 'list'}; return render(); }
+  if (!EDIT || EDIT.id !== t.id) EDIT = {id: t.id, r: JSON.parse(JSON.stringify({mistakes: [], ...review(t)})), emo: (t.plan || {}).emo || '', memo: t.memo || '', changed: false};
+  const r = EDIT.r, emos = DB.emotions && DB.emotions.length ? DB.emotions : EMOTIONS, mis = DB.mistakes && DB.mistakes.length ? DB.mistakes : MISTAKES;
+  bar(t.name || '복기', `<button class="nav" onclick="back()">취소</button>`, `<button class="nav b" onclick="reviewSave()">저장</button>`);
+  const ta = (k, v, ph, rows = 2) => `<textarea rows="${rows}" data-k="${k}" placeholder="${esc(ph || '')}">${esc(v || '')}</textarea>`;
+  const chips = (k, list, cur, multi) => `<div class="chips" data-chips="${k}">${list.map(x => `<button class="chip ${multi ? (cur.includes(x) ? 'on' : '') : cur === x ? 'on' : ''}" data-v="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+  m.innerHTML = `<div class="sec">판단 기록 — 다섯 가지 질문</div><div class="card">
+      ${REVIEW_Q.map(([k, l, ph], i) => `<div class="fld"><label>${i + 1}. ${esc(l)}</label>${ta('r.' + k, r[k], ph)}</div>`).join('')}
+      <div class="fld"><div class="lb">5. 다시 돌아가도 같은 매매를 할 것인가</div>${chips('again', ['예', '아니오'], r.again === 'y' ? '예' : r.again === 'n' ? '아니오' : '')}
+        ${ta('r.againWhy', r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}</div></div>
+    <div class="sec">결정 등급 — 결과와 상관없이 결정만</div>
+    <div class="grade" data-grade>${Object.entries(GRADES).map(([g, l]) => `<button class="${r.grade === g ? 'on' : ''}" data-g="${g}"><i class="gr ${g}">${g}</i>${esc(l)}</button>`).join('')}</div>
+    <div class="sec">원칙 준수 <span style="font-weight:400;color:var(--muted)">1 = 원칙 무시 · 5 = 완벽히 지킴</span></div>
+    <div class="dots" data-dots>${[1, 2, 3, 4, 5].map(i => `<button class="${n0(r.follow) >= i ? 'on' : ''}" data-i="${i}">${i}</button>`).join('')}</div>
+    <div class="sec">감정</div><div class="card">
+      <div class="fld"><div class="lb">매매 전</div>${chips('emo', emos, EDIT.emo)}${ta('r.emoPreNote', r.emoPreNote, '매매 전 마음 — 메모 (선택)', 1)}</div>
+      <div class="fld"><div class="lb">매매 후 (청산할 때)</div>${chips('remo', emos, r.emo || '')}${ta('r.emoPostNote', r.emoPostNote, '매매 후 마음 — 메모 (선택)', 1)}</div></div>
+    <div class="sec">실수 점검</div><div class="card"><div class="fld">${chips('mis', mis, r.mistakes || [], true)}</div></div>
+    <div class="sec">돌아보기</div><div class="card">
+      <div class="fld"><label>잘한 결정</label>${ta('r.good', r.good, '', 3)}</div>
+      <div class="fld"><label>아쉬운 결정</label>${ta('r.bad', r.bad, '', 3)}</div>
+      <div class="fld"><label>교훈 <small>한 문장으로</small></label>${ta('r.lesson', r.lesson)}</div>
+      <div class="fld"><label>다음에는 이렇게</label>${ta('r.next', r.next)}</div>
+      <div class="fld"><label>메모</label>${ta('memo', EDIT.memo)}</div></div>
+    <div class="savebar"><div class="in"><button onclick="back()">취소</button><button class="primary" onclick="reviewSave()">저장</button></div></div>`;
+  m.oninput = e => { const k = e.target.dataset.k; if (!k) return; EDIT.changed = true; if (k === 'memo') EDIT.memo = e.target.value; else EDIT.r[k.slice(2)] = e.target.value; };
+  m.onclick = e => {
+    const ch = e.target.closest('[data-chips] .chip'), gb = e.target.closest('[data-grade] button'), db = e.target.closest('[data-dots] button');
+    if (ch){
+      const k = ch.parentElement.dataset.chips, v = ch.dataset.v; EDIT.changed = true;
+      if (k === 'again'){ const nv = v === '예' ? 'y' : 'n'; r.again = r.again === nv ? '' : nv; }
+      else if (k === 'emo') EDIT.emo = EDIT.emo === v ? '' : v;
+      else if (k === 'remo') r.emo = r.emo === v ? '' : v;
+      else if (k === 'mis'){ r.mistakes = r.mistakes || []; const i = r.mistakes.indexOf(v); if (i < 0) r.mistakes.push(v); else r.mistakes.splice(i, 1); }
+      ch.parentElement.querySelectorAll('.chip').forEach(b => b.classList.toggle('on', k === 'mis' ? r.mistakes.includes(b.dataset.v) : k === 'again' ? (r.again === 'y' ? '예' : r.again === 'n' ? '아니오' : '') === b.dataset.v : (k === 'emo' ? EDIT.emo : r.emo) === b.dataset.v));
+    } else if (gb){ EDIT.changed = true; r.grade = r.grade === gb.dataset.g ? '' : gb.dataset.g; gb.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === r.grade)); }
+    else if (db){ EDIT.changed = true; const i = +db.dataset.i; r.follow = n0(r.follow) === i ? 0 : i; db.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', n0(r.follow) >= +b.dataset.i)); }
+  };
+}
+function reviewSave(){
+  const t = trades().find(x => x.id === EDIT?.id); if (!t) return;
+  t.review = {...(t.review || {}), ...EDIT.r, mistakes: [...(EDIT.r.mistakes || [])], grade: EDIT.r.grade || ''};
+  t.plan = {...(t.plan || {}), emo: EDIT.emo}; t.memo = EDIT.memo; t.updated = new Date().toISOString();
+  EDIT = null; save(true); flash('복기를 저장했어요'); back();
+}
+
+/* 오늘 일지 — 장 전 계획 · 장 후 복기 (큰 화면의 하루 종이와 같은 칸, 쓰는 대로 저장) */
+function dayV(m){
+  bar('오늘 일지', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
+  const d = DAY, o = (DB.days || {})[d] || {}, focus = focusFor(d);
+  const ts = trades().map(t => ({t, c: calc(t)})).filter(x => (x.t.fills || []).some(f => f.date === d));
+  const pnl = rangePnl(d, d);
+  const ta = (k, ph, rows = 3) => `<textarea rows="${rows}" data-k="${k}" placeholder="${esc(ph)}">${esc(o[k] || '')}</textarea>`;
+  m.innerHTML = `<div class="datenav"><button onclick="DAY=addDays(DAY,-1);render()" aria-label="전날">‹</button><b>${dLong(d)}</b>
+      <span>${d !== today() ? '<button class="today" onclick="DAY=today();render()">오늘</button>' : ''}<button onclick="DAY=addDays(DAY,1);render()" aria-label="다음 날">›</button></span></div>
+    ${focus ? `<div class="focus"><div><small>이번 주 과제</small>${esc(focus)}</div></div>` : ''}
+    <div class="sec">장 전</div><div class="card" id="dayform">
+      <div class="fld"><label>시장 상황</label>${ta('market', '지수 · 해외 증시 · 환율 · 금리 · 주요 일정')}</div>
+      <div class="fld"><label>관심 종목과 시나리오</label>${ta('watch', '종목 · 셋업 · 진입 조건 · 손절가', 4)}</div>
+      <div class="fld"><label>오늘의 매매 계획</label>${ta('plan', '')}</div>
+      <div class="fld"><label>오늘의 다짐</label>${ta('mind', '', 2)}</div></div>
+    <div class="sec">이날 매매 ${ts.length ? ts.length + '종목' : ''}${pnl.won || pnl.n ? ` · <span class="${cls(pnl.won)}">${money(pnl.won, pnl.r)}</span>` : ''}</div>
+    <div class="card">${ts.length ? ts.map(({t, c}) => `<button class="row" onclick="go({k:'trade',id:'${esc(t.id)}'})"><span class="mid"><span class="nm">${needReview(t, c) ? '<i class="dot"></i>' : ''}${esc(t.name)}</span>
+      <span class="sub">${(t.fills || []).filter(f => f.date === d).length}건 체결${t.setup ? ' · ' + esc(t.setup) : ''}</span></span><span class="rt">${c.status === 'closed' ? `<b class="${cls(c.realized)}">${tv(c)}</b>` : `<span class="badge ${c.status === 'open' ? 'open' : ''}">${stName[c.status]}</span>`}</span></button>`).join('')
+      : '<div class="empty" style="padding:22px">이날 체결이 없어요</div>'}</div>
+    <div class="sec">장 후</div><div class="card" id="dayform2">
+      <div class="fld"><label>잘한 결정</label>${ta('good', '')}</div>
+      <div class="fld"><label>아쉬운 결정</label>${ta('bad', '')}</div>
+      <div class="fld"><label>내일 할 일 · 고칠 것</label>${ta('next', '', 2)}</div>
+      <div class="fld"><div class="lb">오늘 과정 점수</div><div class="dots" data-dots>${[1, 2, 3, 4, 5].map(i => `<button class="${n0(o.score) >= i ? 'on' : ''}" data-i="${i}">${i}</button>`).join('')}</div></div></div>`;
+  const obj = () => (DB.days = DB.days || {})[d] = (DB.days[d] || {});
+  m.oninput = e => { const k = e.target.dataset.k; if (k){ obj()[k] = e.target.value; save(); } };
+  m.onclick = e => { const b = e.target.closest('[data-dots] button'); if (!b) return; const o2 = obj(), i = +b.dataset.i; o2.score = o2.score === i ? 0 : i; save(); b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', n0(o2.score) >= +x.dataset.i)); };
+}
+
+/* 주간 복기 */
+function weekV(m){
+  bar('주간 복기', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
+  const mon = WEEK, sun = addDays(mon, 6), o = (DB.weeks || {})[mon] || {}, p = rangePnl(mon, sun);
+  const ta = (k, ph, rows = 3) => `<textarea rows="${rows}" data-k="${k}" placeholder="${esc(ph || '')}">${esc(o[k] || '')}</textarea>`;
+  const reports = [...(o.reports || [])].reverse();
+  m.innerHTML = `<div class="datenav"><button onclick="WEEK=addDays(WEEK,-7);render()" aria-label="지난주">‹</button><b>${+mon.slice(5, 7)}월 ${+mon.slice(8)}일 – ${+sun.slice(5, 7)}월 ${+sun.slice(8)}일</b>
+      <span>${mon !== monday(today()) ? '<button class="today" onclick="WEEK=monday(today());render()">이번 주</button>' : ''}<button onclick="WEEK=addDays(WEEK,7);render()" aria-label="다음 주">›</button></span></div>
+    <div class="card sum"><div><small>결과</small><b class="${cls(p.won)}">${p.n || p.won ? money(p.won, p.r) : '–'}</b></div><div><small>청산</small><b>${p.n}건</b></div><div><small>승률</small><b>${p.n ? Math.round(p.w / p.n * 100) + '%' : '–'}</b></div></div>
+    <div class="sec">쓰기</div><div class="card">
+      <div class="fld"><label>이번 주 잘한 것 <small>계속할 것</small></label>${ta('good')}</div>
+      <div class="fld"><label>반복된 문제</label>${ta('bad')}</div>
+      <div class="fld"><label>왜 반복되는가 <small>상황 · 감정 · 습관</small></label>${ta('cause')}</div>
+      <div class="fld"><label>다음 주 과제 <small>딱 하나</small></label><input data-k="focus" value="${esc(o.focus || '')}" placeholder="예) 손절가는 장중에 절대 내리지 않는다"></div>
+      <div class="fld"><label>어떻게 지킬 것인가</label>${ta('how', '', 2)}</div>
+      <div class="fld"><label>한 줄 총평</label>${ta('sum', '', 2)}</div>
+      <div class="fld"><div class="lb">이번 주 과정 점수</div><div class="dots" data-dots>${[1, 2, 3, 4, 5].map(i => `<button class="${n0(o.score) >= i ? 'on' : ''}" data-i="${i}">${i}</button>`).join('')}</div></div></div>
+    ${reports.length ? `<div class="sec">AI 주간 리포트 ${reports.length}개</div>${reports.map(x => `<div class="card pad"><div style="color:var(--sub);font-size:13px;margin-bottom:6px">${esc((x.at || '').replace('T', ' '))}${x.model ? ' · ' + esc(x.model) : ''}</div><div class="report">${esc(x.text)}</div></div>`).join('')}` : ''}
+    <p style="color:var(--muted);font-size:12px;margin:12px 4px">AI 리포트를 새로 받거나 통계를 보려면 큰 화면에서.</p>`;
+  const obj = () => (DB.weeks = DB.weeks || {})[mon] = (DB.weeks[mon] || {});
+  m.oninput = e => { const k = e.target.dataset.k; if (k){ obj()[k] = e.target.value; save(); } };
+  m.onclick = e => { const b = e.target.closest('[data-dots] button'); if (!b) return; const o2 = obj(), i = +b.dataset.i; o2.score = o2.score === i ? 0 : i; save(); b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', n0(o2.score) >= +x.dataset.i)); };
+}
+
+/* ---------- 시작: shim 이 로그인 · 드라이브를 맡는다 ---------- */
+(async () => {
+  try {
+    DB = await (await fetch('api/data')).json();
+    history.replaceState({v: V, tab: TAB}, ''); render();
+  } catch(e){ $('main').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+})();
+</script>
+</body>
+</html>
