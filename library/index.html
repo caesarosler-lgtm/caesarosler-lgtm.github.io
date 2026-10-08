@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#120e0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>나의 도서관</title>
+<!--
+  나의 도서관 — 책장 웹판 (2026-10-08, 큰 노트 앱을 위한 연습: 클라우드 · 브라우저 · 휴대폰)
+  · 서버가 없다. 이 페이지(코드)는 GitHub Pages 에 공개, 자료는 내 구글 드라이브의 '나의도서관 동기화' 폴더 — 구글 로그인 · drive.file 권한.
+  · 동기화의 '기기' 하나로 들어간다 (PC 프로그램 sync.py 와 같은 규칙): 기기마다 dev_<id>.json 하나만 쓰고, 기록(key)마다 (t, d) 가 큰 쪽이 이긴다.
+    이 페이지는 책장 기록(item/ · shelf/ · board/ · meta/)만 읽고 쓴다 — 방(일기 · 카드 …)은 PC 에서.
+  · 고칠 때: 저장 직전에 드라이브를 다시 읽어, 내가 연 뒤 다른 기기에서 같은 자료가 바뀌었으면 덮지 않고 내 것을 '(충돌 사본 · 웹)' 새 자료로 남긴다.
+-->
+<style>
+:root{
+  --bg:#e8dfcf;--panel:#f8f2e7;--paper:#fffaf0;--line:rgba(70,45,20,.12);--line2:rgba(70,45,20,.07);
+  --text:#2d251c;--sub:#7b6d5d;--muted:#a69a8c;--accent:#b8692c;--accent-weak:#f3e2cd;--danger:#c0392b;
+  --r1:6px;--r2:10px;--r3:14px;--t-1:13px;--t0:15px;--t1:17px;--t2:22px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#120e0a;--panel:#1f1812;--paper:#fbf3e2;--line:rgba(255,225,180,.10);--line2:rgba(255,225,180,.06);
+    --text:#efe4d0;--sub:#a59580;--muted:#76695a;--accent:#e9a95a;--accent-weak:rgba(233,169,90,.16);--danger:#ff7b6b;color-scheme:dark}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:var(--t0)/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",sans-serif;letter-spacing:-.011em;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh}
+button{font:inherit;color:inherit;border:0;background:rgba(0,0,0,.06);border-radius:var(--r2);padding:9px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media (prefers-color-scheme: dark){button{background:rgba(255,255,255,.10)}}
+button.primary{background:var(--accent);color:#fff;font-weight:600}
+button.ghost{background:transparent;padding:8px 10px}
+button.danger{color:var(--danger)}
+button:disabled{opacity:.45;cursor:default}
+input,textarea,select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;width:100%}
+textarea{min-height:52vh;resize:vertical;line-height:1.6}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px 96px}
+.hidden{display:none!important}
+/* 처음 화면 */
+.gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px}
+.gate h1{margin:0;font-size:28px;letter-spacing:-.02em}
+.gate p{margin:0;color:var(--sub);max-width:340px}
+/* 머리 */
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line2)}
+.bar{max-width:720px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.bar h1{font-size:var(--t1);margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.floors{max-width:720px;margin:0 auto;padding:0 16px 10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.floors::-webkit-scrollbar{display:none}
+.floors button{white-space:nowrap;padding:6px 12px;font-size:var(--t-1);border-radius:99px}
+.floors button.on{background:var(--accent);color:#fff}
+.search{max-width:720px;margin:0 auto;padding:0 16px 10px}
+/* 책장 */
+.shelf{margin-top:22px}
+.tape{display:inline-block;font-size:var(--t-1);color:var(--sub);background:var(--accent-weak);padding:2px 10px;border-radius:3px;margin:0 0 8px 2px;transform:rotate(-.6deg)}
+.books{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r3);overflow:hidden}
+.book{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line2);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.book:first-child{border-top:0}
+.book:active{background:var(--line2)}
+.spine{width:6px;align-self:stretch;border-radius:3px;flex:none}
+.book .t{flex:1;min-width:0}
+.book .t b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .t small{color:var(--muted);font-size:var(--t-1)}
+.book.child{padding-left:34px}
+.empty{color:var(--muted);padding:14px;font-size:var(--t-1)}
+/* 읽기 · 쓰기 */
+.reader h2{font-size:var(--t2);margin:18px 0 4px;letter-spacing:-.02em;line-height:1.3}
+.reader .meta{color:var(--muted);font-size:var(--t-1);margin-bottom:18px}
+.body{line-height:1.75;word-break:keep-all;overflow-wrap:anywhere}
+.body h3{font-size:var(--t1);margin:22px 0 6px}
+.body h4{font-size:var(--t0);margin:18px 0 4px}
+.body p{margin:0 0 10px}
+.body ul{margin:0 0 10px;padding-left:20px}
+.body li.chk{list-style:none;margin-left:-20px}
+.body img{max-width:100%;border-radius:var(--r2);margin:6px 0;background:var(--line2);min-height:40px}
+.body code{background:var(--line2);padding:1px 5px;border-radius:4px;font-size:.92em}
+.body a{color:var(--accent)}
+.body .card{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:baseline;background:var(--accent-weak);border-radius:var(--r2);padding:8px 12px;margin:6px 0}
+.body .card i{color:var(--muted);font-style:normal}
+.editor label{display:block;font-size:var(--t-1);color:var(--sub);margin:14px 0 6px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+/* 아래 */
+.foot{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line2);padding-bottom:env(safe-area-inset-bottom)}
+.foot .in{max-width:720px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.status{flex:1;color:var(--muted);font-size:var(--t-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:rgba(28,28,30,.94);color:#fff;padding:11px 18px;border-radius:var(--r3);font-size:var(--t-1);z-index:20;max-width:calc(100% - 32px);text-align:center}
+</style>
+</head>
+<body>
+<div id="gate" class="gate">
+  <h1>나의 도서관</h1>
+  <p>PC 의 책장을 휴대폰 · 다른 컴퓨터에서 읽고 씁니다. 자료는 내 구글 드라이브에만 있어요.</p>
+  <button class="primary" id="signin">구글 계정으로 열기</button>
+  <p id="gatemsg" style="font-size:13px"></p>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><button class="ghost" id="newbtn">＋ 새 노트</button></div>
+    <div class="floors" id="floors"></div>
+    <div class="search" id="searchbox"><input id="q" type="search" placeholder="자료 찾기" autocomplete="off"></div>
+  </header>
+  <main class="wrap" id="main"></main>
+  <div class="foot"><div class="in"><span class="status" id="status">불러오는 중…</span><button class="ghost" id="refresh">새로 불러오기</button></div></div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ---------- 설정 ---------- */
+const CLIENT_ID = '400009441617-5v78t237a461c2bhp74s4b72a5a1g05m.apps.googleusercontent.com';                        // 구글 클라우드 'mylibrary' 의 웹 OAuth 클라이언트 (공개되어도 되는 값 — 비밀이 아님)
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';   // 이 앱(같은 프로젝트)이 만든 파일만
+const FOLDER = '나의도서관 동기화';
+const KINDS = {note: '노트', print: '프린트', binder: '서류철'};
+const COLORS = ['#7b2027', '#1d3557', '#2e4a36', '#8a5a2b', '#4a3358', '#24555c', '#5a3a24', '#33373d'];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const ls = {get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch(e){ return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch(e){} }};
+function toast(m){ document.querySelector('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
+
+/* 이 브라우저 = 동기화 기기 하나 */
+const ME = ls.get('ml.dev', null) || (() => { const v = 'w' + crypto.getRandomValues(new Uint32Array(2)).reduce((s, x) => s + x.toString(36), '').slice(0, 11); ls.set('ml.dev', v); return v; })();
+const MYNAME = (() => { const u = navigator.userAgent; const k = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : '브라우저'; return '웹 · ' + k; })();
+
+/* ---------- 구글 로그인 (토큰은 이 탭에만, 1시간) ---------- */
+let TOKEN = null, tokenClient = null, tokenWait = null;
+try { const s = JSON.parse(sessionStorage.getItem('ml.tok') || 'null'); if (s && s.exp > Date.now() + 60000) TOKEN = s; } catch(e){}
+function initGis(){
+  if (tokenClient || !window.google?.accounts?.oauth2) return !!tokenClient;
+  tokenClient = google.accounts.oauth2.initTokenClient({client_id: CLIENT_ID, scope: SCOPE, callback: r => {
+    const w = tokenWait; tokenWait = null;
+    if (r.error){ w?.rej(new Error(r.error)); return; }
+    TOKEN = {v: r.access_token, exp: Date.now() + (r.expires_in - 60) * 1000};
+    try { sessionStorage.setItem('ml.tok', JSON.stringify(TOKEN)); } catch(e){}
+    w?.res(TOKEN.v);
+  }});
+  return true;
+}
+function token(interactive){
+  if (TOKEN && TOKEN.exp > Date.now()) return Promise.resolve(TOKEN.v);
+  if (!initGis()) return Promise.reject(new Error('구글 로그인을 불러오지 못했어요'));
+  return new Promise((res, rej) => { tokenWait = {res, rej}; tokenClient.requestAccessToken({prompt: interactive ? 'consent' : ''}); });
+}
+async function api(path, opt = {}){
+  const t = await token(false);
+  const r = await fetch(path.startsWith('http') ? path : 'https://www.googleapis.com/drive/v3/' + path, {...opt, headers: {...(opt.headers || {}), Authorization: 'Bearer ' + t}});
+  if (r.status === 401){ TOKEN = null; sessionStorage.removeItem('ml.tok'); throw new Error('다시 로그인해 주세요'); }
+  if (!r.ok) throw new Error('드라이브 오류 ' + r.status);
+  return r;
+}
+const q = s => encodeURIComponent(s);
+
+/* ---------- 동기화 규칙 (PC 의 sync.py 와 같게) ---------- */
+// json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False) 와 같은 글자로
+const js = v => v === null || typeof v !== 'object' ? JSON.stringify(v) : Array.isArray(v) ? '[' + v.map(js).join(',') + ']' : '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + js(v[k])).join(',') + '}';
+async function h(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 24); }
+const isLib = k => !k.split('/', 1)[0].includes(':');    // 책장 기록만 (방은 'diary:' 같은 앞머리)
+const newer = (a, b) => !b || a.t > b.t || (a.t === b.t && a.d > b.d);
+
+const S = {fid: null, files: {}, win: {}, clock: 0, devices: [], db: null, imgs: null, at: null, floor: +ls.get('ml.floor', 1) || 1, view: {k: 'shelf'}};
+
+async function load(){
+  status('드라이브에서 불러오는 중…');
+  const f = (await (await api(`files?q=${q(`name = '${FOLDER}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`)}&fields=files(id)`)).json()).files || [];
+  if (!f.length) throw new Error('드라이브에 동기화 폴더가 없어요 — PC 의 설정에서 동기화를 먼저 켜 주세요');
+  S.fid = f[0].id;
+  const list = (await (await api(`files?q=${q(`'${S.fid}' in parents and trashed = false and name contains 'dev_'`)}&fields=files(id,name,modifiedTime)&pageSize=100`)).json()).files || [];
+  const devs = await Promise.all(list.map(async x => ({...x, data: await (await api(`files/${x.id}?alt=media`)).json()})));
+  S.files = {}; S.win = {}; S.clock = 0; S.devices = [];
+  for (const x of devs){
+    S.files[x.name] = x.id;
+    if (x.data.device !== ME) S.devices.push(x.data.name || x.data.device);
+    for (const [k, e] of Object.entries(x.data.recs || {})){
+      S.clock = Math.max(S.clock, e.t || 0);
+      if (isLib(k) && newer(e, S.win[k])) S.win[k] = e;
+    }
+  }
+  S.db = join(S.win); S.at = new Date();
+  status();
+}
+function join(win){
+  const d = {items: [], shelves: [], boards: [], settings: {}};
+  for (const [k, e] of Object.entries(win)){
+    if (e.x || e.v == null) continue;
+    const [p, rest] = [k.split('/')[0], k.slice(k.indexOf('/') + 1)], v = JSON.parse(e.v);
+    if (p === 'item') d.items.push(v); else if (p === 'shelf') d.shelves.push(v); else if (p === 'board') d.boards.push(v); else if (p === 'meta') d[rest] = v;
+  }
+  d.shelves.sort((a, b) => (a.order || 0) - (b.order || 0));
+  d.items.sort((a, b) => (a.order || 0) - (b.order || 0) || String(a.created).localeCompare(String(b.created)));
+  return d;
+}
+
+/* 저장: 드라이브를 다시 읽고 → 내가 연 뒤 다른 기기에서 바뀌었으면 덮지 않고 사본 → 내 파일(dev_<ME>.json) 하나만 씀 */
+async function save(it, base){
+  status('저장하는 중…');
+  await load();
+  const key = 'item/' + it.id, cur = S.win[key];
+  let kept = null;
+  if (base && cur && (cur.t !== base.t || cur.d !== base.d)){   // 내가 연 판이 아니다 = 그사이 다른 기기에서 고침
+    it = {...it, id: sUid(), title: `${it.title} (충돌 사본 · ${MYNAME} ${new Date().toTimeString().slice(0, 5)})`, order: (JSON.parse(cur.v || '{}').order || 0) + .001};
+    kept = it;
+  }
+  const v = js(it), t = Math.max(Date.now(), S.clock + 1);
+  S.win['item/' + it.id] = {h: await h(v), t, d: ME, v};
+  S.clock = t;
+  await writeMine();
+  return {it, kept};
+}
+/* 지우기: 그 기록에 '지움 표시'(x) 를 남긴다 — 동기화 규칙상 지움도 하나의 고침이라 다른 기기에 퍼진다 */
+async function remove(id){
+  status('지우는 중…');
+  await load();
+  const t = Math.max(Date.now(), S.clock + 1);
+  S.win['item/' + id] = {h: '', t, d: ME, x: 1};
+  S.clock = t;
+  await writeMine();
+}
+async function writeMine(){
+  const recs = {};
+  for (const [k, e] of Object.entries(S.win)) recs[k] = e.x ? {h: e.h || '', t: e.t, d: e.d, x: 1} : {h: e.h, t: e.t, d: e.d, v: e.v};
+  const body = JSON.stringify({device: ME, name: MYNAME, at: sNowS(), recs});
+  const name = `dev_${ME}.json`;
+  if (S.files[name]) await api(`https://www.googleapis.com/upload/drive/v3/files/${S.files[name]}?uploadType=media`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body});
+  else {
+    const bd = 'ml' + Math.random().toString(36).slice(2), meta = {name, parents: [S.fid]};
+    await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {method: 'POST', headers: {'Content-Type': 'multipart/related; boundary=' + bd},
+      body: `--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${bd}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${bd}--`});
+  }
+  S.db = join(S.win); S.at = new Date(); status();
+}
+const sUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const sNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const sNowS = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 19); };   // 이 기기의 시각 (PC sync.py 의 datetime.now() 와 같은 모양 — 예전엔 UTC 라 9시간 이르게 보였다)
+
+/* 그림: 드라이브 동기화 폴더의 images/ (PC 가 올려 둔 것) */
+async function imgUrl(rel){
+  if (!S.imgs){
+    S.imgs = {};
+    const g = (await (await api(`files?q=${q(`name = 'images' and '${S.fid}' in parents and trashed = false`)}&fields=files(id)`)).json()).files || [];
+    if (g.length){ let tok = ''; do { const r = await (await api(`files?q=${q(`'${g[0].id}' in parents and trashed = false`)}&fields=nextPageToken,files(id,name)&pageSize=1000${tok ? '&pageToken=' + tok : ''}`)).json(); (r.files || []).forEach(f => S.imgs[f.name] = {id: f.id}); tok = r.nextPageToken || ''; } while (tok); }
+  }
+  const m = S.imgs[rel.replace(/\//g, '__')]; if (!m) return null;
+  if (!m.url) m.url = URL.createObjectURL(await (await api(`files/${m.id}?alt=media`)).blob());
+  return m.url;
+}
+
+/* ---------- 화면 ---------- */
+function status(msg){
+  $('status').textContent = msg || (S.at ? `드라이브와 맞춤 · ${S.at.toTimeString().slice(0, 5)}${S.devices.length ? ' · ' + S.devices.join(', ') : ''}` : '');
+}
+const floorName = f => S.db?.settings?.floorNames?.[f] || (f + '층');
+const floorsUsed = () => [...new Set(S.db.shelves.map(s => s.floor || 1))].filter(f => f >= 1 && f <= 4).sort();
+function go(view){ S.view = view; render(); window.scrollTo(0, 0); }
+
+function render(){
+  const v = S.view, inShelf = v.k === 'shelf';
+  $('back').classList.toggle('hidden', inShelf);
+  $('floors').classList.toggle('hidden', !inShelf);
+  $('searchbox').classList.toggle('hidden', !inShelf);
+  $('newbtn').classList.toggle('hidden', !inShelf);
+  if (inShelf) return shelfV();
+  if (v.k === 'read') return readV(v.id);
+  if (v.k === 'edit') return editV(v);
+}
+function shelfV(){
+  const fl = floorsUsed(); if (!fl.includes(S.floor)) S.floor = fl[0] || 1;
+  $('title').textContent = '나의 도서관';
+  $('floors').innerHTML = fl.map(f => `<button class="${f === S.floor ? 'on' : ''}" data-f="${f}">${esc(floorName(f))}</button>`).join('');
+  const term = $('q').value.trim().toLowerCase();
+  const items = S.db.items, byParent = p => items.filter(i => i.parent === p);
+  const row = (it, child) => `<div class="book ${child ? 'child' : ''}" data-id="${esc(it.id)}"><span class="spine" style="background:${esc(it.color || '#555')}"></span><span class="t"><b>${esc(it.title)}</b><small>${KINDS[it.kind] || '노트'}${it.updated ? ' · ' + esc(String(it.updated).slice(0, 10)) : ''}</small></span></div>`;
+  if (term){
+    const hits = items.filter(i => (i.title + ' ' + (i.body || '') + ' ' + (i.tags || []).join(' ')).toLowerCase().includes(term));
+    $('main').innerHTML = `<div class="shelf"><span class="tape">찾은 자료 ${hits.length}</span><div class="books">${hits.map(i => row(i)).join('') || '<div class="empty">없어요</div>'}</div></div>`;
+    return;
+  }
+  $('main').innerHTML = S.db.shelves.filter(s => (s.floor || 1) === S.floor).map(s => {
+    const top = items.filter(i => i.shelf === s.id && !i.parent);
+    return `<section class="shelf"><span class="tape">${esc(s.name)}</span><div class="books">${top.map(i => row(i) + (i.kind === 'binder' ? byParent(i.id).map(c => row(c, true)).join('') : '')).join('') || '<div class="empty">빈 칸</div>'}</div></section>`;
+  }).join('') || '<div class="empty">이 층에는 아직 칸이 없어요</div>';
+}
+function md(src){
+  const inl = s => esc(s).replace(/!\[([^\]\n]*)\]\((\d{4}-\d{2}\/[A-Za-z0-9_\-]+\.(?:png|jpe?g|webp|gif))\)/g, (m, a, r) => `<img alt="${a}" data-rel="${r}">`)
+    .replace(/\[\[([^\]\n]+)\]\]/g, (m, t) => `<a href="#" data-title="${t}">${t}</a>`)
+    .replace(/\[([^\]\n]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  const out = []; let list = false;
+  for (const line of String(src || '').replace(/\r/g, '').split('\n')){
+    let m;
+    const close = () => { if (list){ out.push('</ul>'); list = false; } };
+    if ((m = line.match(/^(#{1,3})\s+(.*)$/))){ close(); out.push(m[1].length === 1 ? `<h3>${inl(m[2])}</h3>` : `<h4>${inl(m[2])}</h4>`); }
+    else if ((m = line.match(/^\s*[-*]\s+\[( |x|X)\]\s*(.*)$/))){ if (!list){ out.push('<ul>'); list = true; } out.push(`<li class="chk">${m[1] === ' ' ? '☐' : '☑'} ${inl(m[2])}</li>`); }
+    else if ((m = line.match(/^\s*[-*•]\s+(.*)$/))){ if (!list){ out.push('<ul>'); list = true; } out.push(`<li>${inl(m[1])}</li>`); }
+    else if ((m = line.match(/^(.+?)\s+::\s+(.+)$/))){ close(); out.push(`<div class="card"><span>${inl(m[1])}</span><i>→</i><span>${inl(m[2])}</span></div>`); }
+    else if (!line.trim()) close();
+    else { close(); out.push(`<p>${inl(line)}</p>`); }
+  }
+  if (list) out.push('</ul>');
+  return out.join('');
+}
+function readV(id){
+  const it = S.db.items.find(i => i.id === id); if (!it) return go({k: 'shelf'});
+  const sh = S.db.shelves.find(s => s.id === it.shelf);
+  $('title').textContent = '';
+  $('main').innerHTML = `<article class="reader"><h2>${esc(it.title)}</h2>
+    <div class="meta">${esc(sh?.name || '')} · ${KINDS[it.kind] || '노트'}${it.updated ? ' · 고친 날 ' + esc(String(it.updated).replace('T', ' ')) : ''}${(it.tags || []).length ? ' · ' + it.tags.map(t => '#' + esc(t)).join(' ') : ''}</div>
+    <div class="body">${md(it.body) || '<p style="color:var(--muted)">빈 종이</p>'}</div>
+    <div class="row" style="margin-top:28px">${S.db.items.some(i => i.parent === id) ? '' : '<button class="ghost danger" id="delbtn">지우기</button>'}<span class="sp"></span><button id="editbtn">고치기</button></div></article>`;
+  $('editbtn').onclick = () => go({k: 'edit', id});
+  if ($('delbtn')) $('delbtn').onclick = async () => {   // 서류철 안에 자료가 있으면 버튼이 없다 (꺼내 두기는 PC 에서)
+    if (!confirm(`‘${it.title}’ 을(를) 지울까요?\n모든 기기에서 지워집니다.`)) return;
+    try { await remove(id); toast('지웠어요 — PC 에서도 2분 안에 사라져요'); go({k: 'shelf'}); } catch(e){ toast('⚠ ' + e.message); status(); }
+  };
+  document.querySelectorAll('.body img[data-rel]').forEach(async im => { try { const u = await imgUrl(im.dataset.rel); if (u) im.src = u; else im.alt = '(그림을 찾지 못했어요)'; } catch(e){} });
+  document.querySelectorAll('.body a[data-title]').forEach(a => a.onclick = e => { e.preventDefault(); const t = S.db.items.find(i => i.title === a.dataset.title); if (t) go({k: 'read', id: t.id}); else toast('그 제목의 자료가 없어요'); });
+}
+function editV(v){
+  const it = v.id ? S.db.items.find(i => i.id === v.id) : null;
+  const base = it ? S.win['item/' + it.id] : null;
+  const shelves = S.db.shelves.filter(s => (s.floor || 1) === S.floor);
+  $('title').textContent = it ? '고치기' : '새 노트';
+  $('main').innerHTML = `<div class="editor">
+    <label>제목</label><input id="e_t" value="${esc(it?.title || '')}" placeholder="제목">
+    ${it ? '' : `<label>칸</label><select id="e_s">${shelves.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>`}
+    <label>본문</label><textarea id="e_b" placeholder="# 제목 · - 목록 · 질문 :: 답">${esc(it?.body || '')}</textarea>
+    <div class="row" style="margin-top:14px"><span class="sp"></span><button id="e_c">취소</button><button class="primary" id="e_ok">저장</button></div></div>`;
+  $('e_c').onclick = () => go(it ? {k: 'read', id: it.id} : {k: 'shelf'});
+  $('e_ok').onclick = async () => {
+    const btn = $('e_ok'); btn.disabled = true;
+    const now = sNow(), title = $('e_t').value.trim() || '제목 없음', body = $('e_b').value;
+    let next;
+    if (it) next = {...it, title, body, updated: now};
+    else {
+      const sid = $('e_s')?.value || shelves[0]?.id; if (!sid){ toast('먼저 PC 에서 이 층에 칸을 만들어 주세요'); btn.disabled = false; return; }
+      const last = S.db.items.filter(i => i.shelf === sid && !i.parent).reduce((m, i) => Math.max(m, i.order || 0), 0);
+      next = {id: sUid(), kind: 'note', title, body, code: '', market: '', name: '', tags: [], src: '', color: COLORS[Math.floor(Math.random() * COLORS.length)], shelf: sid, parent: '', order: last + 1, created: now, updated: now};
+    }
+    try {
+      const r = await save(next, base);
+      toast(r.kept ? '다른 기기에서 먼저 고쳐서, 내 것은 사본으로 남겼어요' : '저장했어요 — PC 에는 2분 안에 들어가요');
+      go({k: 'read', id: r.it.id});
+    } catch(e){ toast('⚠ ' + e.message); btn.disabled = false; status(); }
+  };
+}
+
+/* ---------- 이벤트 ---------- */
+$('floors').onclick = e => { const b = e.target.closest('button[data-f]'); if (b){ S.floor = +b.dataset.f; ls.set('ml.floor', S.floor); render(); } };
+$('main').addEventListener('click', e => { const b = e.target.closest('.book'); if (b) go({k: 'read', id: b.dataset.id}); });
+$('q').oninput = () => render();
+$('back').onclick = () => go({k: 'shelf'});
+$('newbtn').onclick = () => go({k: 'edit'});
+$('refresh').onclick = async () => { try { await load(); render(); toast('새로 불러왔어요'); } catch(e){ toast('⚠ ' + e.message); status(); } };
+document.addEventListener('visibilitychange', async () => { if (!document.hidden && S.db && S.view.k !== 'edit' && Date.now() - (S.at || 0) > 60000){ try { await load(); render(); } catch(e){} } });
+
+async function start(interactive){
+  $('gatemsg').textContent = '';
+  try {
+    await token(interactive);
+    await load();
+    $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+    render();
+  } catch(e){ $('gatemsg').textContent = e.message === 'popup_closed' ? '' : e.message; $('gate').classList.remove('hidden'); $('app').classList.add('hidden'); }
+}
+$('signin').onclick = () => start(true);
+window.addEventListener('load', () => { if (TOKEN) start(false); });
+</script>
+</body>
+</html>
