@@ -186,10 +186,23 @@ function mergeValue(o, a, b, aNewer, field = ''){
   if (field === 'updated' && typeof a === 'string' && typeof b === 'string') return a > b ? a : b;
   return aNewer ? a : b;
 }
+// 함께 움직여야 하는 칸 묶음: 암기카드의 복습 일정 — 두 기기에서 같은 카드를 따로 복습했으면 칸마다 섞지 않고(간격은 A, 날짜는 B 처럼 엉터리가 되므로)
+// 마지막으로 복습한(last 가 큰) 쪽의 일정을 통째로 쓴다 (sync.py SRS · merge_obj 와 같게). 복습 기록(log)은 따로 둘 다 남는다
+const SRS = ['state', 'due', 'ivl', 'ease', 'step', 'reps', 'lapses', 'last'];
+const num0 = x => { const v = Number(x); return Number.isFinite(v) ? v : 0; };
 function mergeObj(o, a, b, aNewer){
-  const out = {};
+  const out = {}, done = new Set();
+  if ('last' in a && 'last' in b && 'ivl' in a && 'ivl' in b){
+    const g = x => js(SRS.map(f => f in x ? x[f] : '\u0000none')), ga = g(a), gb = g(b), go = g(o);
+    if (ga !== go && gb !== go && ga !== gb){
+      const win = num0(a.last) > num0(b.last) || (num0(a.last) === num0(b.last) && aNewer) ? a : b;
+      for (const f of SRS) if (f in win) out[f] = win[f];
+      SRS.forEach(f => done.add(f));
+    }
+  }
   const fields = [...Object.keys(a), ...Object.keys(b).filter(x => !(x in a)), ...Object.keys(o).filter(x => !(x in a) && !(x in b))];
   for (const f of fields){
+    if (done.has(f)) continue;
     const av = f in a ? a[f] : NONE, bv = f in b ? b[f] : NONE, ov = f in o ? o[f] : NONE;
     if (av === NONE || bv === NONE){
       if (av === NONE && bv === NONE) continue;

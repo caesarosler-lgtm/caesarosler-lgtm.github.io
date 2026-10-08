@@ -35,7 +35,10 @@ button{font:inherit;color:inherit;border:0;background:rgba(0,0,0,.06);border-rad
 button.primary{background:var(--accent);color:#fff;font-weight:600}
 button.ghost{background:transparent;padding:8px 10px}
 button.danger{color:var(--danger)}
-a.lnk{color:var(--sub);text-decoration:none;padding:8px 6px;border-radius:var(--r2);white-space:nowrap}
+/* 다른 방 (웹판): 제목 아래 한 줄 — 휴대폰 폭에서도 제목 · 새 노트와 겹치지 않게 */
+.rooms{max-width:720px;margin:0 auto;padding:0 10px 8px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.rooms::-webkit-scrollbar{display:none}
+a.lnk{color:var(--sub);text-decoration:none;padding:5px 8px;border-radius:var(--r2);white-space:nowrap;font-size:var(--t-1)}
 a.lnk:hover{color:var(--text)}
 button:disabled{opacity:.45;cursor:default}
 input,textarea,select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;width:100%}
@@ -102,7 +105,8 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88
 
 <div id="app" class="hidden">
   <header>
-    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><a class="lnk" id="jlink" href="journal/" title="매매 장부 (트레이딩 저널)">매매</a><a class="lnk" id="elink" href="english/" title="영어 스승">영어</a><a class="lnk" id="tlink" href="todo/" title="내일의 할일">할일</a><a class="lnk" id="klink" href="think/" title="몰입 (Think Hard)">몰입</a><button class="ghost" id="newbtn">＋ 새 노트</button></div>
+    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><button class="ghost" id="newbtn">＋ 새 노트</button></div>
+    <nav class="rooms" id="rooms" aria-label="다른 방"><a class="lnk" id="jlink" href="journal/" title="매매 장부 (트레이딩 저널)">매매 장부</a><a class="lnk" id="elink" href="english/" title="영어 스승">영어 스승</a><a class="lnk" id="tlink" href="todo/" title="내일의 할일">내일의 할일</a><a class="lnk" id="klink" href="think/" title="몰입 (Think Hard)">몰입</a><a class="lnk" id="clink" href="cards/" title="암기카드">암기카드</a></nav>
     <div class="floors" id="floors"></div>
     <div class="search" id="searchbox"><input id="q" type="search" placeholder="자료 찾기" autocomplete="off"></div>
   </header>
@@ -274,7 +278,7 @@ function render(){
   $('floors').classList.toggle('hidden', !inShelf);
   $('searchbox').classList.toggle('hidden', !inShelf);
   $('newbtn').classList.toggle('hidden', !inShelf);
-  $('jlink').classList.toggle('hidden', !inShelf); $('elink').classList.toggle('hidden', !inShelf); $('tlink').classList.toggle('hidden', !inShelf); $('klink').classList.toggle('hidden', !inShelf);   // 트레이딩 저널 웹판 (같은 로그인 · 같은 기기)
+  $('rooms').classList.toggle('hidden', !inShelf);   // 다른 방 링크 (책장에서만)   // 트레이딩 저널 웹판 (같은 로그인 · 같은 기기)
   if (inShelf) return shelfV();
   if (v.k === 'read') return readV(v.id);
   if (v.k === 'edit') return editV(v);

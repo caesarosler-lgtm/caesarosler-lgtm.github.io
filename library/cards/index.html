@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>암기카드</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+<script>
+/* 테마·포인트 색을 화면이 그려지기 전에 먼저 적용 (깜빡임 없음) — 실행기가 설정.json 값을 window.__CFG 로 심어 준다 */
+(function(){var c=window.__CFG,th,ac;try{if(!c){th=localStorage.getItem('anki-theme');ac=localStorage.getItem('anki-accent');}}catch(e){}
+ th=(c&&c.theme)||th||'light';ac=(c&&c.accent)||ac||'blue';var r=document.documentElement;r.dataset.pref=th;
+ r.dataset.theme=th==='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):th;r.dataset.accent=ac;})();
+</script>
+<style>
+:root{
+  /* ===== 디자인 기준 — 교정차트 index.html 과 같은 값 (이 값들에서만 크기가 나온다) =====
+     글자: 15px 기준 × 1.2 비율  ·  모서리: 4 · 8 · 12 · 16 · 24  ·  간격: 4의 배수(4 8 12 16 24 32 48 64)  ·  움직임: 89 · 144 · 233ms 한 가지 곡선 */
+  --t-3:8.7px; --t-2:10.4px; --t-1:12.5px; --t0:15px; --t1:18px; --t2:21.6px; --t3:25.9px; --t4:31.1px; --t5:37.3px; --t6:44.8px; --t7:53.8px;
+  --r1:4px; --r2:8px; --r3:12px; --r4:16px; --r5:24px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --ease:cubic-bezier(.2,.8,.2,1); --d1:89ms; --d2:144ms; --d3:233ms;
+  --e1:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.05);
+  /* 테마: 차분한 흰색 · 얇은 선 · 파란 포인트 하나 */
+  --bg:#f5f5f7;--panel:#fff;--line:rgba(0,0,0,.09);--text:#1d1d1f;--sub:#6e6e73;--accent:#0071e3;--accent-weak:#eaf3fe;--accent-rgb:0,113,227;--accent-hi:#4aa3ff;--accent-hover:#0a7cf0;--danger:#d70015;--ok:#248a3d;--warn:#b25000;
+  --c-new:var(--accent);--c-lrn:#d14d00;--c-young:#5fbf7a;--c-mature:#1e7a36;
+}
+/* 포인트 색: 초록(데스크) · 보라(원장실) — 교정차트 모드 색과 같다 */
+html[data-accent=purple]{--bg:#f3f2fa;--accent:#5856d6;--accent-weak:#ecebfb;--accent-rgb:88,86,214;--accent-hi:#8e8cf0;--accent-hover:#6a68e0}
+html[data-accent=green]{--bg:#f0f6f2;--accent:#1c8f4e;--accent-weak:#e6f4ec;--accent-rgb:28,143,78;--accent-hi:#5ccf8c;--accent-hover:#22a15a}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;letter-spacing:-.011em;-webkit-font-smoothing:antialiased;font-size:var(--t0);color:var(--text)}
+button{font:inherit;cursor:pointer;color:var(--text);background:rgba(0,0,0,.055);border:none;border-radius:var(--r3);padding:7px 14px;font-weight:500;transition:background var(--d2) var(--ease),transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease)}
+button:hover{background:rgba(0,0,0,.095)}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-hover)}
+button.danger{color:var(--danger)}
+button.sm{padding:3px 10px;font-size:var(--t-1);border-radius:var(--r2)}
+button:disabled{opacity:.38;cursor:default}
+button:disabled:hover{background:rgba(0,0,0,.055)}
+input,select,textarea{font:inherit;color:var(--text);width:100%;border:1px solid rgba(0,0,0,.14);border-radius:var(--r3);padding:8px 11px;background:#fff;transition:box-shadow var(--d2) var(--ease),border-color var(--d2) var(--ease)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.16)}
+input[type=checkbox]{width:auto;margin:0;accent-color:var(--accent)}
+textarea{resize:vertical;line-height:1.55}
+.card{background:var(--panel);border-radius:var(--r4);box-shadow:var(--e1);padding:var(--s4);margin-bottom:var(--s4)}
+.card h3{margin:0 0 var(--s3);font-size:var(--t0);font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:var(--s2)}
+.card h3 .sp{flex:1}
+.card h3 small{font-weight:400;color:var(--sub);font-size:var(--t-1)}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 8px;text-align:left;vertical-align:top;font-size:var(--t-1)}
+th{font-weight:600;color:var(--sub);border-bottom:1px solid var(--line);white-space:nowrap}
+td{border-bottom:1px solid rgba(0,0,0,.055)}
+.muted{color:var(--sub)}
+.empty{color:var(--sub);padding:14px 4px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.badge{font-size:var(--t-2);padding:2px 9px;border-radius:var(--r3);background:#eef1f4;color:var(--sub);white-space:nowrap;font-weight:500;display:inline-block}
+.b-new{background:var(--accent-weak);color:var(--accent)}.b-learn,.b-relearn{background:#fdf2e3;color:var(--warn)}.b-review{background:#e7f5ec;color:var(--ok)}.b-susp{background:#eee;color:#888}
+.tabs{display:inline-flex;gap:2px;padding:3px;background:rgba(0,0,0,.06);border-radius:var(--r3);margin:0 0 16px;align-self:flex-start}
+.tabs button{background:none;border-radius:var(--r2);padding:6px 18px;color:var(--sub);font-weight:500}
+.tabs button:hover{background:rgba(0,0,0,.04)}
+.tabs button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.stat{display:flex;gap:12px;flex-wrap:wrap}
+.stat div{background:rgba(0,0,0,.035);border-radius:var(--r3);padding:10px 14px;min-width:80px}
+.stat b{display:block;font-size:var(--t2);font-variant-numeric:tabular-nums}
+.stat span{font-size:var(--t-1);color:var(--sub)}
+.link{color:var(--accent);cursor:pointer}.link:hover{text-decoration:underline}
+.kbd{display:inline-block;margin-left:8px;font:700 var(--t-2)/1 ui-monospace,Consolas,monospace;color:var(--text);border:1px solid rgba(128,128,128,.4);border-bottom-width:2px;border-radius:var(--r1);padding:1px 6px;background:rgba(128,128,128,.14);vertical-align:1px}
+button.primary .kbd{color:#fff;background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.6)}
+
+/* 머리글 */
+#app{display:flex;flex-direction:column;height:100%}
+header{flex:0 0 52px;display:flex;align-items:center;height:52px;padding:0 22px;gap:16px;background:color-mix(in srgb,var(--bg) 22%,rgba(255,255,255,.84));backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);color:var(--text);border-bottom:1px solid var(--line);position:relative;z-index:40}
+.brand{display:flex;align-items:center;gap:12px;cursor:pointer;flex-shrink:0}
+.logo{width:28px;height:28px;border-radius:var(--r2);background:linear-gradient(145deg,var(--accent-hi),var(--accent));display:flex;align-items:center;justify-content:center;font-size:var(--t0);box-shadow:0 1px 3px rgba(var(--accent-rgb),.4)}
+header h1{font-size:var(--t0);font-weight:700;margin:0;letter-spacing:-.02em;white-space:nowrap}
+header button.ghost{background:none;color:var(--sub);padding:6px 10px}
+header button.ghost:hover{background:rgba(0,0,0,.06);color:var(--text)}
+header button.pill{border-radius:980px;padding:7px 16px}
+header>button,header>.seg,header>#saved,header>.brand{flex:0 0 auto;white-space:nowrap}
+#themeBtn{width:116px;text-align:center}
+#fullBtn{width:148px;text-align:center}   /* '전체화면'과 '전체화면 끄기'의 글자 길이가 달라도 버튼 폭은 그대로 (머리글이 움직이지 않게) */
+header button.ghost.on{color:var(--accent);font-weight:600}
+#saved{font-size:var(--t-1);color:var(--sub);opacity:0;transition:opacity var(--d3) var(--ease)}
+.seg{display:flex;gap:2px;padding:3px;background:rgba(0,0,0,.06);border-radius:var(--r3);flex-shrink:0}
+.seg button{background:none;padding:5px 16px;border-radius:var(--r2);color:var(--sub)}
+.seg button:hover{background:rgba(0,0,0,.04)}
+.seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+html[data-accent=purple] .seg button.on,html[data-accent=green] .seg button.on,html[data-accent=purple] .tabs button.on,html[data-accent=green] .tabs button.on{color:var(--accent)}
+.dots button{padding:5px 9px}
+.dots i{display:block;width:12px;height:12px;border-radius:50%}
+.dots .on i{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px currentColor}
+.search{position:relative;flex:0 0 380px;width:380px}
+.search input{height:36px;border-radius:var(--r3);background:rgba(0,0,0,.055);border:1px solid transparent;padding:0 46px 0 38px;font-size:var(--t0)}
+.search input:focus{background:#fff;border-color:var(--accent)}
+.search .sicon{position:absolute;left:13px;top:10px;color:var(--sub);pointer-events:none}
+.search kbd{position:absolute;right:10px;top:8px;font:inherit;font-size:var(--t-2);color:var(--sub);background:rgba(0,0,0,.07);border-radius:var(--r2);padding:1px 8px;pointer-events:none}
+#keybar{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:var(--s4);min-width:0;overflow:hidden;font-size:var(--t-1);color:var(--sub);white-space:nowrap}
+#keybar .kh{display:inline-flex;align-items:center;gap:var(--s1);flex:0 0 auto}
+#keybar .kbd{margin-left:0;padding:2px 6px;background:var(--panel);opacity:.9}
+html.nokeybar #keybar>*{display:none}
+
+.wrap{flex:1;min-height:0;overflow:auto}
+main{max-width:1440px;margin:0 auto;padding:var(--s5) var(--s7) var(--s6);min-height:100%;display:flex;flex-direction:column}
+.ttl{display:flex;align-items:baseline;gap:var(--s3);margin:0 0 var(--s4)}
+.ttl h2{margin:0;font-size:var(--t3);font-weight:700;letter-spacing:-.025em}
+.ttl small{color:var(--sub);font-size:var(--t0)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:var(--s4);align-items:start}
+
+/* 홈: 덱 목록 */
+.dk-head,.dk-row{display:grid;grid-template-columns:minmax(0,1fr) 88px 88px 88px 170px;align-items:center;gap:var(--s2);padding:0 var(--s4)}
+.dk-head{height:36px;font-size:var(--t-1);font-weight:600;color:var(--sub);border-bottom:1px solid var(--line)}
+.dk-head span:not(:first-child),.dk-row .n{text-align:right;font-variant-numeric:tabular-nums}
+.dk-row{height:58px;border-bottom:1px solid rgba(0,0,0,.055);transition:background var(--d2) var(--ease)}
+.dk-row:last-child{border-bottom:none}
+.dk-row:hover{background:rgba(0,0,0,.025)}
+.dk-row .nm{font-weight:600;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dk-row .nm:hover{color:var(--accent)}
+.dk-row .nm small{display:block;font-weight:400;font-size:var(--t-2);color:var(--sub);margin-top:2px}
+.dk-row .n{font-weight:600;font-size:var(--t1)}
+.dk-row .act{display:flex;gap:var(--s1);justify-content:flex-end}
+.dk-wrap{padding:0;overflow:hidden}
+.dk-foot{display:flex;gap:var(--s2);padding:var(--s3) var(--s4);border-top:1px solid var(--line);background:rgba(0,0,0,.015)}
+.cn-n{color:var(--c-new)}.cn-l{color:var(--c-lrn)}.cn-r{color:var(--ok)}
+.z{color:var(--sub)!important;opacity:.45;font-weight:500!important}
+.hero{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);margin-bottom:var(--s4)}
+.tile{background:var(--panel);border-radius:var(--r4);box-shadow:var(--e1);padding:var(--s4) var(--s4) 14px}
+.tile span{font-size:var(--t-1);color:var(--sub)}
+.tile b{display:block;font-size:var(--t4);font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile b small{font-size:var(--t0);font-weight:500;color:var(--sub);margin-left:4px}
+.tile.go{background:linear-gradient(145deg,var(--accent-hi),var(--accent));color:#fff;cursor:pointer;transition:transform var(--d2) var(--ease),box-shadow var(--d2) var(--ease)}
+.tile.go span,.tile.go b small{color:rgba(255,255,255,.85)}
+.tile.go:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(var(--accent-rgb),.35)}
+.tile.go.off{background:var(--panel);color:var(--text);cursor:default}
+.tile.go.off span,.tile.go.off b small{color:var(--sub)}
+.tile.go.off:hover{transform:none;box-shadow:var(--e1)}
+
+/* 메뉴 · 말풍선 */
+.menu{position:fixed;z-index:65;min-width:190px;background:var(--panel);border-radius:var(--r3);padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.22),0 0 0 1px var(--line)}
+.menu .mi{display:flex;align-items:center;gap:var(--s2);padding:7px 10px;border-radius:var(--r2);cursor:pointer;font-size:var(--t-1)}
+.menu .mi:hover{background:var(--accent-weak)}
+.menu .mi.danger{color:var(--danger)}
+.menu hr{border:none;border-top:1px solid var(--line);margin:4px 2px}
+#tip{position:fixed;z-index:90;pointer-events:none;background:rgba(30,30,32,.94);color:#fff;font-size:var(--t-1);padding:6px 10px;border-radius:var(--r2);white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity var(--d1) var(--ease)}
+#tip.on{opacity:1}
+
+/* 공부 화면 */
+.study{flex:1;display:flex;flex-direction:column;gap:var(--s4);max-width:980px;width:100%;margin:0 auto}
+.sbar{display:flex;align-items:center;gap:var(--s3)}
+.sbar .dn{font-size:var(--t1);font-weight:700;letter-spacing:-.02em}
+.qc{display:flex;gap:var(--s1);font-size:var(--t-1);font-weight:600;font-variant-numeric:tabular-nums}
+.qc span{padding:4px 11px;border-radius:var(--r3);background:rgba(128,128,128,.12)}
+.qc span.cur{box-shadow:inset 0 -2px 0 currentColor}
+.prog{height:4px;border-radius:var(--r-pill);background:rgba(128,128,128,.16);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill);transition:width var(--d3) var(--ease)}
+.flash{flex:1;min-height:380px;background:var(--panel);border-radius:var(--r5);box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 40px rgba(0,0,0,.07);padding:var(--s7) var(--s8);display:flex;flex-direction:column;position:relative;animation:fin var(--d3) var(--ease)}
+@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.flash .tagl{position:absolute;left:var(--s5);bottom:var(--s4);display:flex;gap:var(--s1)}
+.flash .stb{position:absolute;right:var(--s5);top:var(--s4)}
+.flash .srcpos{position:absolute;right:var(--s5);bottom:var(--s4);max-width:55%;text-align:right}
+.srcl{font-size:var(--t-1, 13px);color:var(--sub, #8a8a8e);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srcl a{color:var(--accent);text-decoration:none}.srcl a:hover{text-decoration:underline}
+.info .srcl{white-space:normal;margin-bottom:4px}
+.flash .q,.flash .a{line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
+.flash .q{font-size:var(--t4);font-weight:600;letter-spacing:-.02em;text-align:center;margin:auto 0}
+.flash.shown{animation:none}
+.flash.shown .q{margin:var(--s5) 0 0}
+.flash .q.long,.flash .a.long{font-size:var(--t1);text-align:left;font-weight:500}
+.flash .ansl{border:none;border-top:1px solid var(--line);margin:var(--s5) 0;width:100%}
+.flash .a{font-size:var(--t2);text-align:center;margin-bottom:auto;animation:fin var(--d3) var(--ease)}
+.flash .a.long{font-size:var(--t0);line-height:1.7}
+.ansbar{display:flex;justify-content:center;min-height:76px;align-items:flex-start}
+.showbtn{min-width:340px;height:56px;font-size:var(--t1);font-weight:600;border-radius:var(--r4)}
+.rates{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);width:100%;max-width:760px}
+.rate{--c:var(--accent);display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 11px;border-radius:var(--r4);border:1px solid rgba(128,128,128,.28);border-bottom-color:rgba(128,128,128,.42);background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 92%,var(--text) 8%));box-shadow:0 1px 0 rgba(128,128,128,.28),inset 0 1px 0 rgba(255,255,255,.55)}
+.rate .iv{font-size:var(--t-1);color:var(--sub);font-variant-numeric:tabular-nums}
+.rate b{font-size:var(--t1);font-weight:700;color:var(--c);display:flex;align-items:center}
+.rate .kbd{margin-left:8px}
+.rate.again{--c:var(--danger)}.rate.hard{--c:var(--warn)}.rate.good{--c:var(--ok)}.rate.easy{--c:var(--accent)}
+.rate:hover{background:color-mix(in srgb,var(--c) 9%,var(--panel))}
+.rate.press,.rate:active{transform:translateY(1px);background:var(--c);border-color:var(--c);box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
+.rate.press b,.rate.press .iv,.rate:active b,.rate:active .iv{color:#fff}
+.sfoot{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-1);color:var(--sub)}
+.done{margin:auto;text-align:center;max-width:520px;padding:var(--s7) 0}
+.done .big{font-size:var(--t7);line-height:1;margin-bottom:var(--s4)}
+.done h2{font-size:var(--t3);margin:0 0 var(--s2);letter-spacing:-.025em}
+.done p{color:var(--sub);margin:0 0 var(--s5);line-height:1.6}
+
+/* 카드 추가 */
+.add{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:var(--s4);align-items:start}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s4)}
+.fld>span{font-size:var(--t-1);color:var(--sub);font-weight:500;display:flex;justify-content:space-between}
+.fld textarea.big{min-height:150px;font-size:var(--t1)}
+.pv{background:var(--bg);border-radius:var(--r4);padding:var(--s4)}
+.pv .flash{min-height:260px;padding:var(--s6) var(--s5);box-shadow:var(--e1);animation:none}
+.pv .flash .q{font-size:var(--t2)}
+.pv .flash .a{font-size:var(--t0);animation:none}
+.recent{list-style:none;margin:0;padding:0}
+.recent li{display:flex;gap:var(--s2);padding:8px 2px;border-bottom:1px solid rgba(0,0,0,.055);font-size:var(--t-1);cursor:pointer}
+.recent li:hover{color:var(--accent)}
+.recent li b{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 카드 목록 */
+.br{display:grid;grid-template-columns:240px minmax(0,1fr);gap:var(--s4);align-items:start}
+.side{padding:var(--s2)}
+.side .h{font-size:var(--t-2);font-weight:600;letter-spacing:.06em;color:var(--sub);padding:10px 10px 4px}
+.side .it{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:var(--r2);cursor:pointer;font-size:var(--t-1)}
+.side .it:hover{background:rgba(0,0,0,.04)}
+.side .it.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.side .it em{font-style:normal;color:var(--sub);font-variant-numeric:tabular-nums}
+.btool{display:flex;gap:var(--s2);align-items:center;margin-bottom:var(--s3)}
+.btool input{max-width:360px}
+.btbl td{cursor:pointer;max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.btbl tr:hover td{background:rgba(0,0,0,.025)}
+.btbl tr.sel td{background:var(--accent-weak)}
+.btbl th.s{cursor:pointer}.btbl th.s:hover{color:var(--text)}
+.btbl th.s.on{color:var(--accent)}
+.btbl td.ck,.btbl th.ck{width:34px;cursor:default}
+.pbar{display:flex;gap:16px;align-items:center;justify-content:center;padding:12px 0 0;font-size:var(--t-1)}
+.pbar b{min-width:90px;text-align:center}
+.selbar{display:flex;gap:var(--s2);align-items:center;padding:8px 12px;margin-bottom:var(--s3);background:var(--accent-weak);border-radius:var(--r3);font-size:var(--t-1);color:var(--accent);font-weight:600}
+.selbar button{background:var(--panel)}
+
+/* 통계 */
+.sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4)}
+.sgrid .card{margin:0}
+.sgrid .full{grid-column:1/-1}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,var(--hc,13px));grid-auto-columns:var(--hc,13px);gap:3px}
+.heat i{border-radius:3px;background:rgba(128,128,128,.13)}
+.heat i.f{visibility:hidden}
+.heat i.l1{background:rgba(var(--accent-rgb),.28)}.heat i.l2{background:rgba(var(--accent-rgb),.5)}.heat i.l3{background:rgba(var(--accent-rgb),.75)}.heat i.l4{background:var(--accent)}
+.heat i.td{box-shadow:0 0 0 1.5px var(--text)}
+.hmo{display:grid;grid-auto-flow:column;grid-auto-columns:var(--hc,13px);gap:3px;font-size:var(--t-2);color:var(--sub);height:16px;white-space:nowrap}
+.hwrap{display:flex;gap:6px}
+.hdow{display:grid;grid-template-rows:repeat(7,var(--hc,13px));gap:3px;font-size:var(--t-3);color:var(--sub);margin-top:16px;line-height:var(--hc,13px)}
+.hleg{display:flex;align-items:center;gap:3px;justify-content:flex-end;font-size:var(--t-2);color:var(--sub);margin-top:var(--s2)}
+.hleg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.bars{display:flex;align-items:flex-end;gap:2px;height:160px;border-bottom:1px solid var(--line);padding-top:16px;position:relative}
+.bars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;cursor:default}
+.bars .b i{display:block;background:var(--accent);border-radius:4px 4px 0 0;min-height:0;transition:filter var(--d2) var(--ease)}
+.bars .b:hover i{filter:brightness(1.15)}
+.bars .b.zero i{height:0!important}
+.bars .mx{position:absolute;left:0;right:0;border-top:1px dashed var(--line);font-size:var(--t-2);color:var(--sub)}
+.bars .mx span{position:absolute;right:0;top:-15px}
+.bax{display:flex;justify-content:space-between;font-size:var(--t-2);color:var(--sub);margin-top:6px}
+.stk{display:flex;gap:2px;height:28px;border-radius:var(--r2);overflow:hidden;margin:var(--s2) 0 var(--s3)}
+.stk i{display:block;height:100%}
+.leg{display:flex;gap:var(--s4);flex-wrap:wrap;font-size:var(--t-1)}
+.leg span{display:inline-flex;align-items:center;gap:6px}
+.leg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.leg b{font-variant-numeric:tabular-nums}
+.hb{display:grid;grid-template-columns:64px minmax(0,1fr) 92px;align-items:center;gap:var(--s3);margin-bottom:10px;font-size:var(--t-1)}
+.hb .tr{height:12px;border-radius:var(--r-pill);background:rgba(128,128,128,.12);overflow:hidden}
+.hb .tr i{display:block;height:100%;border-radius:var(--r-pill)}
+.hb em{font-style:normal;text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+
+/* 창 · 알림 */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50;animation:mfade var(--d2) var(--ease)}
+.modal .box{background:var(--panel);border-radius:var(--r5);padding:22px 24px 20px;width:520px;max-width:92vw;max-height:88vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);animation:fin var(--d3) var(--ease)}
+.modal .box.wide{width:760px}
+.modal h3{margin:0 0 var(--s4);font-size:var(--t1);letter-spacing:-.02em}
+.modal .bt{display:flex;gap:var(--s2);justify-content:flex-end;margin-top:var(--s4);align-items:center}
+.modal .bt .sp{flex:1}
+.modal p{line-height:1.6;margin:0 0 var(--s3)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s3)}
+.info{font-size:var(--t-1);color:var(--sub);background:rgba(0,0,0,.035);border-radius:var(--r3);padding:10px 12px;line-height:1.7}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(30,30,32,.94);color:#fff;border-radius:var(--r4);padding:12px 14px 12px 20px;display:flex;align-items:center;gap:16px;font-size:var(--t0);box-shadow:0 14px 40px rgba(0,0,0,.35);z-index:70;animation:fin var(--d3) var(--ease)}
+.toast button{background:rgba(255,255,255,.18);color:#fff;padding:5px 14px;border-radius:var(--r3)}
+.toast button:hover{background:rgba(255,255,255,.3)}
+.keys{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2) var(--s6)}
+.keys h4{grid-column:1/-1;margin:var(--s3) 0 0;font-size:var(--t-1);color:var(--accent)}
+.keys div{display:flex;align-items:center;justify-content:space-between;font-size:var(--t-1);padding:4px 0;border-bottom:1px solid rgba(0,0,0,.055)}
+.keys .kbd{margin-left:4px}
+.ipv{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:var(--r3);margin:var(--s2) 0 0}
+.ipv td{max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== 다크 모드 (html[data-theme=dark]) — 교정차트와 같은 값 ===== */
+html[data-theme=dark]{color-scheme:dark;--bg:#1c1c1e;--panel:#2c2c2e;--line:rgba(255,255,255,.12);--text:#f2f2f7;--sub:#9b9ba3;
+  --accent:#0a84ff;--accent-weak:rgba(10,132,255,.20);--accent-rgb:10,132,255;--accent-hi:#64b5ff;--accent-hover:#409cff;--danger:#ff6961;--ok:#4cd964;--warn:#ffb340;
+  --c-lrn:#ff9f45;--c-young:#7fe0a3;--c-mature:#34b356}
+html[data-theme=dark][data-accent=purple]{--bg:#19181f;--panel:#272630;--accent:#7d7aff;--accent-weak:rgba(125,122,255,.22);--accent-rgb:125,122,255;--accent-hi:#a9a7ff;--accent-hover:#8d8aff}
+html[data-theme=dark][data-accent=green]{--bg:#161d19;--panel:#252d28;--accent:#2aa862;--accent-weak:rgba(42,168,98,.22);--accent-rgb:42,168,98;--accent-hi:#6fd69a;--accent-hover:#34b96e}
+html[data-theme=dark] button{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button:hover{background:rgba(255,255,255,.17)}
+html[data-theme=dark] button:disabled:hover{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button.primary{background:var(--accent);color:#fff}
+html[data-theme=dark] button.primary:hover{background:var(--accent-hover)}
+html[data-theme=dark] header button.ghost{background:none}
+html[data-theme=dark] header button.ghost:hover{background:rgba(255,255,255,.10);color:var(--text)}
+html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:var(--text)}
+html[data-theme=dark] input::placeholder,html[data-theme=dark] textarea::placeholder{color:#7c7c84}
+html[data-theme=dark] .card,html[data-theme=dark] .tile{box-shadow:0 1px 2px rgba(0,0,0,.35),0 8px 28px rgba(0,0,0,.28)}
+html[data-theme=dark] td,html[data-theme=dark] .dk-row,html[data-theme=dark] .recent li,html[data-theme=dark] .keys div{border-bottom-color:rgba(255,255,255,.07)}
+html[data-theme=dark] .dk-row:hover,html[data-theme=dark] .btbl tr:hover td,html[data-theme=dark] .side .it:hover{background:rgba(255,255,255,.05)}
+html[data-theme=dark] .dk-foot{background:rgba(255,255,255,.02)}
+html[data-theme=dark] .tabs,html[data-theme=dark] .seg{background:rgba(255,255,255,.09)}
+html[data-theme=dark] .tabs button,html[data-theme=dark] .seg button{background:none}
+html[data-theme=dark] .tabs button:hover,html[data-theme=dark] .seg button:hover{background:rgba(255,255,255,.07)}
+html[data-theme=dark] .tabs button.on,html[data-theme=dark] .seg button.on{background:#505054;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+html[data-theme=dark][data-accent=purple] .seg button.on,html[data-theme=dark][data-accent=green] .seg button.on,html[data-theme=dark][data-accent=purple] .tabs button.on,html[data-theme=dark][data-accent=green] .tabs button.on{color:#fff}
+html[data-theme=dark] header{background:rgba(28,28,30,.82)}
+html[data-theme=dark][data-accent=purple] header{background:rgba(25,24,31,.84)}
+html[data-theme=dark][data-accent=green] header{background:rgba(22,29,25,.84)}
+html[data-theme=dark] .search input{background:rgba(255,255,255,.09);border-color:transparent}
+html[data-theme=dark] .search input:focus{background:rgba(255,255,255,.14);border-color:var(--accent)}
+html[data-theme=dark] .search kbd{background:rgba(255,255,255,.12)}
+html[data-theme=dark] .badge{background:rgba(255,255,255,.10)}
+html[data-theme=dark] .b-new{background:rgba(var(--accent-rgb),.22);color:var(--accent-hi)}
+html[data-theme=dark] .b-learn,html[data-theme=dark] .b-relearn{background:rgba(255,159,10,.20);color:#ffb340}
+html[data-theme=dark] .b-review{background:rgba(76,217,100,.18);color:#5fdc78}
+html[data-theme=dark] .b-susp{background:rgba(255,255,255,.08);color:#9b9ba3}
+html[data-theme=dark] .stat div,html[data-theme=dark] .info{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .modal{background:rgba(0,0,0,.5)}
+html[data-theme=dark] .modal .box{background:#2c2c2e;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme=dark][data-accent=purple] .modal .box,html[data-theme=dark][data-accent=green] .modal .box{background:var(--panel)}
+html[data-theme=dark] .flash{box-shadow:0 1px 2px rgba(0,0,0,.4),0 12px 40px rgba(0,0,0,.35)}
+html[data-theme=dark] .rate{background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 88%,#fff 12%),var(--panel));border-color:rgba(255,255,255,.12);box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.07)}
+html[data-theme=dark] .rate:hover{background:color-mix(in srgb,var(--c) 16%,var(--panel))}
+html[data-theme=dark] .rate.press,html[data-theme=dark] .rate:active{background:var(--c);border-color:var(--c)}
+html[data-theme=dark] .rate.press b,html[data-theme=dark] .rate.press .iv{color:#1c1c1e}
+html[data-theme=dark] .selbar button{background:var(--panel)}
+html[data-theme=dark] .menu{box-shadow:0 18px 50px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.10)}
+html[data-theme=dark] .tile.go.off{background:var(--panel)}
+html[data-theme=dark] .heat i.td{box-shadow:0 0 0 1.5px #fff}
+/* 암기카드 웹판 — 휴대폰 배치 (2026-10-08, tools/build_web.py 가 apps/cards.html 의 스타일 끝에 넣는다 — 이 설명에 스타일 닫는 태그 글자를 쓰면 화면이 깨진다).
+   암기카드는 창 크기에 맞춰 그리는 화면이라 무대를 풀 필요는 없고, 폭 820px 이하에서 칸들만 다시 쌓는다 (홈 · 공부 · 카드 추가 · 카드 목록 · 통계 모두 그대로). */
+@media (max-width: 820px){
+  header{flex:0 0 auto;height:auto;flex-wrap:wrap;gap:6px 8px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+  header .kbd,#keybar,#saved,header>.dots{display:none}
+  .search{order:8;flex:1 1 100%;width:auto}
+  .search kbd{display:none}
+  #nav{order:9;flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
+  #nav::-webkit-scrollbar{display:none}
+  #nav button{flex-shrink:0;white-space:nowrap;padding:6px 12px}
+  main{padding:14px 12px calc(28px + env(safe-area-inset-bottom))}
+  .ttl{flex-wrap:wrap;row-gap:2px}
+  .ttl h2{font-size:var(--t2)}
+  .cols,.add,.br{grid-template-columns:minmax(0,1fr)}
+  .hero,.hero[style]{grid-template-columns:1fr 1fr!important}
+  .tile b{font-size:var(--t3)}
+  .sgrid,.g2,.keys{grid-template-columns:minmax(0,1fr)}
+  /* 덱 목록: 이름 한 줄 + 숫자 셋 + 버튼 — 좁으면 버튼을 다음 줄로 */
+  .dk-head,.dk-row{grid-template-columns:minmax(0,1fr) 48px 48px 48px;padding:0 var(--s3);column-gap:6px}
+  .dk-head span:last-child{display:none}
+  .dk-row{height:auto;min-height:58px;padding-top:8px;padding-bottom:8px}
+  .dk-row .act{grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap}
+  .dk-row .n{font-size:var(--t0)}
+  .rates{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .rate .kbd,main .kbd{display:none}   /* 단축키 표시는 휴대폰에선 쓸 일이 없다 */
+  main button{white-space:nowrap}
+  .rate b{font-size:var(--t0)}
+  input,select,textarea{font-size:16px}   /* 아이폰이 입력할 때 확대하지 않게 */
+  .search input{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand" onclick="go('home')" title="홈 (H)"><span class="logo">🗂️</span><h1>암기카드</h1></div>
+  <div class="search">
+    <svg class="sicon" viewBox="0 0 20 20" width="16" height="16"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="search" placeholder="카드 검색 — 앞면 · 뒷면 · 태그" autocomplete="off" onkeydown="searchKey(event)">
+    <kbd>/</kbd>
+  </div>
+  <nav class="seg" id="nav"><button data-v="home" onclick="go('home')">홈<kbd class="kbd">H</kbd></button><button data-v="browse" onclick="go('browse')">카드 목록<kbd class="kbd">B</kbd></button><button data-v="stats" onclick="go('stats')">통계<kbd class="kbd">S</kbd></button></nav>
+  <button class="primary pill" onclick="go('add')" title="새 카드 추가 (N)">＋ 카드 추가<kbd class="kbd">N</kbd></button>
+  <div id="keybar"></div>
+  <span id="saved">✓ 저장됨</span>
+  <div class="seg dots" title="포인트 색 — 교정차트의 세 모드 색과 같습니다">
+    <button data-a="blue" onclick="setAccent('blue')" title="파랑 (진료실 색)" style="color:#0071e3"><i style="background:#0071e3"></i></button>
+    <button data-a="green" onclick="setAccent('green')" title="초록 (데스크 색)" style="color:#1c8f4e"><i style="background:#1c8f4e"></i></button>
+    <button data-a="purple" onclick="setAccent('purple')" title="보라 (원장실 색)" style="color:#5856d6"><i style="background:#5856d6"></i></button>
+  </div>
+  <button class="ghost" id="themeBtn" onclick="toggleTheme()" title="다크 모드 / 라이트 모드 (L)"></button>
+  <button class="ghost" id="qhdBtn" hidden onclick="winMode('qhd')" title="창 크기를 QHD(2560×1440)로 맞춤">QHD</button>
+  <button class="ghost" id="fullBtn" onclick="winMode('fullscreen')" title="전체 화면 켜기 / 끄기 (F)"></button>
+  <button class="ghost" onclick="showKeys()" title="단축키 전체 (?)">?</button>
+</header>
+<div class="wrap" id="wrap"><main id="main"></main></div>
+</div>
+<div id="tip"></div>
+<input type="file" id="fileIn" accept=".txt,.tsv,.csv,.json" style="display:none">
+
+<script>
+'use strict';
+/* =========================================================================================
+   암기카드 — Anki 방식 간격 반복(SM-2) 암기 프로그램.  디자인은 교정차트와 같은 기준을 쓴다.
+   데이터: 실행기(암기카드.pyw)로 켜면 data/cards.json, index.html 을 직접 열면 이 브라우저(localStorage)에만 저장.
+   ========================================================================================= */
+const DAY = 864e5, MIN = 6e4;
+const ROLLOVER = 4;          // 하루가 바뀌는 시각 (새벽 4시) — 자정 넘어 공부해도 '오늘'로 센다
+const LEARN_AHEAD = 20;      // 다른 카드가 없으면 이 시간(분) 안에 돌아올 학습 카드를 미리 보여 준다
+const SCH = {steps:[1, 10], relearn:[10], gradIvl:1, easyIvl:4, ease0:2.5, hardF:1.2, easyBonus:1.3, minEase:1.3, maxIvl:36500};
+const PAGE = 50;
+const FILE = /^https?:$/.test(location.protocol);
+const $ = s => document.querySelector(s);
+const main = $('#main');
+
+let db = null, view = 'home';
+let S = null;                // 공부 중 상태 {deck, cur, shown, t0, n, undo:[]}
+const B = {deck:'all', f:'all', q:'', page:0, sel:new Set(), sort:'created', dir:-1};
+let addDeck = null, recentAdded = [];
+
+/* ---------- 도우미 ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtText = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const isLong = s => String(s || '').length > 60 || String(s || '').split('\n').length > 2;
+function dayStart(t){ const d = new Date(t); d.setHours(ROLLOVER, 0, 0, 0); let x = d.getTime(); if (t < x) x -= DAY; return x; }
+function ymd(t){ const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function md(t){ const d = new Date(t); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일'; }
+const DOW = '일월화수목금토';
+function fmtIvl(ms){
+  if (ms < MIN) return '1분 미만';
+  if (ms < 60 * MIN) return Math.round(ms / MIN) + '분';
+  if (ms < DAY) return Math.round(ms / 36e5) + '시간';
+  const d = ms / DAY;
+  if (d < 30) return Math.round(d) + '일';
+  if (d < 365) return (d / 30).toFixed(1).replace(/\.0$/, '') + '개월';
+  return (d / 365).toFixed(1).replace(/\.0$/, '') + '년';
+}
+function relDue(c){
+  if (c.state === 'new') return '—';
+  const today = dayStart(Date.now());
+  if (c.state !== 'review') return c.due <= Date.now() ? '지금' : fmtIvl(c.due - Date.now()) + ' 뒤';
+  const n = Math.round((c.due - today) / DAY);
+  return n <= 0 ? (n < 0 ? '오늘 (' + (-n) + '일 밀림)' : '오늘') : n === 1 ? '내일' : md(c.due);
+}
+const STATE_KO = {new:'새 카드', learn:'학습 중', relearn:'재학습', review:'복습'};
+const deckOf = id => db.decks.find(d => d.id === id);
+
+/* ---------- 저장 ---------- */
+let saveT = null;
+function save(){
+  clearTimeout(saveT);
+  saveT = setTimeout(flush, 300);
+}
+async function flush(){
+  clearTimeout(saveT); saveT = null;
+  const body = JSON.stringify(db);
+  try {
+    if (FILE){ const r = await fetch('api/data', {method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive: body.length < 60000}); if (!r.ok) throw 0; }
+    else localStorage.setItem('anki-db', body);
+    const s = $('#saved'); s.style.opacity = 1; clearTimeout(s._t); s._t = setTimeout(() => s.style.opacity = 0, 1400);
+  } catch (e) { toast('⚠ 저장하지 못했습니다. 잠시 후 다시 시도합니다.'); setTimeout(save, 3000); }
+}
+addEventListener('visibilitychange', () => { if (document.hidden && saveT) flush(); });
+addEventListener('beforeunload', () => { if (saveT) flush(); });
+
+function saveCfg(o){
+  if (FILE) fetch('api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(o)}).catch(() => {});
+  else try { for (const k in o) localStorage.setItem('anki-' + k, o[k]); } catch (e) {}
+}
+
+function sample(){
+  const now = Date.now(), d1 = {id:uid(), name:'시작하기', newPerDay:20, revPerDay:200, created:now}, d2 = {id:uid(), name:'영단어 예시', newPerDay:10, revPerDay:200, created:now};
+  const mk = (deck, front, back, tags, i) => ({id:uid(), deck, front, back, tags:tags || [], created:now + i, state:'new', due:0, ivl:0, ease:SCH.ease0, step:0, reps:0, lapses:0, last:0, susp:false});
+  const a = [
+    ['암기카드는 어떻게 공부하나요?', '앞면을 보고 답을 떠올린 뒤 [답 보기](Space)를 누릅니다.\n얼마나 잘 기억했는지 **다시 · 어려움 · 알맞음 · 쉬움** 중에서 고르세요.'],
+    ['네 가지 버튼은 무엇이 다른가요?', '숫자가 클수록 어려웠다는 뜻입니다.\n**쉬움**(1) 너무 쉬워요 — 훨씬 나중에\n**알맞음**(2) 맞혔어요 — 보통 간격\n**어려움**(3) 겨우 맞혔어요 — 조금 뒤에\n**다시**(4) 틀렸어요 — 몇 분 뒤 다시'],
+    ['간격 반복이란?', '잊어버리기 직전에 다시 보는 방식입니다. 맞힐수록 다음 복습까지의 간격이 1일 → 3일 → 1주 → 한 달… 로 늘어납니다.'],
+    ['카드는 어떻게 추가하나요?', '머리글의 [＋ 카드 추가] 또는 N 키. 앞면·뒷면을 적고 Ctrl+Enter 로 저장합니다.'],
+    ['엑셀·메모장에 있는 단어장을 한 번에 넣으려면?', '홈의 [가져오기]: 한 줄에 카드 하나, "앞면 [Tab] 뒷면" 또는 "앞면,뒷면" 형식이면 됩니다.'],
+    ['공부 중에 쓸 수 있는 단축키는?', 'Space 답 보기 · 1~4 평가 · E 편집 · Z 되돌리기 · Esc 그만하기\n어느 화면에서나 ? 를 누르면 단축키 전체가 나옵니다.'],
+  ].map((x, i) => mk(d1.id, x[0], x[1], ['안내'], i));
+  const b = [['ephemeral', '덧없는, 순식간의'], ['meticulous', '꼼꼼한, 세심한'], ['resilient', '회복력 있는'], ['ubiquitous', '어디에나 있는'], ['candid', '솔직한'], ['diligent', '부지런한, 성실한'], ['ambiguous', '모호한, 애매한'], ['pragmatic', '실용적인']]
+    .map((x, i) => mk(d2.id, x[0], x[1], ['영어'], i));
+  return {version:1, decks:[d1, d2], cards:[...a, ...b], log:[]};
+}
+async function load(){
+  let d = null;
+  try {
+    if (FILE){ const r = await fetch('api/data', {cache:'no-store'}); d = await r.json(); }
+    else d = JSON.parse(localStorage.getItem('anki-db') || 'null');
+  } catch (e) { d = null; }
+  if (!d || !Array.isArray(d.cards)){ db = sample(); save(); }
+  else db = Object.assign({version:1, decks:[], cards:[], log:[]}, d);
+}
+
+/* ---------- 도서관 · 마인드맵에서 카드 가져오기 (나의 도서관 통합판) ----------
+   - 도서관 자료 본문의 "질문 :: 답" 한 줄 = 카드 한 장. 덱은 자료가 꽂힌 책장 칸 이름을 따른다 ("도서관 · 기업 분석").
+   - 마인드맵: 주제 글이 "질문 :: 답"이면 카드 한 장. 주제 글이 ? 로 끝나면 앞면 = 그 주제, 뒷면 = 하위 주제 목록(없으면 메모).
+     주제 메모 안의 "질문 :: 답" 줄도 카드가 된다. 덱은 마인드맵 이름을 따른다 ("마인드맵 · 반도체").
+   - 가져온 카드에는 출처(card.link)가 붙는다. 다시 가져오면 새로 만들지 않고, 출처의 글이 바뀌었을 때만 앞뒷면을 고친다
+     (출처가 그대로면 여기서 고친 글을 지킨다). 복습 일정과 기록은 그대로 남는다.
+   - 출처에서 그 줄이 사라지면 카드를 지우지 않고 일시중지만 한다 (기록 보존). 다시 나타나면 되살린다.
+   - 이 파일(cards.json)에는 암기카드 화면만 쓴다. 도서관 · 마인드맵 파일은 읽기만 한다. */
+const LINKED = !!window.__EMBED;
+function cardLine(ln){   // 도서관 index.html 의 cardLine 과 같은 규칙
+  if (/^\s*(#|>|!\[|[-*]\s+\[[ xX]\])/.test(ln)) return null;
+  const m = String(ln).match(/^\s*(?:[-*]\s+)?(.+?)\s+::\s+(.+?)\s*$/);
+  return m ? {front:m[1].trim(), back:m[2].trim()} : null;
+}
+const plainLink = s => String(s || '').replace(/\[\[([^\]\n]+)\]\]/g, '$1');
+const linkId = (p, key) => p + hashS(key) + hashS('#' + key);   // 가져온 카드 · 덱의 id: 어느 기기에서 가져와도 같다 (여러 기기 동기화 — 둘이 되지 않게)
+function hashS(s){ let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+function collectLinked(lib, mm){
+  const out = [];
+  if (lib && Array.isArray(lib.items)){
+    const shelves = new Map((lib.shelves || []).map(s => [s.id, s])), byId = new Map(lib.items.map(i => [i.id, i]));
+    for (const it of lib.items){
+      if (!it || !it.id) continue;
+      const sh = shelves.get(it.shelf) || shelves.get(byId.get(it.parent)?.shelf);
+      for (const ln of String(it.body || '').split('\n')){
+        const m = cardLine(ln); if (!m) continue;
+        out.push({key:'library:' + it.id + ':' + m.front, front:plainLink(m.front), back:plainLink(m.back), deckKey:'library:shelf/' + (sh?.id || '-'), deckName:'도서관 · ' + (sh?.name || '기타'),
+          link:{app:'library', id:it.id, title:it.title || ''}, tags:['도서관', ...(it.tags || [])]});
+      }
+    }
+  }
+  if (mm && Array.isArray(mm.maps)){
+    for (const map of mm.maps){
+      if (!map?.root) continue;
+      const title = String(map.root.text || '').trim() || '마인드맵';
+      const add = (n, path, front, back, i) => out.push({key:'mindmap:' + map.id + ':' + n.id + ':' + i + ':' + front, front, back, deckKey:'mindmap:map/' + map.id, deckName:'마인드맵 · ' + title,
+        link:{app:'mindmap', map:map.id, id:n.id, title:path.join(' › ')}, tags:['마인드맵']});
+      const walk = (n, path) => {
+        const text = String(n.text || '').trim(), here = path.concat(text.replace(/\n/g, ' '));
+        const kids = (n.children || []).map(c => String(c.text || '').trim()).filter(Boolean);
+        const m = cardLine(text.replace(/\n/g, ' '));
+        if (m) add(n, here, m.front, m.back, 0);
+        else if (/[?？]$/.test(text) && (kids.length || String(n.note || '').trim())) add(n, here, text, kids.length ? kids.map(k => '• ' + k).join('\n') : String(n.note).trim(), 0);
+        String(n.note || '').split('\n').forEach((ln, i) => { const q = cardLine(ln); if (q) add(n, here, q.front, q.back, i + 1); });
+        (n.children || []).forEach(c => walk(c, here));
+      };
+      walk(map.root, []);
+    }
+  }
+  return out;
+}
+let linkBusy = null;
+function linkSync(loud){
+  if (!LINKED || !FILE) { if (loud) toast('도서관 · 마인드맵 가져오기는 나의도서관.pyw 로 켰을 때만 됩니다.'); return Promise.resolve(null); }
+  if (linkBusy) return linkBusy;
+  linkBusy = (async () => {
+    const get = async u => { try { const r = await fetch(u, {cache:'no-store'}); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+    const [lib, mm] = await Promise.all([get('/api/data'), get('/mindmap/api/data')]);
+    const okApps = new Set([...(lib && Array.isArray(lib.items) ? ['library'] : []), ...(mm && Array.isArray(mm.maps) ? ['mindmap'] : [])]);
+    const found = collectLinked(okApps.has('library') ? lib : null, okApps.has('mindmap') ? mm : null);
+    const byKey = new Map(db.cards.filter(c => c.link?.key).map(c => [c.link.key, c]));
+    const r = {add:0, upd:0, off:0, back:0, total:0}, seen = new Set(), now = Date.now();
+    const deckFor = (key, name) => {
+      let d = db.decks.find(x => x.link === key);
+      if (!d){ d = {id:linkId('K', key), name, newPerDay:20, revPerDay:200, created:now, link:key, linkName:name}; db.decks.push(d); }   // id 는 link 에서 — 다른 기기가 만들어도 같은 덱 (동기화)
+      else if (d.linkName !== name){ if (d.name === d.linkName) d.name = name; d.linkName = name; }   // 책장 칸 · 마인드맵 이름이 바뀌면 따라간다 (여기서 이름을 바꿨으면 그대로)
+      return d;
+    };
+    found.forEach((f, i) => {
+      if (seen.has(f.key)) return; seen.add(f.key); r.total++;
+      const h = hashS(f.front + '\u0001' + f.back);
+      let c = byKey.get(f.key);
+      if (!c){
+        const d = deckFor(f.deckKey, f.deckName);
+        c = {id:linkId('L', f.key), deck:d.id, front:f.front, back:f.back, tags:[...new Set(f.tags)], created:now + i, state:'new', due:0, ivl:0, ease:SCH.ease0, step:0, reps:0, lapses:0, last:0, susp:false,
+          link:{key:f.key, ...f.link, h}};
+        db.cards.push(c); r.add++; return;
+      }
+      if (c.link.h !== h){ c.front = f.front; c.back = f.back; c.link.h = h; r.upd++; }
+      c.link.title = f.link.title;
+      if (!deckOf(c.deck)) c.deck = deckFor(f.deckKey, f.deckName).id;
+      if (c.link.gone){ delete c.link.gone; if (c.link.suspBy){ c.susp = false; delete c.link.suspBy; } r.back++; }
+    });
+    for (const c of db.cards){
+      if (!c.link?.key || c.link.gone || seen.has(c.link.key) || !okApps.has(c.link.app)) continue;
+      c.link.gone = true; if (!c.susp){ c.susp = true; c.link.suspBy = true; } r.off++;
+    }
+    if (r.add || r.upd || r.off || r.back) save();
+    const msg = [r.add && `새 카드 ${r.add}장`, r.upd && `고친 카드 ${r.upd}장`, r.back && `되살린 카드 ${r.back}장`, r.off && `출처에서 사라져 일시중지 ${r.off}장`].filter(Boolean).join(' · ');
+    if (msg) toast('도서관 · 마인드맵에서 가져왔습니다 — ' + msg);
+    else if (loud) toast(r.total ? `도서관 · 마인드맵의 카드 ${r.total}장이 모두 최신입니다.` : '아직 카드로 표시한 곳이 없습니다. 도서관 자료에 "질문 :: 답" 한 줄을 쓰거나, 마인드맵 주제를 ? 로 끝내 보세요.', null);
+    if (!okApps.size && loud) toast('도서관 · 마인드맵 데이터를 읽지 못했습니다.');
+    return r;
+  })();
+  linkBusy.finally(() => linkBusy = null);
+  return linkBusy;
+}
+function linkSrcHTML(c){
+  if (!c.link) return '';
+  const where = c.link.app === 'library' ? '도서관' : '마인드맵';
+  return `<div class="srcl">${c.link.gone ? '<span class="badge">출처에서 사라짐</span> ' : ''}출처 · <a href="#" onclick="event.preventDefault();openLinkSrc('${c.id}')">${where} › ${esc(c.link.title)}</a></div>`;
+}
+function openLinkSrc(id){
+  const c = db.cards.find(x => x.id === id); if (!c?.link || !window.__toParent) return;
+  if (c.link.app === 'library') window.__toParent({openItem:c.link.id});
+  else window.__toParent({openNode:{map:c.link.map, node:c.link.id}});
+}
+window.__roomShown = async () => { if (!db) return; const r = await linkSync(false); if (r && (r.add || r.upd || r.off || r.back) && view !== 'study' && view !== 'add') rerender(); };
+window.__roomHidden = () => { if (saveT) flush(); };
+/* Esc 로 책장에 돌아가도 되는가: 메뉴 · 창 · 입력 중 · 공부 중 · 카드 추가 중이 아니면 (그때는 원래대로 그것부터 닫는다) */
+window.__roomEscBack = e => !$('#menu') && !$('#modal') && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && view !== 'study' && view !== 'add';
+
+/* ---------- 간격 반복 (Anki SM-2 방식) ---------- */
+function reviewIvls(c, now){   // 복습 카드의 [어려움, 알맞음, 쉬움] 다음 간격(일) — 항상 어려움 < 알맞음 < 쉬움
+  const late = Math.max(0, (dayStart(now) - c.due) / DAY), cap = x => Math.min(SCH.maxIvl, Math.round(x));
+  const hard = cap(Math.max(c.ivl + 1, c.ivl * SCH.hardF));
+  const good = cap(Math.max(hard + 1, (c.ivl + late / 2) * c.ease));
+  const easy = cap(Math.max(good + 1, (c.ivl + late) * c.ease * SCH.easyBonus));
+  return [hard, good, easy];
+}
+function schedule(c, r, now){
+  const n = {...c};
+  const toReview = ivl => { n.state = 'review'; n.step = 0; n.ivl = Math.min(SCH.maxIvl, Math.max(1, Math.round(ivl))); n.due = dayStart(now) + n.ivl * DAY; };
+  if (c.state === 'new' || c.state === 'learn'){
+    const st = SCH.steps, s = c.state === 'new' ? 0 : c.step;
+    if (c.state === 'new') n.ease = SCH.ease0;
+    if (r === 1){ n.state = 'learn'; n.step = 0; n.due = now + st[0] * MIN; }
+    else if (r === 2){ n.state = 'learn'; n.step = s; n.due = now + (s === 0 && st.length > 1 ? (st[0] + st[1]) / 2 : st[s]) * MIN; }
+    else if (r === 3){ if (s + 1 >= st.length) toReview(SCH.gradIvl); else { n.state = 'learn'; n.step = s + 1; n.due = now + st[s + 1] * MIN; } }
+    else toReview(SCH.easyIvl);
+  } else if (c.state === 'review'){
+    if (r === 1){ n.lapses = (c.lapses || 0) + 1; n.ease = Math.max(SCH.minEase, c.ease - .2); n.state = 'relearn'; n.step = 0; n.ivl = 1; n.due = now + SCH.relearn[0] * MIN; }
+    else {
+      const [h, g, e] = reviewIvls(c, now);
+      if (r === 2){ n.ease = Math.max(SCH.minEase, c.ease - .15); toReview(h); }
+      else if (r === 3) toReview(g);
+      else { n.ease = c.ease + .15; toReview(e); }
+    }
+  } else {   // 재학습 (복습에서 틀린 카드)
+    const st = SCH.relearn, s = c.step;
+    if (r === 1){ n.step = 0; n.due = now + st[0] * MIN; }
+    else if (r === 2){ n.due = now + st[s] * 1.5 * MIN; }
+    else if (r === 3){ if (s + 1 >= st.length) toReview(c.ivl); else { n.step = s + 1; n.due = now + st[s + 1] * MIN; } }
+    else toReview(c.ivl + 1);
+  }
+  n.reps = (c.reps || 0) + 1; n.last = now;
+  return n;
+}
+/* 평가 버튼: 숫자가 올라갈수록 어렵다 — 키 1 쉬움 · 2 알맞음 · 3 어려움 · 4 다시.
+   안쪽 평가값 r(1 다시 … 4 쉬움)은 Anki 와 같게 두어 간격 계산·기록·통계는 그대로. 키 k → r = 5 - k */
+const RATE_BTNS = [['easy', '쉬움', 4], ['good', '알맞음', 3], ['hard', '어려움', 2], ['again', '다시', 1]];
+const keyToRate = k => 5 - k;
+function previewLabel(c, r, now){
+  const n = schedule(c, r, now);
+  return n.state === 'review' ? fmtIvl(n.ivl * DAY) : fmtIvl(n.due - now);
+}
+
+/* ---------- 오늘의 카드 ---------- */
+function queues(did, now = Date.now()){
+  const t = dayStart(now), end = t + DAY, d = deckOf(did);
+  const cs = db.cards.filter(c => c.deck === did && !c.susp);
+  let doneNew = 0, doneRev = 0;
+  for (let i = db.log.length - 1; i >= 0; i--){ const l = db.log[i]; if (l.t < t) break; if (l.d !== did) continue; if (l.s === 'new') doneNew++; else if (l.s === 'review') doneRev++; }
+  const nw = cs.filter(c => c.state === 'new').sort((a, b) => a.created - b.created).slice(0, Math.max(0, (d?.newPerDay ?? 20) - doneNew));
+  const lr = cs.filter(c => (c.state === 'learn' || c.state === 'relearn') && c.due < end).sort((a, b) => a.due - b.due);
+  const rv = cs.filter(c => c.state === 'review' && c.due < end).sort((a, b) => a.due - b.due).slice(0, Math.max(0, (d?.revPerDay ?? 200) - doneRev));
+  return {n:nw, l:lr, r:rv};
+}
+function pickNext(did){
+  const now = Date.now(), q = queues(did, now);
+  const lrNow = q.l.find(c => c.due <= now);
+  if (lrNow) return lrNow;
+  if (q.n.length && q.r.length){   // 새 카드를 복습 사이에 고르게 섞는다
+    const every = Math.max(2, Math.floor((q.r.length + q.n.length) / q.n.length));
+    return (S && S.n % every === every - 1) ? q.n[0] : q.r[0];
+  }
+  if (q.r.length) return q.r[0];
+  if (q.n.length) return q.n[0];
+  return q.l.find(c => c.due <= now + LEARN_AHEAD * MIN) || null;
+}
+function todayLog(now = Date.now()){ const t = dayStart(now); const out = []; for (let i = db.log.length - 1; i >= 0 && db.log[i].t >= t; i--) out.push(db.log[i]); return out; }
+function streak(){
+  const days = new Set(db.log.map(l => ymd(dayStart(l.t))));
+  let t = dayStart(Date.now()), n = 0;
+  if (!days.has(ymd(t))) t -= DAY;
+  while (days.has(ymd(t))){ n++; t -= DAY; }
+  return n;
+}
+
+/* ---------- 화면 전환 ---------- */
+function go(v, arg){
+  if (view === 'study' && v !== 'study') S = null;
+  view = v; closeMenu();
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  ({home:renderHome, study:() => startStudy(arg), add:renderAdd, browse:renderBrowse, stats:renderStats})[v]();
+  $('#wrap').scrollTop = 0;
+  renderKeybar();
+}
+function rerender(){ ({home:renderHome, study:renderStudy, add:renderAdd, browse:renderBrowse, stats:renderStats})[view](); }
+
+/* ---------- 홈 ---------- */
+function renderHome(){
+  const now = Date.now(), tl = todayLog(now);
+  const rows = db.decks.map(d => ({d, q:queues(d.id, now), total:db.cards.filter(c => c.deck === d.id).length}));
+  const dueAll = rows.reduce((s, r) => s + r.q.n.length + r.q.l.length + r.q.r.length, 0);
+  const first = rows.find(r => r.q.n.length + r.q.l.length + r.q.r.length);
+  const secs = tl.reduce((s, l) => s + (l.ms || 0), 0) / 1000;
+  const n = x => x ? x : '<span class="z">0</span>';
+  const dt = new Date();
+  main.innerHTML = `
+  <div class="ttl"><h2>오늘의 공부</h2><small>${dt.getMonth() + 1}월 ${dt.getDate()}일 ${DOW[dt.getDay()]}요일</small></div>
+  <div class="hero">
+    <div class="tile go ${first ? '' : 'off'}" ${first ? `onclick="go('study','${first.d.id}')"` : ''}><span>${first ? '지금 공부할 카드 — 누르면 시작' : '오늘 공부할 카드'}</span><b>${dueAll}<small>장</small></b></div>
+    <div class="tile"><span>오늘 공부한 카드</span><b>${tl.length}<small>장 · ${Math.round(secs / 60)}분</small></b></div>
+    <div class="tile"><span>오늘 정답률</span><b>${tl.length ? Math.round(tl.filter(l => l.r > 1).length / tl.length * 100) : '—'}<small>${tl.length ? '%' : ''}</small></b></div>
+    <div class="tile"><span>연속 학습</span><b>${streak()}<small>일</small></b></div>
+  </div>
+  <div class="cols">
+    <div class="card dk-wrap">
+      <div class="dk-head"><span>덱</span><span>새 카드</span><span>학습 중</span><span>복습</span><span></span></div>
+      ${rows.length ? rows.map(({d, q, total}) => {
+        const any = q.n.length + q.l.length + q.r.length;
+        return `<div class="dk-row">
+          <div class="nm" onclick="go('study','${d.id}')" title="공부 시작">${esc(d.name)}<small>카드 ${total}장 · 하루 새 카드 ${d.newPerDay}장</small></div>
+          <div class="n cn-n">${n(q.n.length)}</div><div class="n cn-l">${n(q.l.length)}</div><div class="n cn-r">${n(q.r.length)}</div>
+          <div class="act"><button class="sm ${any ? 'primary' : ''}" onclick="go('study','${d.id}')">${any ? '공부' : '열기'}</button><button class="sm" onclick="deckMenu(event,'${d.id}')" title="덱 메뉴">⋯</button></div>
+        </div>`; }).join('') : '<div class="empty" style="padding:24px 16px">덱이 없습니다. [＋ 새 덱]으로 시작하세요.</div>'}
+      <div class="dk-foot"><button class="sm" onclick="newDeck()">＋ 새 덱</button><button class="sm" onclick="importOpen()">가져오기</button>${LINKED ? '<button class="sm" onclick="linkSync(true).then(r => r && rerender())" title="도서관 자료의 &quot;질문 :: 답&quot; 줄과 마인드맵의 ? 주제를 카드로 가져옵니다 (탭을 열 때마다 저절로도 합니다)">도서관 · 마인드맵에서 가져오기</button>' : ''}<span class="sp"></span><button class="sm" onclick="exportAll()">전체 백업 내보내기</button></div>
+    </div>
+    <div>
+      <div class="card"><h3>공부 기록<span class="sp"></span><small>최근 20주</small></h3>${heatmap(20, 14)}</div>
+      <div class="card"><h3>앞으로 7일 복습<span class="sp"></span><small>장</small></h3>${forecast(7, 120)}</div>
+    </div>
+  </div>`;
+}
+
+function deckMenu(ev, id){
+  ev.stopPropagation();
+  menu(ev.currentTarget, [
+    ['＋ 이 덱에 카드 추가', () => { addDeck = id; go('add'); }],
+    ['카드 목록에서 보기', () => { B.deck = id; B.page = 0; go('browse'); }],
+    ['덱 설정 (이름 · 하루 카드 수)', () => deckSettings(id)],
+    ['이 덱 내보내기 (텍스트)', () => exportDeck(id)],
+    null,
+    ['덱 삭제', () => deleteDeck(id), 'danger'],
+  ]);
+}
+async function newDeck(){
+  const name = await prompt2('새 덱', '덱 이름', '');
+  if (!name) return;
+  const d = {id:uid(), name:name.trim(), newPerDay:20, revPerDay:200, created:Date.now()};
+  db.decks.push(d); save(); rerender(); return d;
+}
+function deckSettings(id){
+  const d = deckOf(id);
+  modal(`<h3>덱 설정</h3>
+    <label class="fld"><span>덱 이름</span><input id="dsN" value="${esc(d.name)}"></label>
+    <div class="g2"><label class="fld"><span>하루 새 카드 수</span><input id="dsA" type="number" min="0" max="9999" value="${d.newPerDay}"></label>
+    <label class="fld"><span>하루 최대 복습 수</span><input id="dsB" type="number" min="0" max="99999" value="${d.revPerDay}"></label></div>
+    <div class="info">새 카드는 하루에 정한 수만큼만 나옵니다. 처음엔 하루 10~20장을 권합니다 — 새 카드 1장은 앞으로 며칠 동안 복습을 몇 번 더 만듭니다.</div>
+    <div class="bt"><button onclick="closeModal()">취소</button><button class="primary" data-ok onclick="saveDeckSettings('${id}')">저장</button></div>`);
+  $('#dsN').select();
+}
+function saveDeckSettings(id){
+  const d = deckOf(id), nm = $('#dsN').value.trim();
+  if (!nm) return $('#dsN').focus();
+  d.name = nm; d.newPerDay = Math.max(0, parseInt($('#dsA').value) || 0); d.revPerDay = Math.max(0, parseInt($('#dsB').value) || 0);
+  save(); closeModal(); rerender();
+}
+async function deleteDeck(id){
+  const d = deckOf(id), cnt = db.cards.filter(c => c.deck === id).length;
+  if (!await ask('덱 삭제', `‘${esc(d.name)}’ 덱과 카드 <b>${cnt}장</b>을 지웁니다. 공부 기록은 통계에 남습니다.`, '삭제', true)) return;
+  const snap = {deck:d, cards:db.cards.filter(c => c.deck === id), idx:db.decks.indexOf(d)};
+  db.decks = db.decks.filter(x => x !== d); db.cards = db.cards.filter(c => c.deck !== id);
+  save(); rerender();
+  toast(`‘${d.name}’ 덱을 지웠습니다.`, () => { db.decks.splice(snap.idx, 0, snap.deck); db.cards.push(...snap.cards); save(); rerender(); });
+}
+
+/* ---------- 공부 ---------- */
+function startStudy(did){
+  S = {deck:did, cur:null, shown:false, t0:0, n:0, undo:[], total:0};
+  const q = queues(did); S.total = q.n.length + q.l.length + q.r.length;
+  nextCard();
+}
+function nextCard(){
+  S.cur = pickNext(S.deck); S.shown = false; S.busy = false; S.t0 = Date.now();
+  renderStudy();
+}
+function renderStudy(){
+  const d = deckOf(S.deck);
+  if (!d){ go('home'); return; }
+  const now = Date.now(), q = queues(S.deck, now), c = S.cur;
+  const left = q.n.length + q.l.length + q.r.length;
+  const pct = S.total ? Math.min(100, S.n / (S.n + left) * 100) : 100;
+  const kind = c ? (c.state === 'new' ? 'n' : c.state === 'review' ? 'r' : 'l') : '';
+  const head = `<div class="sbar"><button class="sm" onclick="go('home')" title="그만하기 (Esc)">◀ 덱 목록</button><span class="dn">${esc(d.name)}</span><span class="sp"></span>
+    <div class="qc"><span class="cn-n ${kind === 'n' ? 'cur' : ''}" title="새 카드">새 ${q.n.length}</span><span class="cn-l ${kind === 'l' ? 'cur' : ''}" title="학습 중">학습 ${q.l.length}</span><span class="cn-r ${kind === 'r' ? 'cur' : ''}" title="복습">복습 ${q.r.length}</span></div></div>
+    <div class="prog"><i style="width:${pct}%"></i></div>`;
+  if (!c){
+    const later = q.l.length ? q.l[0] : null;
+    main.innerHTML = `<div class="study">${head}<div class="flash" style="justify-content:center"><div class="done">
+      <div class="big">${S.n ? '🎉' : '☕'}</div>
+      <h2>${S.n ? '오늘 이 덱은 끝!' : '지금은 공부할 카드가 없어요'}</h2>
+      <p>${S.n ? `이번에 <b>${S.n}장</b>을 공부했습니다.<br>` : ''}${later ? `학습 중인 카드 ${q.l.length}장이 <b>${fmtIvl(later.due - now)} 뒤</b>에 다시 나옵니다. 이 화면을 열어 두면 시간이 되면 이어집니다.` : nextDueText(S.deck)}</p>
+      <div class="row" style="justify-content:center"><button class="primary" onclick="go('home')">덱 목록으로</button><button onclick="addDeck='${S.deck}';go('add')">카드 추가</button>${S.undo.length ? '<button onclick="undo()">↶ 마지막 평가 되돌리기</button>' : ''}</div>
+    </div></div></div>`;
+    if (later){ clearTimeout(S.wait); S.wait = setTimeout(() => { if (view === 'study' && S && !S.cur) nextCard(); }, Math.max(1000, later.due - LEARN_AHEAD * MIN - now)); }
+    return;
+  }
+  const lq = isLong(c.front), la = isLong(c.back);
+  main.innerHTML = `<div class="study">${head}
+    <div class="flash ${S.shown ? 'shown' : ''}" id="flash">
+      <span class="stb badge b-${c.state}">${STATE_KO[c.state]}${c.lapses >= 4 ? ' · 자주 틀림' : ''}</span>
+      <div class="q ${lq ? 'long' : ''}">${fmtText(c.front)}</div>
+      ${S.shown ? `<hr class="ansl"><div class="a ${la ? 'long' : ''}">${fmtText(c.back)}</div>` : ''}
+      ${c.tags?.length ? `<div class="tagl">${c.tags.map(t => `<span class="badge">#${esc(t)}</span>`).join('')}</div>` : ''}
+      ${c.link ? `<div class="srcpos">${linkSrcHTML(c)}</div>` : ''}
+    </div>
+    <div class="ansbar">${S.shown ? `<div class="rates">
+        ${RATE_BTNS.map(([k, l, r], i) => `<button class="rate ${k}" id="rt${r}" onclick="answer(${r})"><span class="iv">${previewLabel(c, r, now)}</span><b>${l}<kbd class="kbd">${i + 1}</kbd></b></button>`).join('')}
+      </div>` : `<button class="primary showbtn" onclick="showAnswer()">답 보기<kbd class="kbd">Space</kbd></button>`}</div>
+    <div class="sfoot"><button class="sm" onclick="editCard('${c.id}')">✎ 편집<kbd class="kbd">E</kbd></button><button class="sm" onclick="undo()" ${S.undo.length ? '' : 'disabled'}>↶ 되돌리기<kbd class="kbd">Z</kbd></button><button class="sm" onclick="suspendCur()" title="이 카드를 공부에서 빼 둡니다 (카드 목록에서 다시 켤 수 있음)">일시중지</button>
+      <span class="sp"></span>이번에 ${S.n}장 · 복습 ${c.reps || 0}회${c.state === 'review' ? ' · 간격 ' + fmtIvl(c.ivl * DAY) : ''}</div>
+  </div>`;
+}
+function nextDueText(did){
+  const cs = db.cards.filter(c => c.deck === did && !c.susp && c.state !== 'new');
+  if (!cs.length) return db.cards.some(c => c.deck === did && c.state === 'new' && !c.susp) ? '오늘 새 카드 한도를 다 채웠습니다. 내일 이어서 나옵니다.' : '이 덱에 카드를 추가해 보세요.';
+  const nx = Math.min(...cs.map(c => c.due));
+  return `다음 복습은 <b>${relDue({state:'review', due:nx})}</b>입니다.`;
+}
+function showAnswer(){ if (!S?.cur || S.shown) return; S.shown = true; renderStudy(); }
+function answer(r){
+  if (!S?.cur || !S.shown || S.busy) return;
+  S.busy = true;   // 눌린 모양을 잠깐 보여 주는 동안 두 번 평가되지 않게
+  const btn = $('#rt' + r); if (btn) btn.classList.add('press');
+  const c = S.cur, now = Date.now(), n = schedule(c, r, now), i = db.cards.indexOf(c);
+  if (i < 0) return;
+  S.undo.push({prev:c, logLen:db.log.length, n:S.n});
+  if (S.undo.length > 50) S.undo.shift();
+  db.cards[i] = n;
+  db.log.push({t:now, c:c.id, d:c.deck, r, s:c.state, ivl:n.state === 'review' ? n.ivl : 0, ms:Math.min(60000, now - S.t0)});
+  S.n++; save();
+  setTimeout(nextCard, 90);
+}
+function undo(){
+  if (!S?.undo.length) return;
+  const u = S.undo.pop(), i = db.cards.findIndex(c => c.id === u.prev.id);
+  if (i >= 0) db.cards[i] = u.prev;
+  db.log.length = u.logLen; S.n = u.n; S.cur = db.cards[i]; S.shown = false; S.t0 = Date.now();
+  save(); renderStudy(); toast('마지막 평가를 되돌렸습니다.');
+}
+function suspendCur(){
+  if (!S?.cur) return;
+  const c = S.cur; c.susp = true; save(); nextCard();
+  toast('카드를 일시중지했습니다.', () => { c.susp = false; save(); S.cur = c; S.shown = false; renderStudy(); });
+}
+
+/* ---------- 카드 추가 ---------- */
+function renderAdd(){
+  if (!db.decks.length){ db.decks.push({id:uid(), name:'기본', newPerDay:20, revPerDay:200, created:Date.now()}); save(); }
+  if (!deckOf(addDeck)) addDeck = db.decks[0].id;
+  main.innerHTML = `<div class="ttl"><h2>카드 추가</h2><small>Ctrl+Enter 로 저장하고 바로 다음 카드</small></div>
+  <div class="add">
+    <div class="card" style="padding:var(--s5)">
+      <div class="row" style="margin-bottom:var(--s4);flex-wrap:nowrap"><label class="fld" style="margin:0;flex:1"><span>덱</span><select id="adDeck" onchange="addDeck=this.value">${db.decks.map(d => `<option value="${d.id}" ${d.id === addDeck ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>
+        <button style="align-self:flex-end;height:39px" onclick="newDeck().then(d=>{if(d){addDeck=d.id;renderAdd()}})">＋ 새 덱</button></div>
+      <label class="fld"><span>앞면 <em class="muted" style="font-style:normal">질문</em></span><textarea id="adF" class="big" placeholder="예) ephemeral" oninput="addPreview()"></textarea></label>
+      <label class="fld"><span>뒷면 <em class="muted" style="font-style:normal">답 · **굵게** 쓸 수 있음</em></span><textarea id="adB" class="big" placeholder="예) 덧없는, 순식간의" oninput="addPreview()"></textarea></label>
+      <label class="fld"><span>태그 <em class="muted" style="font-style:normal">띄어쓰기로 구분</em></span><input id="adT" placeholder="예) 영어 수능" oninput="addPreview()"></label>
+      <label class="row" style="font-size:var(--t-1);color:var(--sub);margin-bottom:var(--s4)"><input type="checkbox" id="adRev"> 거꾸로 카드도 만들기 (뒷면 → 앞면)</label>
+      <div class="row"><span class="sp"></span><button onclick="go('home')">닫기</button><button class="primary" onclick="addCard()">추가<kbd class="kbd">Ctrl+Enter</kbd></button></div>
+    </div>
+    <div>
+      <div class="card"><h3>미리보기</h3><div class="pv" id="adPv"></div></div>
+      <div class="card"><h3>방금 추가한 카드<span class="sp"></span><small>${recentAdded.length ? recentAdded.length + '장' : ''}</small></h3>${recentAdded.length ? `<ul class="recent">${recentAdded.slice(0, 8).map(id => { const c = db.cards.find(x => x.id === id); return c ? `<li onclick="editCard('${c.id}')"><b>${esc(c.front)}</b><span class="muted">${esc(deckOf(c.deck)?.name || '')}</span></li>` : ''; }).join('')}</ul>` : '<div class="empty">아직 없습니다.</div>'}</div>
+    </div>
+  </div>`;
+  addPreview(); $('#adF').focus();
+}
+function addPreview(){
+  const f = $('#adF')?.value || '', b = $('#adB')?.value || '';
+  $('#adPv').innerHTML = `<div class="flash shown"><div class="q ${isLong(f) ? 'long' : ''}">${f ? fmtText(f) : '<span class="muted">앞면</span>'}</div><hr class="ansl"><div class="a ${isLong(b) ? 'long' : ''}">${b ? fmtText(b) : '<span class="muted">뒷면</span>'}</div></div>`;
+}
+const parseTags = s => [...new Set(String(s || '').split(/[\s,#]+/).map(x => x.trim()).filter(Boolean))].slice(0, 20);
+function newCard(deck, front, back, tags){ return {id:uid(), deck, front, back, tags, created:Date.now() + Math.random(), state:'new', due:0, ivl:0, ease:SCH.ease0, step:0, reps:0, lapses:0, last:0, susp:false}; }
+function addCard(){
+  const f = $('#adF').value.trim(), b = $('#adB').value.trim(), tags = parseTags($('#adT').value);
+  if (!f){ $('#adF').focus(); return toast('앞면을 적어 주세요.'); }
+  if (db.cards.some(c => c.deck === addDeck && c.front.trim() === f) && !confirmDup(f)) return;
+  const c = newCard(addDeck, f, b, tags); db.cards.push(c); recentAdded.unshift(c.id);
+  if ($('#adRev').checked && b){ const r = newCard(addDeck, b, f, tags); db.cards.push(r); recentAdded.unshift(r.id); }
+  const keepTags = $('#adT').value, rev = $('#adRev').checked;
+  save(); renderAdd(); $('#adT').value = keepTags; $('#adRev').checked = rev;
+  toast('카드를 추가했습니다.');
+}
+function confirmDup(f){ return window.confirm(`같은 덱에 앞면이 ‘${f}’ 인 카드가 이미 있습니다. 그래도 추가할까요?`); }
+
+/* ---------- 카드 편집 창 ---------- */
+function editCard(id){
+  const c = db.cards.find(x => x.id === id); if (!c) return;
+  const lg = db.log.filter(l => l.c === id);
+  modal(`<h3>카드 편집</h3>
+    <label class="fld"><span>덱</span><select id="edD">${db.decks.map(d => `<option value="${d.id}" ${d.id === c.deck ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select></label>
+    <label class="fld"><span>앞면</span><textarea id="edF" rows="3">${esc(c.front)}</textarea></label>
+    <label class="fld"><span>뒷면</span><textarea id="edB" rows="4">${esc(c.back)}</textarea></label>
+    <label class="fld"><span>태그</span><input id="edT" value="${esc((c.tags || []).join(' '))}"></label>
+    <div class="info">상태 <b>${STATE_KO[c.state]}${c.susp ? ' (일시중지)' : ''}</b> · 다음 복습 <b>${relDue(c)}</b>${c.state === 'review' ? ` · 간격 <b>${fmtIvl(c.ivl * DAY)}</b>` : ''} · 쉬움 정도 <b>${Math.round((c.ease || SCH.ease0) * 100)}%</b><br>
+      복습 ${c.reps || 0}회 · 틀림 ${c.lapses || 0}회 · 만든 날 ${md(c.created)}${lg.length ? ` · 최근 평가 ${lg.slice(-8).map(l => ['', '✕', '△', '○', '◎'][l.r]).join(' ')}` : ''}</div>
+    ${c.link ? `<div class="info">${linkSrcHTML(c)}여기서 고친 글은 지켜집니다. 다만 출처(${c.link.app === 'library' ? '도서관 자료' : '마인드맵 주제'})의 글을 고치면 그쪽 글로 다시 바뀝니다.</div>` : ''}
+    <div class="bt"><button class="danger" onclick="deleteCards(['${id}'])">삭제</button><button onclick="resetCards(['${id}'])">학습 초기화</button><button onclick="toggleSusp(['${id}'])">${c.susp ? '일시중지 해제' : '일시중지'}</button><span class="sp"></span><button onclick="closeModal()">취소</button><button class="primary" data-ok onclick="saveEdit('${id}')">저장</button></div>`, 'wide');
+  $('#edF').focus();
+}
+function saveEdit(id){
+  const c = db.cards.find(x => x.id === id), f = $('#edF').value.trim();
+  if (!f) return $('#edF').focus();
+  c.front = f; c.back = $('#edB').value.trim(); c.tags = parseTags($('#edT').value); c.deck = $('#edD').value;
+  save(); closeModal(); rerender(); toast('저장했습니다.');
+}
+async function deleteCards(ids){
+  if (!await ask('카드 삭제', `카드 <b>${ids.length}장</b>을 지웁니다.`, '삭제', true)) return;
+  const set = new Set(ids), gone = db.cards.filter(c => set.has(c.id));
+  db.cards = db.cards.filter(c => !set.has(c.id)); B.sel.clear();
+  if (S?.cur && set.has(S.cur.id)){ closeModal(); save(); nextCard(); } else { closeModal(); save(); rerender(); }
+  toast(`카드 ${gone.length}장을 지웠습니다.`, () => { db.cards.push(...gone); save(); rerender(); });
+}
+async function resetCards(ids){
+  if (!await ask('학습 초기화', `카드 <b>${ids.length}장</b>을 새 카드로 되돌립니다. 간격·복습 횟수가 지워집니다.`, '초기화')) return;
+  const set = new Set(ids);
+  db.cards = db.cards.map(c => set.has(c.id) ? {...c, state:'new', due:0, ivl:0, ease:SCH.ease0, step:0, reps:0, lapses:0, last:0} : c);
+  if (S?.cur && set.has(S.cur.id)) S.cur = db.cards.find(c => c.id === S.cur.id);
+  closeModal(); save(); rerender();
+}
+function toggleSusp(ids){
+  const set = new Set(ids), all = db.cards.filter(c => set.has(c.id)).every(c => c.susp);
+  db.cards.forEach(c => { if (set.has(c.id)) c.susp = !all; });
+  closeModal(); save(); if (view === 'study') nextCard(); else rerender();
+}
+
+/* ---------- 카드 목록 ---------- */
+function filtered(){
+  const now = Date.now(), end = dayStart(now) + DAY, q = B.q.trim().toLowerCase();
+  let cs = db.cards;
+  if (B.deck !== 'all') cs = cs.filter(c => c.deck === B.deck);
+  const F = {all:() => true, new:c => c.state === 'new', learn:c => c.state === 'learn' || c.state === 'relearn', review:c => c.state === 'review', due:c => !c.susp && c.state !== 'new' && c.due < end, hard:c => (c.lapses || 0) >= 3, susp:c => c.susp};
+  cs = cs.filter(F[B.f]);
+  if (q) cs = cs.filter(c => (c.front + '\n' + c.back + '\n' + (c.tags || []).join(' ')).toLowerCase().includes(q));
+  const key = {created:c => c.created, front:c => c.front, due:c => c.state === 'new' ? Infinity : c.due, ivl:c => c.ivl || 0, lapses:c => c.lapses || 0}[B.sort];
+  return [...cs].sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * B.dir; });
+}
+function renderBrowse(){
+  if (B.deck !== 'all' && !deckOf(B.deck)) B.deck = 'all';
+  const cs = filtered(), pages = Math.max(1, Math.ceil(cs.length / PAGE));
+  B.page = Math.min(B.page, pages - 1);
+  const pg = cs.slice(B.page * PAGE, B.page * PAGE + PAGE);
+  const cnt = id => db.cards.filter(c => id === 'all' || c.deck === id).length;
+  const FL = [['all', '전체'], ['due', '오늘 복습'], ['new', '새 카드'], ['learn', '학습 중'], ['review', '복습'], ['hard', '자주 틀림 (3회↑)'], ['susp', '일시중지']];
+  const sh = (k, l) => `<th class="s ${B.sort === k ? 'on' : ''}" onclick="bSort('${k}')">${l}${B.sort === k ? (B.dir > 0 ? ' ↑' : ' ↓') : ''}</th>`;
+  const allSel = pg.length && pg.every(c => B.sel.has(c.id));
+  main.innerHTML = `<div class="ttl"><h2>카드 목록</h2><small>${cs.length}장</small></div>
+  <div class="br">
+    <div class="card side">
+      <div class="h">덱</div>
+      ${[['all', '모든 덱'], ...db.decks.map(d => [d.id, d.name])].map(([id, nm]) => `<div class="it ${B.deck === id ? 'on' : ''}" onclick="B.deck='${id}';B.page=0;B.sel.clear();renderBrowse()"><span>${esc(nm)}</span><em>${cnt(id)}</em></div>`).join('')}
+      <div class="h" style="margin-top:8px">상태</div>
+      ${FL.map(([k, l]) => `<div class="it ${B.f === k ? 'on' : ''}" onclick="B.f='${k}';B.page=0;B.sel.clear();renderBrowse()"><span>${l}</span></div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="btool"><input id="bq" placeholder="이 목록에서 찾기" value="${esc(B.q)}" oninput="B.q=this.value;B.page=0;renderBrowseKeep()"><span class="sp"></span><button class="sm" onclick="addDeck=B.deck!=='all'?B.deck:addDeck;go('add')">＋ 카드 추가</button></div>
+      ${B.sel.size ? `<div class="selbar">${B.sel.size}장 선택<span class="sp"></span><button class="sm" onclick="moveSel()">덱 옮기기</button><button class="sm" onclick="toggleSusp([...B.sel])">일시중지 / 해제</button><button class="sm" onclick="resetCards([...B.sel])">학습 초기화</button><button class="sm danger" onclick="deleteCards([...B.sel])">삭제</button><button class="sm" onclick="B.sel.clear();renderBrowse()">선택 해제</button></div>` : ''}
+      <table class="btbl"><colgroup><col style="width:34px"><col style="width:30%"><col><col style="width:13%"><col style="width:84px"><col style="width:13%"><col style="width:70px"><col style="width:52px"></colgroup>
+        <thead><tr><th class="ck"><input type="checkbox" ${allSel ? 'checked' : ''} onclick="selPage(this.checked)"></th>${sh('front', '앞면')}<th>뒷면</th><th>덱</th><th>상태</th>${sh('due', '다음 복습')}${sh('ivl', '간격')}${sh('lapses', '틀림')}</tr></thead>
+        <tbody>${pg.map(c => `<tr class="${B.sel.has(c.id) ? 'sel' : ''}" onclick="editCard('${c.id}')"><td class="ck" onclick="event.stopPropagation()"><input type="checkbox" ${B.sel.has(c.id) ? 'checked' : ''} onclick="selOne('${c.id}',this.checked)"></td>
+          <td><b style="font-weight:600">${esc(c.front)}</b></td><td class="muted">${esc(c.back)}</td><td>${esc(deckOf(c.deck)?.name || '')}</td>
+          <td><span class="badge b-${c.susp ? 'susp' : c.state}">${c.susp ? '일시중지' : STATE_KO[c.state]}</span></td><td>${c.susp ? '—' : relDue(c)}</td><td>${c.state === 'review' ? fmtIvl(c.ivl * DAY) : '—'}</td><td>${c.lapses || ''}</td></tr>`).join('')}</tbody></table>
+      ${pg.length ? '' : '<div class="empty">조건에 맞는 카드가 없습니다.</div>'}
+      ${pages > 1 ? `<div class="pbar"><button class="sm" onclick="B.page--;renderBrowse()" ${B.page ? '' : 'disabled'}>◀ 이전</button><b>${B.page + 1} / ${pages}</b><button class="sm" onclick="B.page++;renderBrowse()" ${B.page < pages - 1 ? '' : 'disabled'}>다음 ▶</button></div>` : ''}
+    </div>
+  </div>`;
+}
+function renderBrowseKeep(){ const p = $('#bq').selectionStart; renderBrowse(); const i = $('#bq'); i.focus(); i.setSelectionRange(p, p); }
+function bSort(k){ if (B.sort === k) B.dir = -B.dir; else { B.sort = k; B.dir = k === 'created' ? -1 : 1; } renderBrowse(); }
+function selOne(id, on){ on ? B.sel.add(id) : B.sel.delete(id); renderBrowse(); }
+function selPage(on){ const cs = filtered().slice(B.page * PAGE, B.page * PAGE + PAGE); cs.forEach(c => on ? B.sel.add(c.id) : B.sel.delete(c.id)); renderBrowse(); }
+function moveSel(){
+  modal(`<h3>덱 옮기기</h3><p>선택한 카드 ${B.sel.size}장을 옮길 덱:</p><select id="mvD">${db.decks.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('')}</select>
+    <div class="bt"><button onclick="closeModal()">취소</button><button class="primary" data-ok onclick="doMove()">옮기기</button></div>`);
+}
+function doMove(){ const to = $('#mvD').value; db.cards.forEach(c => { if (B.sel.has(c.id)) c.deck = to; }); B.sel.clear(); save(); closeModal(); renderBrowse(); }
+function searchKey(e){
+  if (e.key === 'Enter' && !e.isComposing){ B.q = e.target.value; B.deck = 'all'; B.f = 'all'; B.page = 0; e.target.blur(); go('browse'); }
+  else if (e.key === 'Escape'){ e.target.value = ''; e.target.blur(); }
+}
+
+/* ---------- 통계 ---------- */
+let statDeck = 'all';
+function heatmap(weeks, cell){
+  const cnt = {}, logs = statDeck === 'all' || view !== 'stats' ? db.log : db.log.filter(l => l.d === statDeck);
+  for (const l of logs){ const k = ymd(dayStart(l.t)); cnt[k] = (cnt[k] || 0) + 1; }
+  const today = dayStart(Date.now()), td = new Date(today), mon = (td.getDay() + 6) % 7;
+  const start = today - (mon + (weeks - 1) * 7) * DAY;
+  const vals = Object.values(cnt), mx = Math.max(1, ...vals);
+  let cells = '', months = '', lastM = -1;
+  for (let w = 0; w < weeks; w++){
+    const m = new Date(start + w * 7 * DAY).getMonth();
+    months += `<span>${m !== lastM && w < weeks - 2 ? (m + 1) + '월' : ''}</span>`; lastM = m;
+    for (let d = 0; d < 7; d++){
+      const t = start + (w * 7 + d) * DAY;
+      if (t > today){ cells += '<i class="f"></i>'; continue; }
+      const n = cnt[ymd(t)] || 0, lv = n ? Math.min(4, Math.ceil(n / mx * 4)) : 0, dt = new Date(t);
+      cells += `<i class="${lv ? 'l' + lv : ''} ${t === today ? 'td' : ''}" data-tip="${dt.getMonth() + 1}월 ${dt.getDate()}일 (${DOW[dt.getDay()]}) · ${n ? n + '장 공부' : '공부 없음'}"></i>`;
+    }
+  }
+  const total = vals.reduce((a, b) => a + b, 0), daysOn = vals.length;
+  return `<div class="hwrap" style="--hc:${cell}px"><div class="hdow"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span></span></div>
+    <div><div class="hmo">${months}</div><div class="heat">${cells}</div></div></div>
+    <div class="hleg"><span style="margin-right:auto">공부한 날 ${daysOn}일 · 총 ${total}장</span>적음 <i style="background:rgba(128,128,128,.13)"></i><i style="background:rgba(var(--accent-rgb),.28)"></i><i style="background:rgba(var(--accent-rgb),.5)"></i><i style="background:rgba(var(--accent-rgb),.75)"></i><i style="background:var(--accent)"></i> 많음</div>`;
+}
+function forecast(days, h){
+  const today = dayStart(Date.now()), arr = Array(days).fill(0);
+  for (const c of db.cards){
+    if (c.susp || c.state === 'new' || (statDeck !== 'all' && view === 'stats' && c.deck !== statDeck)) continue;
+    const i = c.state === 'review' ? Math.max(0, Math.floor((c.due - today) / DAY)) : Math.max(0, Math.floor((c.due - today) / DAY));
+    if (i < days) arr[i]++;
+  }
+  const mx = Math.max(...arr);
+  if (!mx) return '<div class="empty">예정된 복습이 없습니다.</div>';
+  const bars = arr.map((n, i) => { const t = new Date(today + i * DAY); return `<div class="b ${n ? '' : 'zero'}" data-tip="${i === 0 ? '오늘 (밀린 카드 포함)' : i === 1 ? '내일' : (t.getMonth() + 1) + '월 ' + t.getDate() + '일 (' + DOW[t.getDay()] + ')'} · ${n}장"><i style="height:${n / mx * 100}%"></i></div>`; }).join('');
+  const lab = days <= 7 ? arr.map((_, i) => `<span style="flex:1;text-align:center">${i === 0 ? '오늘' : i === 1 ? '내일' : DOW[new Date(today + i * DAY).getDay()]}</span>`).join('') : `<span>오늘</span><span>${Math.round(days / 2)}일 뒤</span><span>${days - 1}일 뒤</span>`;
+  return `<div class="bars" style="height:${h}px"><div class="mx" style="top:16px"><span>${mx}장</span></div>${bars}</div><div class="bax" ${days <= 7 ? 'style="gap:2px"' : ''}>${lab}</div>
+    <div class="hleg" style="justify-content:flex-start">합계 ${arr.reduce((a, b) => a + b, 0)}장 · 하루 평균 ${(arr.reduce((a, b) => a + b, 0) / days).toFixed(1)}장</div>`;
+}
+function renderStats(){
+  if (statDeck !== 'all' && !deckOf(statDeck)) statDeck = 'all';
+  const cs = db.cards.filter(c => statDeck === 'all' || c.deck === statDeck);
+  const lg = db.log.filter(l => statDeck === 'all' || l.d === statDeck);
+  const now = Date.now(), t0 = dayStart(now), tl = lg.filter(l => l.t >= t0);
+  const m30 = lg.filter(l => l.t >= t0 - 29 * DAY);
+  const groups = [['새 카드', cs.filter(c => c.state === 'new' && !c.susp).length, 'var(--c-new)'], ['학습 중', cs.filter(c => (c.state === 'learn' || c.state === 'relearn') && !c.susp).length, 'var(--c-lrn)'],
+    ['어린 카드 (간격 21일 미만)', cs.filter(c => c.state === 'review' && c.ivl < 21 && !c.susp).length, 'var(--c-young)'], ['익은 카드 (21일 이상)', cs.filter(c => c.state === 'review' && c.ivl >= 21 && !c.susp).length, 'var(--c-mature)'],
+    ['일시중지', cs.filter(c => c.susp).length, 'rgba(128,128,128,.45)']];
+  const tot = Math.max(1, cs.length);
+  const rv = m30.filter(l => l.s === 'review'), ans = [1, 2, 3, 4].map(r => m30.filter(l => l.r === r).length), at = Math.max(1, m30.length);
+  const RC = [['다시', 'var(--danger)'], ['어려움', 'var(--warn)'], ['알맞음', 'var(--ok)'], ['쉬움', 'var(--accent)']];
+  const mature = cs.filter(c => c.state === 'review' && c.ivl >= 21).length;
+  main.innerHTML = `<div class="ttl"><h2>통계</h2><span class="sp"></span>
+    <div class="tabs" style="margin:0">${[['all', '모든 덱'], ...db.decks.map(d => [d.id, d.name])].map(([id, nm]) => `<button class="${statDeck === id ? 'on' : ''}" onclick="statDeck='${id}';renderStats()">${esc(nm)}</button>`).join('')}</div></div>
+  <div class="hero" style="grid-template-columns:repeat(5,1fr)">
+    <div class="tile"><span>오늘 공부</span><b>${tl.length}<small>장 · ${Math.round(tl.reduce((s, l) => s + (l.ms || 0), 0) / 60000)}분</small></b></div>
+    <div class="tile"><span>복습 정답률 (최근 30일)</span><b>${rv.length ? Math.round(rv.filter(l => l.r > 1).length / rv.length * 100) : '—'}<small>${rv.length ? '%' : ''}</small></b></div>
+    <div class="tile"><span>연속 학습</span><b>${streak()}<small>일</small></b></div>
+    <div class="tile"><span>전체 카드</span><b>${cs.length}<small>장</small></b></div>
+    <div class="tile"><span>익은 카드</span><b>${mature}<small>장 · ${Math.round(mature / tot * 100)}%</small></b></div>
+  </div>
+  <div class="sgrid">
+    <div class="card full"><h3>공부 기록<span class="sp"></span><small>최근 1년 · 칸에 마우스를 올리면 그날 장수</small></h3>${heatmap(53, 15)}</div>
+    <div class="card"><h3>앞으로 30일 복습 예정<span class="sp"></span><small>막대에 마우스를 올리면 장수</small></h3>${forecast(30, 170)}</div>
+    <div class="card"><h3>카드 상태<span class="sp"></span><small>${cs.length}장</small></h3>
+      <div class="stk">${groups.filter(g => g[1]).map(g => `<i style="flex:${g[1]};background:${g[2]}" data-tip="${g[0]} · ${g[1]}장 (${Math.round(g[1] / tot * 100)}%)"></i>`).join('') || '<i style="flex:1;background:rgba(128,128,128,.13)"></i>'}</div>
+      <div class="leg" style="flex-direction:column;gap:8px">${groups.map(g => `<span><i style="background:${g[2]}"></i>${g[0]}<span class="sp"></span><b>${g[1]}</b><span class="muted" style="width:44px;text-align:right">${Math.round(g[1] / tot * 100)}%</span></span>`).join('')}</div>
+    </div>
+    <div class="card"><h3>평가 버튼 비율<span class="sp"></span><small>최근 30일 · ${m30.length}회</small></h3>
+      ${[3, 2, 1, 0].map(i => { const [l, c] = RC[i]; return `<div class="hb"><span>${l} <span class="kbd" style="margin-left:2px">${4 - i}</span></span><div class="tr"><i style="width:${ans[i] / at * 100}%;background:${c}"></i></div><em>${ans[i]}회 · ${Math.round(ans[i] / at * 100)}%</em></div>`; }).join('')}
+      <div class="info" style="margin-top:var(--s3)">‘다시’가 20%를 넘으면 하루 새 카드 수를 줄이거나 카드를 더 작게 나눠 보세요.</div>
+    </div>
+    <div class="card"><h3>자주 틀리는 카드<span class="sp"></span><small>틀린 횟수 순</small></h3>
+      ${(() => { const h = cs.filter(c => c.lapses).sort((a, b) => b.lapses - a.lapses).slice(0, 8); return h.length ? `<ul class="recent">${h.map(c => `<li onclick="editCard('${c.id}')"><b>${esc(c.front)}</b><span class="muted">${c.lapses}회 틀림</span></li>`).join('')}</ul>` : '<div class="empty">아직 없습니다.</div>'; })()}
+    </div>
+  </div>`;
+}
+
+/* ---------- 가져오기 · 내보내기 ---------- */
+let impRows = [];
+function importOpen(){
+  modal(`<h3>가져오기</h3>
+    <p class="muted" style="font-size:var(--t-1)">한 줄에 카드 하나: <b>앞면 [Tab] 뒷면 [Tab] 태그</b> 또는 <b>앞면,뒷면</b>. 엑셀에서 두 열을 복사해 붙여넣어도 됩니다. Anki 의 ‘일반 텍스트로 노트 내보내기’ 파일도 읽습니다.</p>
+    <textarea id="imT" rows="7" placeholder="apple&#9;사과&#10;banana&#9;바나나" oninput="impParse()"></textarea>
+    <div class="row" style="margin-top:var(--s2)"><button class="sm" onclick="pickFile()">파일 열기 (.txt .tsv .csv · 백업 .json)</button><span class="sp"></span><span id="imN" class="muted" style="font-size:var(--t-1)"></span></div>
+    <div id="imP"></div>
+    <div class="g2" style="margin-top:var(--s4)"><label class="fld"><span>넣을 덱</span><select id="imD" onchange="$('#imNew').style.display=this.value==='__new'?'':'none'">${db.decks.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('')}<option value="__new">＋ 새 덱 만들기…</option></select></label>
+      <label class="fld" id="imNew" style="display:none"><span>새 덱 이름</span><input id="imNN" placeholder="예) 토익 단어"></label></div>
+    <label class="row" style="font-size:var(--t-1);color:var(--sub)"><input type="checkbox" id="imDup" checked> 같은 덱에 앞면이 같은 카드가 있으면 건너뛰기</label>
+    <div class="bt"><button onclick="closeModal()">취소</button><button class="primary" data-ok onclick="doImport()">가져오기</button></div>`, 'wide');
+  if (!db.decks.length) { $('#imD').value = '__new'; $('#imNew').style.display = ''; }
+  $('#imT').focus();
+}
+function splitCSV(line){
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if (q){ if (ch === '"' && line[i + 1] === '"'){ cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+    else if (ch === '"' && !cur) q = true; else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch;
+  }
+  out.push(cur); return out;
+}
+function impParse(){
+  const txt = $('#imT').value, lines = txt.split(/\r?\n/).filter(l => l.trim() && !l.startsWith('#'));
+  const tab = lines.some(l => l.includes('\t')), semi = !tab && lines.every(l => l.includes(';') && !l.includes(','));
+  const strip = s => s.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+  // 줄마다 판단: Tab 이 있으면 Tab, 없으면 쉼표
+  impRows = lines.map(l => l.includes('\t') ? l.split('\t') : semi ? l.split(';') : splitCSV(l)).filter(p => p.length >= 2 && p[0].trim()).map(p => [strip(p[0]), strip(p[1]), parseTags(p[2] || '')]);
+  $('#imN').textContent = impRows.length ? `${impRows.length}장 인식됨` : (txt.trim() ? '인식된 줄이 없습니다 — 앞면과 뒷면 사이에 Tab 또는 , 가 필요합니다' : '');
+  $('#imP').innerHTML = impRows.length ? `<div class="ipv"><table><tr><th>앞면</th><th>뒷면</th><th>태그</th></tr>${impRows.slice(0, 6).map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2].join(' '))}</td></tr>`).join('')}${impRows.length > 6 ? `<tr><td colspan="3" class="muted">… 외 ${impRows.length - 6}장</td></tr>` : ''}</table></div>` : '';
+}
+function pickFile(){
+  const fi = $('#fileIn'); fi.value = '';
+  fi.onchange = () => { const f = fi.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => {
+    const txt = String(r.result).replace(/^﻿/, '');
+    if (/\.json$/i.test(f.name)) return restoreBackup(txt);
+    $('#imT').value = txt; impParse(); }; r.readAsText(f, 'utf-8'); };
+  fi.click();
+}
+async function restoreBackup(txt){
+  let d; try { d = JSON.parse(txt); } catch (e) { return toast('백업 파일을 읽을 수 없습니다.'); }
+  if (!d || !Array.isArray(d.cards) || !Array.isArray(d.decks)) return toast('암기카드 백업 파일이 아닙니다.');
+  closeModal();
+  if (!await ask('백업으로 되돌리기', `지금 데이터(덱 ${db.decks.length}개 · 카드 ${db.cards.length}장)를 백업 파일(덱 ${d.decks.length}개 · 카드 ${d.cards.length}장)로 <b>바꿉니다</b>.`, '바꾸기', true)) return;
+  const old = db; db = Object.assign({version:1, log:[]}, d); save(); go('home');
+  toast('백업을 불러왔습니다.', () => { db = old; save(); go('home'); });
+}
+function doImport(){
+  if (!impRows.length) return $('#imT').focus();
+  let did = $('#imD').value;
+  if (did === '__new'){ const nm = $('#imNN').value.trim(); if (!nm) return $('#imNN').focus(); const d = {id:uid(), name:nm, newPerDay:20, revPerDay:200, created:Date.now()}; db.decks.push(d); did = d.id; }
+  const have = new Set(db.cards.filter(c => c.deck === did).map(c => c.front.trim())), skip = $('#imDup').checked;
+  let n = 0, s = 0;
+  impRows.forEach(([f, b, t], i) => { if (skip && have.has(f)){ s++; return; } const c = newCard(did, f, b, t); c.created = Date.now() + i; db.cards.push(c); have.add(f); n++; });
+  save(); closeModal(); rerender();
+  toast(`${n}장을 가져왔습니다${s ? ` (같은 카드 ${s}장 건너뜀)` : ''}.`);
+}
+function download(name, text, type){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], {type})); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function exportAll(){ const d = new Date(); download(`암기카드_백업_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`, JSON.stringify(db), 'application/json'); toast('백업 파일을 내보냈습니다. 가져오기에서 .json 을 고르면 되돌릴 수 있습니다.'); }
+function exportDeck(id){
+  const d = deckOf(id), clean = s => String(s).replace(/\t/g, ' ').replace(/\r?\n/g, '<br>');
+  download(`${d.name}.txt`, db.cards.filter(c => c.deck === id).map(c => [clean(c.front), clean(c.back), (c.tags || []).join(' ')].join('\t')).join('\n'), 'text/plain');
+}
+
+/* ---------- 창 · 메뉴 · 알림 ---------- */
+function modal(html, cls = ''){
+  closeModal();
+  const m = document.createElement('div'); m.className = 'modal'; m.id = 'modal';
+  m.innerHTML = `<div class="box ${cls}">${html}</div>`;
+  m.addEventListener('mousedown', e => { if (e.target === m) closeModal(); });
+  document.body.appendChild(m); renderKeybar();
+}
+function closeModal(){ const m = $('#modal'); if (m){ m.remove(); if (m._res) m._res(m._val); renderKeybar(); } }
+function ask(title, msg, ok = '확인', danger = false){
+  return new Promise(res => {
+    modal(`<h3>${title}</h3><p>${msg}</p><div class="bt"><button onclick="closeModal()">취소</button><button class="primary" data-ok style="${danger ? 'background:var(--danger)' : ''}" onclick="$('#modal')._val=true;closeModal()">${ok}</button></div>`);
+    $('#modal')._res = res; $('#modal')._val = false; $('#modal [data-ok]').focus();
+  });
+}
+function prompt2(title, label, val){
+  return new Promise(res => {
+    modal(`<h3>${title}</h3><label class="fld"><span>${label}</span><input id="p2" value="${esc(val)}"></label><div class="bt"><button onclick="closeModal()">취소</button><button class="primary" data-ok onclick="$('#modal')._val=$('#p2').value.trim();closeModal()">확인</button></div>`);
+    $('#modal')._res = res; $('#modal')._val = ''; $('#p2').focus();
+  });
+}
+function menu(anchor, items){
+  closeMenu();
+  const m = document.createElement('div'); m.className = 'menu'; m.id = 'menu';
+  m.innerHTML = items.map((it, i) => it ? `<div class="mi ${it[2] || ''}" data-i="${i}">${it[0]}</div>` : '<hr>').join('');
+  m.addEventListener('click', e => { const i = e.target.closest('.mi')?.dataset.i; if (i != null){ closeMenu(); items[i][1](); } });
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';
+  m.style.top = (r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6) + 'px';
+}
+function closeMenu(){ $('#menu')?.remove(); }
+addEventListener('mousedown', e => { if (!e.target.closest('#menu')) closeMenu(); });
+let toastT;
+function toast(msg, undoFn){
+  $('#toast')?.remove(); clearTimeout(toastT);
+  const t = document.createElement('div'); t.className = 'toast'; t.id = 'toast';
+  t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? '<button>되돌리기</button>' : ''}`;
+  if (undoFn) t.querySelector('button').onclick = () => { t.remove(); undoFn(); };
+  document.body.appendChild(t); toastT = setTimeout(() => t.remove(), undoFn ? 9000 : 2600);
+}
+/* 말풍선: data-tip 이 있는 곳에 마우스를 올리면 */
+addEventListener('mouseover', e => { const el = e.target.closest('[data-tip]'), tp = $('#tip'); if (!el){ tp.classList.remove('on'); return; } tp.textContent = el.dataset.tip; tp.classList.add('on'); });
+addEventListener('mousemove', e => { const tp = $('#tip'); if (!tp.classList.contains('on')) return; const w = tp.offsetWidth; tp.style.left = Math.min(innerWidth - w - 8, e.clientX + 12) + 'px'; tp.style.top = (e.clientY - 38) + 'px'; });
+
+/* ---------- 테마 ---------- */
+function paintTheme(){
+  const r = document.documentElement;
+  $('#themeBtn').innerHTML = (r.dataset.theme === 'dark' ? '☀ 라이트' : '☾ 다크') + '<kbd class="kbd">L</kbd>';
+  document.querySelectorAll('.dots button').forEach(b => b.classList.toggle('on', b.dataset.a === r.dataset.accent));
+}
+function toggleTheme(){ const r = document.documentElement, t = r.dataset.theme === 'dark' ? 'light' : 'dark'; r.dataset.theme = t; r.dataset.pref = t; saveCfg({theme:t}); paintTheme(); }
+function setAccent(a){ document.documentElement.dataset.accent = a; saveCfg({accent:a}); paintTheme(); }
+/* 창 모양: QHD 크기 / 전체 화면 — 프로그램 창(암기카드.pyw)에서는 실행기가 창을 바꾸고, 브라우저로 열었으면 브라우저 전체 화면을 쓴다 */
+let winFull = !!(window.__CFG && window.__CFG.fullscreen);
+async function winMode(action){
+  if (!FILE || window.WEB){
+    if (action === 'qhd') return toast('QHD 버튼은 PC 프로그램에서만 쓸 수 있어요.');
+    try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch (e) {}
+    return;
+  }
+  try {
+    const r = await (await fetch('api/window', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action})})).json();
+    if (!r.ok) return toast(r.error || '창 모양을 바꾸지 못했어요.');
+    winFull = r.fullscreen; winBtns();
+    if (action === 'qhd') toast('창을 QHD(2560×1440) 크기로 맞췄습니다.');
+  } catch (e) { toast('창 모양을 바꾸지 못했어요.'); }
+}
+function winBtns(){
+  const full = FILE ? winFull : !!document.fullscreenElement;
+  $('#fullBtn').innerHTML = (full ? '⛶ 전체화면 끄기' : '⛶ 전체화면') + '<kbd class="kbd">F</kbd>';
+  $('#fullBtn').classList.toggle('on', full);
+}
+document.addEventListener('fullscreenchange', winBtns);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => { const r = document.documentElement; if (r.dataset.pref === 'auto'){ r.dataset.theme = e.matches ? 'dark' : 'light'; paintTheme(); } });
+
+/* ---------- 단축키 ---------- */
+const KEYBAR = {
+  home:[['N', '카드 추가'], ['B', '카드 목록'], ['S', '통계'], ['/', '검색'], ['F', '전체화면']],
+  study:[['Space', '답 보기'], ['1~4', '평가'], ['E', '편집'], ['Z', '되돌리기'], ['Esc', '그만하기']],
+  add:[['Ctrl+Enter', '추가'], ['Esc', '닫기']],
+  browse:[['/', '검색'], ['N', '카드 추가'], ['H', '홈']],
+  stats:[['H', '홈'], ['B', '카드 목록']],
+};
+function renderKeybar(){
+  const k = $('#modal') ? [['Ctrl+Enter', '저장'], ['Esc', '닫기']] : KEYBAR[view] || [];
+  $('#keybar').innerHTML = k.map(([a, b]) => `<span class="kh"><span class="kbd">${a}</span>${b}</span>`).join('') + '<span class="kh"><span class="kbd">?</span>전체</span>';
+}
+function showKeys(){
+  const K = (k, l) => `<div><span>${l}</span><span>${k.split(' ').map(x => `<span class="kbd">${x}</span>`).join('')}</span></div>`;
+  modal(`<h3>단축키</h3><div class="keys">
+    <h4>어디서나</h4>${K('H', '홈 (덱 목록)')}${K('N', '새 카드 추가')}${K('B', '카드 목록')}${K('S', '통계')}${K('/', '카드 검색')}${K('L', '라이트 / 다크')}${K('F', '전체 화면 켜기 / 끄기 (F11 도 같음)')}${K('?', '이 창')}${K('Esc', '창 닫기 · 뒤로')}
+    <h4>공부할 때</h4>${K('Space', '답 보기 (답이 보이면 = 알맞음)')}${K('1', '쉬움 — 너무 쉬워요')}${K('2', '알맞음')}${K('3', '어려움')}${K('4', '다시 — 틀렸어요')}${K('E', '카드 편집')}${K('Z', '마지막 평가 되돌리기')}${K('Esc', '그만하기')}
+    <h4>입력할 때</h4>${K('Ctrl Enter', '저장 · 추가')}${K('Tab', '다음 칸')}
+  </div><div class="info" style="margin-top:var(--s4)">한글 자판 상태에서도 그대로 동작합니다 (키 위치 기준). 입력 칸에 글자를 쓰는 중에는 한 글자 단축키가 동작하지 않습니다.</div>
+  <div class="bt"><button class="primary" data-ok onclick="closeModal()">닫기</button></div>`, 'wide');
+}
+addEventListener('keydown', e => {
+  const tg = e.target, typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) && tg.type !== 'checkbox';
+  const md = $('#modal');
+  if (e.key === 'Escape'){
+    if ($('#menu')) return closeMenu();
+    if (md) return closeModal();
+    if (typing){ tg.blur(); return; }
+    if (view === 'study' || view === 'add') return go('home');
+    return;
+  }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
+    e.preventDefault();
+    if (md) return md.querySelector('[data-ok]')?.click();
+    if (view === 'add') return addCard();
+    return;
+  }
+  if (md){ if (e.key === 'Enter' && tg.tagName === 'INPUT' && !e.isComposing){ e.preventDefault(); md.querySelector('[data-ok]')?.click(); } return; }
+  if (typing || e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+  if (view === 'study' && S){
+    if ((e.code === 'Space' || e.key === 'Enter') && S.cur){ e.preventDefault(); return S.shown ? answer(3) : showAnswer(); }
+    if (/^[1-4]$/.test(e.key) && S.shown){ e.preventDefault(); return answer(keyToRate(+e.key)); }
+    if (/^Numpad[1-4]$/.test(e.code) && S.shown){ e.preventDefault(); return answer(keyToRate(+e.code.slice(-1))); }
+    if (e.code === 'KeyE' && S.cur){ e.preventDefault(); return editCard(S.cur.id); }
+    if (e.code === 'KeyZ'){ e.preventDefault(); return undo(); }
+  }
+  if (e.key === '/' ){ e.preventDefault(); return $('#search').focus(); }
+  if (e.key === '?' || (e.shiftKey && e.code === 'Slash')){ e.preventDefault(); return showKeys(); }
+  const map = {KeyH:'home', KeyN:'add', KeyB:'browse', KeyS:'stats'};   // N = 새 카드 (교정차트의 N = 새 환자와 같은 자리)
+  if (map[e.code]){ e.preventDefault(); return go(map[e.code]); }
+  if (e.code === 'KeyL'){ e.preventDefault(); return toggleTheme(); }
+  if (e.code === 'KeyF'){ e.preventDefault(); return winMode('fullscreen'); }
+});
+addEventListener('keydown', e => { if (e.key === 'F11'){ e.preventDefault(); winMode('fullscreen'); } });   // F11 도 같은 동작 (입력 중에도)
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK'){ e.preventDefault(); $('#search').focus(); } });
+/* 날이 바뀌거나 학습 카드 시간이 되면 홈 숫자를 새로 */
+setInterval(() => { if (view === 'home' && !$('#modal')) renderHome(); }, 60000);
+
+(async () => { paintTheme(); winBtns(); await load(); go('home'); if (LINKED){ const r = await linkSync(false); if (r && (r.add || r.upd || r.off || r.back) && view === 'home') rerender(); } })();
+</script>
+</body>
+</html>
