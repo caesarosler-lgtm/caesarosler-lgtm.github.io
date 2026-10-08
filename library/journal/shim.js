@@ -24,31 +24,42 @@ const ME = ls.get('ml.dev', null) || (() => { const v = 'w' + crypto.getRandomVa
 const MYNAME = (() => { const u = navigator.userAgent; const k = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : '브라우저'; return '웹 · ' + k; })();
 const nowS = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 19); };
 
-/* ---------- 구글 로그인 (책장 웹판과 같은 토큰 자리 — 같은 탭이면 다시 묻지 않는다) ---------- */
+/* ---------- 구글 로그인 (책장 웹판과 같은 열쇠 자리) ---------- */
+// 열쇠(토큰)는 구글이 1시간짜리만 준다 (서버 없는 웹앱의 규칙 — 오래 가는 열쇠는 서버가 있어야 받는다). 그래서 (2026-10-08 사용자 요청 "1시간마다 풀리지 않게"):
+//  · 열쇠를 이 기기에 둔다 (localStorage — 앱을 닫았다 열어도 그 시간 안이면 다시 묻지 않는다. 책장 · 저널이 함께 쓴다)
+//  · 끝나기 10분 전부터는 화면을 누르는 순간 조용히 새 열쇠를 받는다 (누름 = 브라우저가 로그인 창을 막지 않는 때). 계정은 기억해 둔 것으로 (hint)
+const TK = 'ml.tok', MK = 'ml.mail';
+const store = {get: k => { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch(e){ return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} }};
 let TOKEN = null, tokenClient = null, tokenWait = null;
-try { const s = JSON.parse(sessionStorage.getItem('ml.tok') || 'null'); if (s && s.exp > Date.now() + 60000) TOKEN = s; } catch(e){}
+try { const s = JSON.parse(store.get(TK) || 'null'); if (s && s.exp > Date.now() + 60000) TOKEN = s; } catch(e){}
 function initGis(){
   if (tokenClient || !window.google?.accounts?.oauth2) return !!tokenClient;
-  tokenClient = google.accounts.oauth2.initTokenClient({client_id: CLIENT_ID, scope: SCOPE, callback: r => {
+  tokenClient = google.accounts.oauth2.initTokenClient({client_id: CLIENT_ID, scope: SCOPE, hint: store.get(MK) || undefined, callback: r => {
     const w = tokenWait; tokenWait = null;
     if (r.error){ w?.rej(new Error(r.error)); return; }
     TOKEN = {v: r.access_token, exp: Date.now() + (r.expires_in - 60) * 1000};
-    try { sessionStorage.setItem('ml.tok', JSON.stringify(TOKEN)); } catch(e){}
+    store.set(TK, JSON.stringify(TOKEN));
     w?.res(TOKEN.v);
-  }});
+  }, error_callback: e => { const w = tokenWait; tokenWait = null; w?.rej(new Error(e?.type === 'popup_closed' ? 'popup_closed' : 'login')); }});
   return true;
 }
+const askToken = () => new Promise((res, rej) => { tokenWait = {res, rej}; tokenClient.requestAccessToken({prompt: ''}); });
 function token(interactive){
   if (TOKEN && TOKEN.exp > Date.now()) return Promise.resolve(TOKEN.v);
   if (!interactive) return Promise.reject(new Error('login'));
   if (!initGis()) return Promise.reject(new Error('구글 로그인을 불러오지 못했어요 — 잠시 뒤 다시 눌러 주세요'));
-  return new Promise((res, rej) => { tokenWait = {res, rej}; tokenClient.requestAccessToken({prompt: ''}); });
+  return askToken();
+}
+addEventListener('pointerdown', () => { if (TOKEN && TOKEN.exp - Date.now() < 600000 && !tokenWait && initGis()) askToken().catch(() => {}); }, true);
+async function rememberMail(){   // 다음 로그인 때 계정 고르기를 건너뛰도록 (이 기기에만)
+  if (store.get(MK)) return;
+  try { const j = await (await api('about?fields=user(emailAddress)')).json(); if (j.user?.emailAddress) store.set(MK, j.user.emailAddress); } catch(e){}
 }
 async function api(path, opt = {}){
   let t;
   try { t = await token(false); } catch(e){ gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
   const r = await origFetch(path.startsWith('http') ? path : 'https://www.googleapis.com/drive/v3/' + path, {...opt, headers: {...(opt.headers || {}), Authorization: 'Bearer ' + t}});
-  if (r.status === 401){ TOKEN = null; try { sessionStorage.removeItem('ml.tok'); } catch(e){} gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
+  if (r.status === 401){ TOKEN = null; store.set(TK, null); gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
   if (!r.ok) throw new Error('드라이브 오류 ' + r.status);
   return r;
 }
@@ -578,7 +589,7 @@ let first = true;
 async function start(interactive){
   try {
     await token(interactive);
-    await load();
+    await load(); rememberMail();
     const g = document.getElementById('webgate'); if (g) g.style.display = 'none';
     if (first){ first = false; readyRes(); }
     else if (window.webPage) window.webPage.retry();
