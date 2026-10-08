@@ -35,6 +35,8 @@ button{font:inherit;color:inherit;border:0;background:rgba(0,0,0,.06);border-rad
 button.primary{background:var(--accent);color:#fff;font-weight:600}
 button.ghost{background:transparent;padding:8px 10px}
 button.danger{color:var(--danger)}
+a.lnk{color:var(--sub);text-decoration:none;padding:8px 10px;border-radius:var(--r2);white-space:nowrap}
+a.lnk:hover{color:var(--text)}
 button:disabled{opacity:.45;cursor:default}
 input,textarea,select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;width:100%}
 textarea{min-height:52vh;resize:vertical;line-height:1.6}
@@ -100,7 +102,7 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88
 
 <div id="app" class="hidden">
   <header>
-    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><button class="ghost" id="newbtn">＋ 새 노트</button></div>
+    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><a class="lnk" id="jlink" href="journal/">매매 장부</a><button class="ghost" id="newbtn">＋ 새 노트</button></div>
     <div class="floors" id="floors"></div>
     <div class="search" id="searchbox"><input id="q" type="search" placeholder="자료 찾기" autocomplete="off"></div>
   </header>
@@ -157,7 +159,6 @@ const q = s => encodeURIComponent(s);
 // json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False) 와 같은 글자로
 const js = v => v === null || typeof v !== 'object' ? JSON.stringify(v) : Array.isArray(v) ? '[' + v.map(js).join(',') + ']' : '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + js(v[k])).join(',') + '}';
 async function h(s){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 24); }
-const isLib = k => !k.split('/', 1)[0].includes(':');    // 책장 기록만 (방은 'diary:' 같은 앞머리)
 const newer = (a, b) => !b || a.t > b.t || (a.t === b.t && a.d > b.d);
 
 const S = {fid: null, files: {}, win: {}, clock: 0, devices: [], db: null, imgs: null, at: null, floor: +ls.get('ml.floor', 1) || 1, view: {k: 'shelf'}};
@@ -175,7 +176,7 @@ async function load(){
     if (x.data.device !== ME) S.devices.push(x.data.name || x.data.device);
     for (const [k, e] of Object.entries(x.data.recs || {})){
       S.clock = Math.max(S.clock, e.t || 0);
-      if (isLib(k) && newer(e, S.win[k])) S.win[k] = e;
+      if (newer(e, S.win[k])) S.win[k] = e;   // 모든 기록 (방 'journal:…' 포함) — 내 파일을 쓸 때 저널 웹판이 쓴 기록까지 함께 남기도록. 화면(join)은 책장 기록만 본다
     }
   }
   S.db = join(S.win); S.at = new Date();
@@ -261,6 +262,7 @@ function render(){
   $('floors').classList.toggle('hidden', !inShelf);
   $('searchbox').classList.toggle('hidden', !inShelf);
   $('newbtn').classList.toggle('hidden', !inShelf);
+  $('jlink').classList.toggle('hidden', !inShelf);   // 트레이딩 저널 웹판 (같은 로그인 · 같은 기기)
   if (inShelf) return shelfV();
   if (v.k === 'read') return readV(v.id);
   if (v.k === 'edit') return editV(v);
