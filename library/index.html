@@ -35,7 +35,7 @@ button{font:inherit;color:inherit;border:0;background:rgba(0,0,0,.06);border-rad
 button.primary{background:var(--accent);color:#fff;font-weight:600}
 button.ghost{background:transparent;padding:8px 10px}
 button.danger{color:var(--danger)}
-a.lnk{color:var(--sub);text-decoration:none;padding:8px 10px;border-radius:var(--r2);white-space:nowrap}
+a.lnk{color:var(--sub);text-decoration:none;padding:8px 6px;border-radius:var(--r2);white-space:nowrap}
 a.lnk:hover{color:var(--text)}
 button:disabled{opacity:.45;cursor:default}
 input,textarea,select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;width:100%}
@@ -102,7 +102,7 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88
 
 <div id="app" class="hidden">
   <header>
-    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><a class="lnk" id="jlink" href="journal/">매매 장부</a><button class="ghost" id="newbtn">＋ 새 노트</button></div>
+    <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><a class="lnk" id="jlink" href="journal/">매매 장부</a><a class="lnk" id="elink" href="english/">영어 스승</a><button class="ghost" id="newbtn">＋ 새 노트</button></div>
     <div class="floors" id="floors"></div>
     <div class="search" id="searchbox"><input id="q" type="search" placeholder="자료 찾기" autocomplete="off"></div>
   </header>
@@ -274,7 +274,7 @@ function render(){
   $('floors').classList.toggle('hidden', !inShelf);
   $('searchbox').classList.toggle('hidden', !inShelf);
   $('newbtn').classList.toggle('hidden', !inShelf);
-  $('jlink').classList.toggle('hidden', !inShelf);   // 트레이딩 저널 웹판 (같은 로그인 · 같은 기기)
+  $('jlink').classList.toggle('hidden', !inShelf); $('elink').classList.toggle('hidden', !inShelf);   // 트레이딩 저널 웹판 (같은 로그인 · 같은 기기)
   if (inShelf) return shelfV();
   if (v.k === 'read') return readV(v.id);
   if (v.k === 'edit') return editV(v);
