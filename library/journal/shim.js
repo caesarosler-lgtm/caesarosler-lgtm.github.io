@@ -636,5 +636,5 @@ async function start(interactive){
   } catch(e){ gate(e.message === 'login' || e.message === 'popup_closed' ? '' : e.message); }
 }
 addEventListener('DOMContentLoaded', () => { if (TOKEN) start(false); else gate(''); });
-window.WEB = {img: typeof img === 'function' ? img : null, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
+window.WEB = {img: typeof img === 'function' ? img : null, voice: typeof voice === 'function' ? voice : null, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
 })();

@@ -11,7 +11,7 @@
 'use strict';
 const CLIENT_ID = "400009441617-5v78t237a461c2bhp74s4b72a5a1g05m.apps.googleusercontent.com";
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const ROOM = {"stores": {"data": {"prefix": "todo:", "sync": {"top": true, "lists": [], "dicts": [], "local": [], "strip": []}}, "annual": {"prefix": "todo_annual:", "sync": {"top": false, "lists": ["groups", "projects"], "dicts": [], "local": [], "strip": []}}, "monthly": {"prefix": "todo_monthly:", "sync": {"top": false, "lists": [], "dicts": ["goals", "notes"], "local": [], "strip": []}}, "five": {"prefix": "todo_five:", "sync": {"top": false, "lists": ["goals"], "dicts": ["year_goals", "block_goals"], "local": [], "strip": []}}, "postit": {"prefix": "todo_postit:", "sync": {"top": false, "lists": ["notes"], "dicts": [], "local": ["next_color"], "strip": ["x", "y", "w", "h"]}}}, "title": "내일의 할일", "desc": "나의 도서관의 내일의 할일 — 기록은 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
+const ROOM = {"stores": {"data": {"prefix": "think:", "sync": {"top": false, "lists": ["problems", "sessions", "logs"], "dicts": ["body"], "local": [], "strip": []}}}, "title": "몰입", "desc": "나의 도서관의 몰입 (Think Hard) — 기록은 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
 // 시험: 이 PC 의 시험 주소(localhost)에서만 ?folder=… 로 다른 동기화 폴더 (PC 쪽은 ML_SYNC_FOLDER) — 공개 주소에서는 늘 진짜 폴더
 const FOLDER = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('folder')) || '나의도서관 동기화';
 const ST = name => { const st = ROOM.stores[name]; if (!st) throw new Error('저장소 없음: ' + name); return st; };
@@ -327,86 +327,80 @@ setInterval(() => { if (!document.hidden && W.at && Date.now() - W.at > 120000) 
 
 const jres = (o, status = 200, headers = {}) => new Response(JSON.stringify(o), {status, headers: {'Content-Type': 'application/json', ...headers}});
 
-/* 내일의 할일의 몫 (tools/web_shim_core.js 안에 들어간다) — 2026-10-08
-   할일 화면(apps/todo.html)은 저장소 다섯을 쓴다: 하루 기록(api/data) · 연간 · 월간 · 5년 계획 · 포스트잇(api/plan?kind=…).
-   PC 에서처럼 '내가 읽은 판(ETag)'을 들고 저장하고(X-Base), 3초마다 api/state 로 판 표시를 보아 바뀌었으면 스스로 다시 읽는다(ROOM_POLLS).
-   → 판 표시 = 그 저장소 기록의 지문(storeTag). 저장은 다른 기기 것과 3-way 로 합치고, 합쳐졌으면 merged — 화면이 손을 멈춘 뒤 다시 읽는다.
-   · api/settings      독립 창 크기 · 미니 창 자리 · 문구 차례 · 지금 흐르는 몰입 — 이 기기 브라우저에 (PC 의 설정.json 대신)
-   · api/volume · postit · spawn   소리 크기 조절 · 포스트잇 창 · 독립 창은 PC 프로그램에서만 */
-const ROOM_POLLS = true;
-
-/* ---------- 생년월일 (공개 코드에 두지 않는다) ----------
-   'Days Until I Die' 와 5개년 · 인생 계획의 나이는 생년월일로 계산한다. PC 코드(apps/todo.html · todo_five.js)에는 적혀 있지만, 웹판은 누구나 볼 수 있는
-   공개 저장소에 올라가므로 빌드가 그 값을 지우고(TODO_PATCHES) 여기서 넣는다: 내 드라이브 동기화 폴더의 비공개 파일 web_private.json {birth: 'YYYY-MM-DD', ddayAge}.
-   화면 스크립트는 처음 읽힐 때 값을 바로 쓰므로, 이 기기에 기억해 둔 것(localStorage 'ml.life')을 먼저 넣고, 로그인 뒤 드라이브 것과 다르면 고쳐 두고 한 번 새로 연다 */
-const LIFEK = 'ml.life', LIFE_FILE = 'web_private.json';
-window.WEB_LIFE = (() => { try { const v = JSON.parse(ls.get(LIFEK, 'null')); return v && v.y ? v : null; } catch(e){ return null; } })();
-async function lifeSync(){
-  try {
-    const f = await listAll(`name = '${LIFE_FILE}' and '${W.fid}' in parents and trashed = false`, 'id');
-    if (!f.length) return;
-    const j = await (await api(`files/${f[0].id}?alt=media`)).json(), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(j.birth || ''));
-    if (!m) return;
-    const v = {y: +m[1], m: +m[2], d: +m[3], age: Number.isInteger(j.ddayAge) ? j.ddayAge : 57};
-    if (js(v) === js(window.WEB_LIFE)) return;
-    ls.set(LIFEK, JSON.stringify(v));
-    location.reload();   // 화면 스크립트가 새 값으로 다시 계산하도록
-  } catch(e){}
-}
-addEventListener('DOMContentLoaded', () => READY.then(lifeSync));
+/* 몰입(Think Hard)의 몫 (tools/web_shim_core.js 안에 들어간다) — 2026-10-08
+   · api/data      공통 부분 — 다만 몰입 화면은 저장한 뒤 합친 판을 받아 쓰지 않으므로 조상 = 화면이 보낸 판(keep), 다른 기기 것은 refresh 가 넣어 준다
+   · api/config    밝기 · 포인트 색 — 이 기기 브라우저에 (PC 의 설정.json 대신)
+   · api/voice     음성 메모 → 드라이브 동기화 폴더의 think_voice (PC 동기화도 같은 폴더를 오간다 — 나의도서관.pyw SYNC_IMAGES), 듣기는 WEB.voice
+   · api/compact   작은 창: 웹은 창 크기를 못 바꾸므로 화면 안에서만 (화면이 html.compact 로 그린다) */
+const ROOM_POLLS = false, VOICE_FOLDER = 'think_voice';
 const roomFix = d => d;
-const KINDS = ['annual', 'monthly', 'five', 'postit'];
-const TCFG = 'ml.t.cfg', T_DEFAULT = {"qhdMode": "portrait", "miniPos": null, "quoteIndex": 0, "live": {}};   // todo_room.TODO_DEFAULT
-function tset(){
-  let s = {}; try { s = JSON.parse(ls.get(TCFG, '{}')) || {}; } catch(e){}
-  s = {...T_DEFAULT, ...s};
-  if (!['portrait', 'landscape'].includes(s.qhdMode)) s.qhdMode = 'portrait';
-  if (!s.live || typeof s.live !== 'object' || Array.isArray(s.live)) s.live = {};
-  if (!['light', 'dark', 'auto'].includes(s.theme)) s.theme = 'auto';
-  return s;
+const VOICE_RE = /^[0-9]{8}_[0-9]{6}_[0-9a-f]{6}\.(webm|ogg|mp4|wav|mp3)$/;
+const VMIME = {webm: 'audio/webm', ogg: 'audio/ogg', mp4: 'audio/mp4', wav: 'audio/wav', mp3: 'audio/mpeg'};
+const KCFG = 'ml.k.cfg';
+function kcfg(){ let c = {}; try { c = JSON.parse(ls.get(KCFG, '{}')) || {}; } catch(e){} return {theme: ['light', 'dark', 'auto'].includes(c.theme) ? c.theme : 'auto', accent: ['blue', 'green', 'purple'].includes(c.accent) ? c.accent : 'blue'}; }
+
+/* ---------- 음성 메모 ---------- */
+let vDir = null, vIds = null;
+const VOICE = new Map();   // 파일 → objectURL | Promise
+async function voiceDir(create){
+  if (vDir) return vDir;
+  const f = await listAll(`name = '${VOICE_FOLDER}' and mimeType = 'application/vnd.google-apps.folder' and '${W.fid}' in parents and trashed = false`, 'id');
+  if (f.length) return vDir = f[0].id;
+  if (!create) return null;
+  return vDir = (await (await api('files?fields=id', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: VOICE_FOLDER, mimeType: 'application/vnd.google-apps.folder', parents: [W.fid]})})).json()).id;
 }
-function tpatch(d){   // todo_room.settings_patch 와 같은 칸만
-  const s = tset();
-  if (['light', 'dark', 'auto'].includes(d.theme)) s.theme = d.theme;
-  if (['portrait', 'landscape'].includes(d.qhdMode)) s.qhdMode = d.qhdMode;
-  if ('miniPos' in d) s.miniPos = Array.isArray(d.miniPos) && d.miniPos.length === 2 ? [Math.round(+d.miniPos[0]), Math.round(+d.miniPos[1])] : null;
-  if (Number.isInteger(d.quoteIndex)) s.quoteIndex = ((d.quoteIndex % 4) + 4) % 4;
-  if (d.live && typeof d.live === 'object' && !Array.isArray(d.live)) s.live = d.live;
-  ls.set(TCFG, JSON.stringify(s));
-  const {theme, ...rest} = s; return rest;
+async function voiceId(name){
+  if (!vIds || !(name in vIds)){ const d = await voiceDir(false); vIds = {}; if (d) for (const f of await listAll(`'${d}' in parents and trashed = false`, 'id,name')) vIds[f.name] = f.id; }
+  return vIds[name];
 }
-// 저장: 화면은 합친 판을 받아 쓰지 않고 ETag 로 다시 읽으므로 keep (조상 = 화면이 보낸 것)
-async function tsave(name, raw){
-  const r = await postData(raw, name, true);
-  return jres({ok: true, etag: storeTag(name), merged: !!r.db});
+const vph = name => 'data:,voice-' + encodeURIComponent(name);
+function voice(name){   // 화면의 <audio src>: 받아 둔 것은 바로, 아니면 빈 자리를 두고 받는 대로 바꿔 끼운다
+  const c = VOICE.get(name); if (typeof c === 'string') return c;
+  if (!c && VOICE_RE.test(name)) VOICE.set(name, (async () => {
+    try {
+      await READY; const id = await voiceId(name); if (!id){ VOICE.delete(name); return; }
+      const u = URL.createObjectURL(await (await api(`files/${id}?alt=media`)).blob()); VOICE.set(name, u);
+      for (const el of document.querySelectorAll('audio')) if (el.getAttribute('src') === vph(name)) el.src = u;
+    } catch(e){ VOICE.delete(name); }
+  })());
+  return vph(name);
 }
-async function tload(name){ const d = await getData(name); return jres(d, 200, {ETag: storeTag(name)}); }
+async function voiceSave(data){
+  const m = /^data:audio\/(webm|ogg|mp4|wav|mpeg)[^,]*;base64,/.exec(String(data || ''));
+  if (!m) return {ok: false, error: '음성 데이터 형식이 올바르지 않습니다.'};
+  const blob = await (await origFetch(data)).blob();
+  if (blob.size > 30 * 1024 * 1024) return {ok: false, error: '음성 메모가 너무 깁니다 (30MB 이하).'};
+  const ext = m[1] === 'mpeg' ? 'mp3' : m[1], t = nowS().replace(/-/g, '').replace('T', '_').replace(/:/g, '');
+  const name = `${t}_${[...crypto.getRandomValues(new Uint8Array(3))].map(x => x.toString(16).padStart(2, '0')).join('')}.${ext}`;   // PC 와 같은 이름 꼴 (YYYYMMDD_HHMMSS_xxxxxx)
+  const r = await upload(name, await voiceDir(true), [blob], VMIME[ext]);
+  if (vIds) vIds[name] = r.id;
+  VOICE.set(name, URL.createObjectURL(blob));
+  return {ok: true, file: name};
+}
+
+/* ---------- 큰 화면(apps/think.html)의 전역 값으로 ---------- */
+function roomDb(){ return db; }
+function roomCanAdopt(){   // 저장 대기 · 녹음 · 열린 창 · 입력 중이면 기다린다
+  if (typeof db === 'undefined' || !db || saveT || pushing || rec || document.getElementById('modal')) return false;
+  const a = document.activeElement; if (a && ['INPUT', 'TEXTAREA', 'SELECT'].includes(a.tagName)) return false;
+  return js(split(ST('data').sync, db)) === js((W.base.data || {}).recs);
+}
+function roomAdopt(d){ db = normalize(d); render(); }
+function roomResume(){ if (typeof db !== 'undefined' && db && js(split(ST('data').sync, db)) !== js((W.base.data || {}).recs)){ push(); return true; } return false; }
+
 async function roomRoute(ep, method, init, body, query){
-  if (ep === 'data') return method === 'GET' ? tload('data') : tsave('data', body());
-  if (ep === 'plan'){
-    const kind = (/(?:^|&)kind=([a-z]+)/.exec(query) || [])[1];
-    if (!KINDS.includes(kind)) return jres({ok: false}, 404);
-    return method === 'GET' ? tload(kind) : tsave(kind, body());
+  if (ep === 'data' && method !== 'GET'){ await postData(body(), 'data', true); return jres({ok: true}); }   // keep: 화면이 합친 판을 받아 쓰지 않는다
+  if (ep === 'config'){
+    if (method === 'GET') return jres({width: 2560, height: 1440, ...kcfg(), native: false});
+    const b = body(), c = kcfg();
+    if (['light', 'dark', 'auto'].includes(b.theme)) c.theme = b.theme;
+    if (['blue', 'green', 'purple'].includes(b.accent)) c.accent = b.accent;
+    ls.set(KCFG, JSON.stringify(c)); return jres({ok: true});
   }
-  if (ep === 'state'){
-    const s = tset(), {theme, ...settings} = s;
-    return jres({etag: storeTag('data'), planEtags: Object.fromEntries(KINDS.map(k => [k, storeTag(k)])), settings, theme, clients: []});
-  }
-  if (ep === 'settings'){
-    if (method === 'GET'){ const s = tset(), {theme, ...rest} = s; return jres({...rest, theme}); }
-    return jres({ok: true, ...tpatch(body())});
-  }
-  if (ep === 'volume') return jres({ok: false, level: null, muted: false});   // 컴퓨터 소리 크기는 PC 프로그램에서만
-  if (ep === 'hello' || ep === 'bye') return jres({ok: true, clients: []});
-  if (ep === 'postit') return jres({ok: false, error: '포스트잇 창은 PC 프로그램에서 띄울 수 있어요'});
-  if (ep === 'spawn') return jres({ok: false, error: '독립 창은 PC 프로그램에서 띄울 수 있어요'});
+  if (ep === 'voice') return jres(await voiceSave(body().data));
+  if (ep === 'compact') return jres({ok: true});   // 작은 창: 화면 안에서만
   return null;
 }
-// ROOM_POLLS 인 방은 쓰지 않지만 공통 부분이 이름을 찾으므로
-function roomCanAdopt(){ return false; }
-function roomDb(){ return null; }
-function roomAdopt(){}
-function roomResume(){ return false; }
 
 
 /* ---------- api/… 부탁 받기 ---------- */

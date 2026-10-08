@@ -1,0 +1,1562 @@
+<!doctype html>
+<html lang="ko" data-accent="purple">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Think Hard</title>
+<style>
+:root{
+  /* ===== 디자인 기준 — 교정차트와 같은 값 =====
+     글자: 15px 기준 × 1.2 비율  ·  모서리: 4 · 8 · 12 · 16 · 24  ·  간격: 4의 배수  ·  움직임: 89 · 144 · 233ms 한 가지 곡선 */
+  --t-3:8.7px; --t-2:10.4px; --t-1:12.5px; --t0:15px; --t1:18px; --t2:21.6px; --t3:25.9px; --t4:31.1px; --t5:37.3px; --t6:44.8px; --t7:53.8px;
+  --r1:4px; --r2:8px; --r3:12px; --r4:16px; --r5:24px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --ease:cubic-bezier(.2,.8,.2,1); --d1:89ms; --d2:144ms; --d3:233ms;
+  --e1:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.05);
+  --bg:#f5f5f7; --panel:#fff; --line:rgba(0,0,0,.09); --text:#1d1d1f; --sub:#6e6e73;
+  --accent:#0071e3; --accent-weak:#eaf3fe; --accent-rgb:0,113,227; --accent-hi:#4aa3ff; --accent-hover:#0a7cf0;
+  --danger:#d70015; --ok:#248a3d; --warn:#b25000; --idea:#7b4fd0;
+}
+/* 포인트 색 — 교정차트의 진료실(파랑) · 원장실(보라) · 데스크(초록)와 같은 값 */
+html[data-accent=purple]{--bg:#f3f2fa;--accent:#5856d6;--accent-weak:#ecebfb;--accent-rgb:88,86,214;--accent-hi:#8e8cf0;--accent-hover:#6a68e0}
+html[data-accent=green]{--bg:#f0f6f2;--accent:#1c8f4e;--accent-weak:#e6f4ec;--accent-rgb:28,143,78;--accent-hi:#5ccf8c;--accent-hover:#22a15a}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#d8dade}
+#stage{position:absolute;left:0;top:0;width:var(--W,2560px);height:var(--H,1440px);transform-origin:0 0;background:var(--bg);overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:var(--t0);color:var(--text);letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:var(--text);background:rgba(0,0,0,.055);border:none;border-radius:var(--r3);padding:7px 14px;font-weight:500;transition:background var(--d2) var(--ease),transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease)}
+button:hover{background:rgba(0,0,0,.095)}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-hover)}
+button.danger{color:var(--danger)}
+button.sm{padding:3px 10px;font-size:var(--t-1);border-radius:var(--r2)}
+button:disabled{opacity:.38;cursor:default}
+button:disabled:hover{background:rgba(0,0,0,.055)}
+input,select,textarea{font:inherit;color:var(--text);width:100%;border:1px solid rgba(0,0,0,.14);border-radius:var(--r3);padding:8px 11px;background:#fff;transition:box-shadow var(--d2) var(--ease),border-color var(--d2) var(--ease)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.16)}
+textarea{resize:vertical;line-height:1.55}
+.card{background:var(--panel);border-radius:var(--r4);box-shadow:var(--e1);padding:16px;margin-bottom:16px}
+.card h3{margin:0 0 12px;font-size:var(--t0);font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:var(--s2)}
+.card h3 .sp{flex:1}
+.card h3 small{font-weight:400;color:var(--sub);font-size:var(--t-1)}
+.muted{color:var(--sub)}
+.empty{color:var(--sub);padding:14px 4px;line-height:1.7}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.badge{font-size:var(--t-2);padding:2px 9px;border-radius:var(--r3);background:#eef1f4;color:var(--sub);white-space:nowrap;font-weight:500}
+.badge.ac{background:var(--accent-weak);color:var(--accent)}
+.badge.warn{background:#fdf2e3;color:var(--warn)}
+.badge.ok{background:#e7f5ec;color:var(--ok)}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld>span{font-size:var(--t-1);color:var(--sub)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
+.wide{grid-column:1/-1}
+.link{color:var(--accent);cursor:pointer}
+.link:hover{text-decoration:underline}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 8px;text-align:left;vertical-align:top;font-size:var(--t-1)}
+th{color:var(--sub);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+td{border-bottom:1px solid rgba(0,0,0,.055)}
+.scroll{overflow:auto;min-height:0}
+.scroll::-webkit-scrollbar{width:8px;height:8px}.scroll::-webkit-scrollbar-thumb{background:rgba(128,128,128,.28);border-radius:8px}.scroll::-webkit-scrollbar-track{background:transparent}
+
+/* 머리글 — 교정차트와 같은 반투명 막대 */
+header{display:flex;align-items:center;height:52px;padding:0 22px;gap:16px;background:color-mix(in srgb,var(--bg) 22%,rgba(255,255,255,.84));backdrop-filter:saturate(180%) blur(22px);color:var(--text);border-bottom:1px solid var(--line);position:relative;z-index:40}
+.brand{display:flex;align-items:center;gap:12px;cursor:pointer;flex-shrink:0}
+.logo{width:28px;height:28px;border-radius:var(--r2);background:linear-gradient(145deg,var(--accent-hi),var(--accent));display:flex;align-items:center;justify-content:center;font-size:var(--t0);box-shadow:0 1px 3px rgba(var(--accent-rgb),.4)}
+header h1{font-size:var(--t0);font-weight:700;margin:0;letter-spacing:-.02em;white-space:nowrap}
+header button.ghost{background:none;color:var(--sub);padding:6px 10px}
+header button.ghost:hover{background:rgba(0,0,0,.06);color:var(--text)}
+header button.ghost.on{color:var(--accent);font-weight:600}
+header button.pill{border-radius:980px;padding:7px 16px}
+header>*{flex:0 0 auto;white-space:nowrap}
+header #keybar{flex:1 1 0}
+header #themeBtn{width:116px;text-align:center}
+#saved{font-size:var(--t-1);color:var(--sub);opacity:0;transition:opacity var(--d3) var(--ease)}
+.seg{display:flex;gap:2px;padding:3px;background:rgba(0,0,0,.06);border-radius:var(--r3);flex-shrink:0}
+.seg button{background:none;padding:5px 16px;border-radius:var(--r2);color:var(--sub)}
+.seg button:hover{background:rgba(0,0,0,.04)}
+.seg button.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.tpill{border-radius:980px;padding:5px 14px;font-weight:700;font-size:var(--t-1);background:rgba(var(--accent-rgb),.14);color:var(--accent);font-variant-numeric:tabular-nums}
+.tpill[hidden]{display:none}
+.tpill i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px;animation:pulse 5s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.3}}
+/* 단축키 표시 */
+.kbd{display:inline-block;margin-left:8px;font:600 10px/1 ui-monospace,Consolas,monospace;color:var(--sub);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--r1);padding:2px 5px;background:rgba(128,128,128,.1);vertical-align:1px}
+header .kbd,nav .kbd{font-size:var(--t-2);font-weight:700;padding:1px 6px;color:var(--text);background:rgba(128,128,128,.14);border-color:rgba(128,128,128,.4)}
+button.primary .kbd{color:#fff;background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.6)}
+#keybar{display:flex;align-items:center;justify-content:center;gap:var(--s4);min-width:0;overflow:hidden;font-size:var(--t-1);color:var(--sub);white-space:nowrap}
+#keybar .kh{display:inline-flex;align-items:center;gap:var(--s1);flex:0 0 auto}
+#keybar .kbd{margin-left:0;font-size:var(--t-2);padding:2px 6px;color:var(--text);background:var(--panel);opacity:.9}
+
+main{position:absolute;top:52px;left:0;right:0;bottom:0;overflow:hidden;padding:var(--s5) max(56px,calc((100% - 2200px)/2)) var(--s5);display:flex;flex-direction:column}
+main>*{flex-shrink:0}
+.abar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.abar .ttl{font-size:var(--t1);font-weight:700;margin:0 8px 0 0}
+.abar button.on{background:var(--accent);color:#fff}
+
+/* ===== 무대 화면 ===== */
+.sv{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 560px;gap:var(--s5)}
+.sv-l,.sv-r{display:flex;flex-direction:column;gap:var(--s5);min-height:0}
+.sv .card{margin:0}
+.sv-row{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:var(--s5)}
+.cflex{display:flex;flex-direction:column;min-height:0}
+.cflex>.scroll{flex:1}
+.hero{position:relative;padding:var(--s7) var(--s7) var(--s6);border-radius:var(--r5);overflow:hidden;transition:box-shadow var(--d3) var(--ease);min-height:740px;display:flex;flex-direction:column}
+.hero .clocks{margin-top:auto}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(1100px 420px at 0% 0%,rgba(var(--accent-rgb),.10),transparent 62%);pointer-events:none}
+.hero.on{box-shadow:0 0 0 2px rgba(var(--accent-rgb),.6),0 18px 60px rgba(var(--accent-rgb),.20)}
+.hero>*{position:relative}
+.h-top{display:flex;align-items:center;gap:var(--s2)}
+.eyebrow{font-size:var(--t-1);font-weight:700;letter-spacing:.14em;color:var(--accent);margin-right:var(--s2)}
+.fp{font-size:64px;font-weight:700;letter-spacing:-.03em;line-height:1.28;margin:var(--s7) 0 var(--s3);word-break:keep-all;max-width:1500px}
+.fp.l2{font-size:var(--t7)}.fp.l3{font-size:var(--t5)}
+.fp.flash{animation:fpflash .9s var(--ease)}
+@keyframes fpflash{0%{color:var(--accent);transform:translateX(-6px)}100%{transform:none}}
+.h-sub{color:var(--sub);font-size:var(--t0)}
+.clocks{display:flex;gap:var(--s4);margin:var(--s6) 0 var(--s5);flex-wrap:wrap}
+.clocks>div{background:rgba(0,0,0,.035);border-radius:var(--r4);padding:var(--s4) var(--s5);min-width:230px}
+.clocks b{display:block;font-size:var(--t2);font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em;color:var(--sub)}
+.clocks span{font-size:var(--t-1);color:var(--sub)}
+.clocks .main{background:rgba(var(--accent-rgb),.08)}
+.clocks .main b{font-size:var(--t4);color:var(--accent);font-weight:700}
+.actions{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center}
+button.xl{padding:14px 26px;font-size:var(--t1);border-radius:var(--r4);font-weight:600}
+button.xl .kbd{font-size:var(--t-2)}
+.cool{display:flex;align-items:center;gap:var(--s3);margin-top:var(--s5);padding:var(--s3) var(--s4);border-radius:var(--r3);background:rgba(215,0,21,.08);color:var(--danger);font-size:var(--t-1);font-weight:600;line-height:1.6}
+.hero-empty{align-items:flex-start;justify-content:center}
+.hero-empty .fp{margin-top:var(--s5)}
+.hero-empty .fp{color:var(--sub)}
+.principles{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4);margin-top:var(--s6);max-width:1400px}
+.principles div{background:rgba(0,0,0,.035);border-radius:var(--r4);padding:var(--s4) var(--s5);font-size:var(--t-1);line-height:1.7;color:var(--sub)}
+.principles b{display:block;color:var(--text);font-size:var(--t0);margin-bottom:var(--s1)}
+/* 오늘의 흐름 */
+.tl{position:relative;height:56px;margin:var(--s2) 0 var(--s1);background:rgba(128,128,128,.08);border-radius:var(--r2);overflow:hidden}
+.tl i{position:absolute;top:10px;bottom:10px;background:rgba(var(--accent-rgb),.42);border-radius:3px}
+.tl i.slow{background:rgba(123,79,208,.5)}
+.tl i.scrap{background:rgba(46,157,87,.45)}
+.tl u{position:absolute;top:4px;bottom:4px;width:2px;background:#e67700;border-radius:2px}
+.tl s{position:absolute;top:0;bottom:0;width:2px;background:#1fa855}
+.tlx{display:flex;justify-content:space-between;font-size:var(--t-2);color:var(--sub)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin-top:var(--s3)}
+.stat div{background:rgba(0,0,0,.035);border-radius:var(--r3);padding:10px 14px}
+.stat b{display:block;font-size:var(--t2);font-variant-numeric:tabular-nums}
+.stat span{font-size:var(--t-1);color:var(--sub)}
+.leg{display:flex;gap:var(--s3);font-size:var(--t-2);color:var(--sub);margin-top:var(--s2);flex-wrap:wrap}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+/* 막대 그래프 — 교정차트 통계와 같은 모양 */
+.vc{display:flex;align-items:flex-end;gap:6px;height:230px;padding-top:6px}
+.vcc{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.vcc b{font-size:var(--t-2);font-weight:600;color:var(--sub);white-space:nowrap}
+.vcc .stk{width:72%;display:flex;flex-direction:column-reverse;border-radius:var(--r2) var(--r2) 2px 2px;overflow:hidden;min-height:2px;background:rgba(128,128,128,.12)}
+.stk i{display:block}
+.e1{background:var(--accent)}.e2{background:rgba(var(--accent-rgb),.42)}.e3{background:#e67700}.e0{background:rgba(128,128,128,.32)}
+.vcc.hi b{color:var(--text)}
+.vcc.hi .stk{box-shadow:0 0 0 2px rgba(var(--accent-rgb),.35)}
+.vcc span{font-size:var(--t-2);color:var(--sub);white-space:nowrap}
+.vcc em{font-style:normal;font-size:var(--t-2);color:#e67700;font-weight:700;white-space:nowrap;min-height:13px}
+.hb .hbr{display:grid;grid-template-columns:110px 1fr 56px;gap:12px;align-items:center;padding:5px 0;font-size:var(--t-1)}
+.hb .hbb{background:rgba(128,128,128,.15);border-radius:var(--r2);height:10px;overflow:hidden}
+.hb .hbb i{display:block;height:100%;background:var(--accent);border-radius:var(--r2)}
+.hb b{text-align:right}
+/* 진전 로그 */
+.lg{display:flex;gap:var(--s3);padding:10px 4px;border-bottom:1px solid var(--line);font-size:var(--t-1);line-height:1.6}
+.lg:last-child{border-bottom:0}
+.lg .t{flex:0 0 74px;color:var(--sub);font-variant-numeric:tabular-nums}
+.lg .k{flex:0 0 auto}
+.lg .x{flex:1;min-width:0;word-break:keep-all;white-space:pre-wrap}
+.lg audio{display:block;height:30px;margin-top:4px;width:100%;max-width:360px}
+.lg .del{visibility:hidden;border:0;background:none;color:var(--sub);padding:0 4px}
+.lg:hover .del{visibility:visible}
+.kk{display:inline-block;font-size:var(--t-2);font-weight:700;padding:1px 8px;border-radius:var(--r2);background:rgba(128,128,128,.14);color:var(--sub)}
+.kk.progress{background:rgba(var(--accent-rgb),.14);color:var(--accent)}
+.kk.idea{background:rgba(123,79,208,.15);color:var(--idea)}
+.kk.stuck{background:rgba(255,128,0,.16);color:var(--warn)}
+.kk.question{background:rgba(46,157,87,.14);color:var(--ok)}
+.kk.solve{background:var(--ok);color:#fff}
+.kk.stage,.kk.swap{background:rgba(128,128,128,.14);color:var(--sub)}
+.qadd{display:flex;gap:var(--s2);margin-bottom:var(--s2)}
+.qadd input{flex:1}
+.kseg{display:inline-flex;gap:2px;padding:2px;background:rgba(128,128,128,.12);border-radius:var(--r2)}
+.kseg button{border:0;background:transparent;border-radius:6px;padding:3px 10px;font-size:var(--t-1);color:var(--sub)}
+.kseg button.on{background:var(--panel);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+/* 단계 사다리 */
+.lad{display:flex;flex-direction:column;gap:2px}
+.lgp{font-size:var(--t-2);font-weight:700;letter-spacing:.1em;color:var(--sub);margin:var(--s2) 0 var(--s1) 2px}
+.ldr{display:grid;grid-template-columns:26px 1fr auto;gap:var(--s3);align-items:center;padding:8px 10px;border-radius:var(--r3)}
+.ldr .o{width:22px;height:22px;border-radius:50%;border:2px solid rgba(128,128,128,.4);display:flex;align-items:center;justify-content:center;font-size:var(--t-2);font-weight:700;color:#fff}
+.ldr.done .o{background:var(--ok);border-color:var(--ok)}
+.ldr.cur{background:var(--accent-weak)}
+.ldr.cur .o{border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.15)}
+.ldr.lock{opacity:.48}
+.ldr b{font-size:var(--t0);font-weight:600}
+.ldr small{display:block;font-size:var(--t-1);color:var(--sub);margin-top:1px}
+.ldr em{font-style:normal;font-size:var(--t-1);color:var(--sub);font-variant-numeric:tabular-nums;text-align:right}
+.ldr.cur em{color:var(--accent);font-weight:700}
+.bar{height:6px;border-radius:6px;background:rgba(128,128,128,.16);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width var(--d3) var(--ease)}
+/* 몸 · 안전 */
+.body{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+.body>div{background:rgba(0,0,0,.035);border-radius:var(--r3);padding:10px 12px}
+.body span{display:block;font-size:var(--t-1);color:var(--sub);margin-bottom:6px}
+.body b{font-size:var(--t2);font-variant-numeric:tabular-nums}
+.body b small{font-size:var(--t-1);color:var(--sub);font-weight:500;margin-left:2px}
+.body .q{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.body .q button{padding:2px 9px;font-size:var(--t-1);border-radius:var(--r2)}
+.body .q button.on{background:var(--accent);color:#fff}
+.body .low b{color:var(--danger)}
+.alert{margin-top:var(--s3);padding:10px 14px;border-radius:var(--r3);background:rgba(215,0,21,.08);color:var(--danger);font-size:var(--t-1);line-height:1.6;font-weight:600}
+.alert.soft{background:rgba(255,160,0,.12);color:var(--warn)}
+/* 잡념 보관함 */
+.pk{display:flex;align-items:flex-start;gap:var(--s2);padding:8px 4px;border-bottom:1px solid var(--line);font-size:var(--t-1);line-height:1.55}
+.pk:last-child{border-bottom:0}
+.pk input[type=checkbox]{width:auto;margin:3px 0 0}
+.pk .x{flex:1;min-width:0;word-break:keep-all}
+.pk.done .x{text-decoration:line-through;color:var(--sub)}
+.pk .t{color:var(--sub);font-size:var(--t-2);white-space:nowrap;margin-top:2px}
+.pk .b{display:none;gap:4px}
+.pk:hover .b{display:flex}
+.pk .b button{padding:1px 8px;font-size:var(--t-2)}
+/* 답 금고 · 질문 카드 */
+.vault{position:relative}
+.lockbox{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s2);padding:var(--s4) var(--s3)}
+.lockbox .ic{font-size:var(--t5);line-height:1}
+.lockbox b{font-size:var(--t1)}
+.lockbox p{margin:0;color:var(--sub);font-size:var(--t-1);line-height:1.6}
+.lockbox .bar{width:100%}
+.qcard{background:linear-gradient(145deg,rgba(var(--accent-rgb),.12),rgba(var(--accent-rgb),.04));border-radius:var(--r4);padding:var(--s5);font-size:var(--t1);font-weight:600;line-height:1.5;word-break:keep-all;min-height:110px}
+.qcard small{display:block;font-size:var(--t-2);font-weight:700;letter-spacing:.1em;color:var(--accent);margin-bottom:var(--s2)}
+.refs{margin-top:var(--s3);font-size:var(--t-1)}
+.refs li{margin:4px 0;word-break:break-all}
+
+/* ===== 대기실 ===== */
+.room{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:var(--s5)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(500px,1fr));gap:var(--s4);align-content:start}
+.sech{font-size:var(--t-1);font-weight:700;color:var(--sub);letter-spacing:.06em;margin:var(--s5) 0 var(--s3);display:flex;gap:var(--s2);align-items:center}
+.sech:first-child{margin-top:0}
+.pc{margin:0;display:flex;flex-direction:column;gap:var(--s2);border:2px solid transparent;transition:border-color var(--d2) var(--ease)}
+.pc:hover{border-color:rgba(var(--accent-rgb),.3)}
+.pc.on{border-color:var(--accent);background:linear-gradient(145deg,rgba(var(--accent-rgb),.07),var(--panel) 50%)}
+.pc-h{display:flex;align-items:center;gap:var(--s2)}
+.pc-h b{font-size:var(--t1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-fp{font-size:var(--t0);line-height:1.55;word-break:keep-all;color:var(--text)}
+.pc-fp::before{content:"FP(Focus Point)";display:block;margin-bottom:2px;font-size:var(--t-2);font-weight:700;color:var(--accent);letter-spacing:.06em}
+.pc-m{font-size:var(--t-1);color:var(--sub)}
+.pc-b{display:flex;gap:var(--s1);flex-wrap:wrap;margin-top:var(--s1)}
+.pc-b button{font-size:var(--t-1);padding:4px 12px;border-radius:var(--r2)}
+.pc.solved .pc-h b{color:var(--ok)}
+.pc.shelved{opacity:.7}
+.dseg{display:inline-flex;gap:2px;padding:3px;background:rgba(0,0,0,.06);border-radius:var(--r3)}
+.dseg button{background:none;padding:6px 16px;border-radius:var(--r2);color:var(--sub)}
+.dseg button.on{background:var(--panel);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.dwarn{font-size:var(--t-1);line-height:1.6;padding:10px 14px;border-radius:var(--r3);background:rgba(255,160,0,.12);color:var(--warn);font-weight:600}
+.dwarn[hidden]{display:none}
+.tip{font-size:var(--t-1);color:var(--sub);line-height:1.75}
+.tip b{color:var(--text)}
+
+/* ===== 기록 ===== */
+.rec{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 760px;gap:var(--s5)}
+.rec-r{display:flex;flex-direction:column;gap:var(--s5);min-height:0}
+.rec .card{margin:0}
+
+/* ===== 플래너 ===== */
+.wk{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--s3)}
+.wd{margin:0;display:flex;flex-direction:column;gap:var(--s2);min-height:0;padding:14px}
+.wd.today{box-shadow:0 0 0 2px var(--accent),var(--e1)}
+.wd-h{display:flex;align-items:baseline;gap:var(--s2)}
+.wd-h b{font-size:var(--t2)}
+.wd-h span{color:var(--sub);font-size:var(--t-1)}
+.wd-h .sat{color:#0a63c9}.wd-h .sun{color:var(--danger)}
+.wd .body{grid-template-columns:1fr 1fr}
+.wd .body input{padding:3px 6px;font-size:var(--t0);font-weight:700;width:70px}
+.blk{border-radius:var(--r3);padding:10px 12px;background:rgba(var(--accent-rgb),.10);border-left:4px solid rgba(var(--accent-rgb),.5);cursor:pointer;font-size:var(--t-1);line-height:1.55}
+.blk.strong{background:rgba(var(--accent-rgb),.2);border-left-color:var(--accent)}
+.blk:hover{filter:brightness(.97)}
+.blk b{font-size:var(--t0);display:block}
+.blk .pp{color:var(--sub);font-size:var(--t-2);margin-top:2px}
+.blk.warn{box-shadow:inset 0 0 0 2px var(--danger)}
+.wd .add{display:flex;gap:4px;margin-top:auto}
+.wd .add button{flex:1;font-size:var(--t-1);padding:5px 4px}
+.prep label{display:flex;align-items:center;gap:var(--s2);padding:4px 0;font-size:var(--t0);cursor:pointer}
+.prep input[type=checkbox]{width:auto;margin:0}
+
+/* 모달 · 알림 — 교정차트와 같은 모양 */
+.modal{position:absolute;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:90}   /* 전체화면(80) 위에도 뜨게 */
+.modal .box{background:var(--panel);border-radius:var(--r5);padding:26px 28px;width:560px;max-width:92%;max-height:88%;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.modal .box.wide{width:820px}
+.modal h3{margin:0 0 16px;font-size:var(--t2);font-weight:700;letter-spacing:-.02em}
+.modal .foot{display:flex;gap:var(--s2);justify-content:flex-end;margin-top:var(--s5)}
+.modal .mfp{font-size:var(--t3);font-weight:700;line-height:1.35;word-break:keep-all;margin:var(--s2) 0 var(--s5);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border-radius:var(--r-pill);padding:5px 14px;font-size:var(--t-1)}
+.chips button.on{background:var(--accent);color:#fff}
+.toast{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(30,30,32,.94);color:#fff;border-radius:var(--r4);padding:12px 20px;display:flex;align-items:center;gap:16px;font-size:var(--t0);box-shadow:0 14px 40px rgba(0,0,0,.35);z-index:95}
+.toast button{background:rgba(255,255,255,.18);color:#fff;padding:5px 14px;border-radius:var(--r3)}
+.toast button:hover{background:rgba(255,255,255,.3)}
+#kbcard .kb-r{display:flex;align-items:center;gap:16px;padding:9px 0;border-top:1px solid var(--line);font-size:var(--t0)}
+#kbcard .kb-r span{flex:0 0 150px}#kbcard .kb-r em{font-style:normal;color:var(--sub)}
+#kbcard .kbd{font-size:var(--t-1);padding:4px 9px;margin:0 2px}
+.ab-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+.ab-grid>div{padding:var(--s3) var(--s4);border-radius:var(--r4);background:rgba(128,128,128,.07);font-size:var(--t-1);line-height:1.7}
+.ab-grid b{font-size:var(--t0)}
+.ab-grid p{margin:var(--s1) 0 0;color:var(--sub)}
+
+/* ===== 슬로싱킹 화면: 테마와 상관없이 어둡게, FP 하나만 ===== */
+#slow{position:absolute;inset:0;z-index:80;background:radial-gradient(ellipse at 50% 42%,#1b1a2a 0%,#0b0b10 70%);color:#e9e9f2;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default}
+#slow .sl-fp{font-size:var(--t6);font-weight:600;line-height:1.4;text-align:center;max-width:1600px;word-break:keep-all;letter-spacing:-.02em;opacity:.92}
+#slow .sl-lab{font-size:var(--t-1);font-weight:700;letter-spacing:.12em;color:var(--accent-hi);opacity:.75;margin-bottom:var(--s4)}
+#slow .breath{width:14px;height:14px;border-radius:50%;background:rgba(var(--accent-rgb),.9);box-shadow:0 0 40px 10px rgba(var(--accent-rgb),.35);margin-bottom:var(--s8);animation:breath 10s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scale(1);opacity:.45}45%{transform:scale(2.6);opacity:1}}
+#slow .sl-hint{margin-top:var(--s7);font-size:var(--t0);color:rgba(233,233,242,.45);text-align:center;line-height:1.8}
+#slow .sl-time{position:absolute;top:28px;left:36px;font-size:var(--t0);color:rgba(233,233,242,.4);font-variant-numeric:tabular-nums}
+#slow .sl-bar{position:absolute;bottom:36px;left:0;right:0;display:flex;justify-content:center;gap:var(--s3);opacity:.35;transition:opacity var(--d3) var(--ease)}
+#slow .sl-bar:hover,#slow.act .sl-bar{opacity:1}
+#slow button{background:rgba(255,255,255,.10);color:#e9e9f2;padding:12px 22px;border-radius:var(--r4);font-size:var(--t0)}
+#slow button:hover{background:rgba(255,255,255,.18)}
+#slow button .kbd{color:#e9e9f2;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3)}
+#slow button.rec{background:#d70015;color:#fff}
+#slow .wake{position:absolute;inset:0;background:rgba(8,8,12,.86);display:flex;align-items:center;justify-content:center}
+#slow .wake .wb{width:900px;max-width:90%;display:flex;flex-direction:column;gap:var(--s4);align-items:stretch}
+#slow .wake h2{margin:0;font-size:var(--t4);font-weight:700}
+#slow .wake p{margin:0;color:rgba(233,233,242,.6)}
+#slow .wake .wfp{font-size:var(--t2);color:var(--accent-hi);font-weight:600;word-break:keep-all}
+#slow .wake textarea{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);color:#fff;font-size:var(--t1);min-height:140px}
+#slow .wake .mic{font-size:var(--t2);padding:22px;border-radius:var(--r5);background:rgba(var(--accent-rgb),.85);color:#fff;font-weight:700}
+#slow .wake .mic.rec{background:#d70015;animation:pulse 1.4s ease-in-out infinite}
+#slow .wake .wbtn{display:flex;gap:var(--s3);justify-content:flex-end}
+
+/* ===== 슬로싱킹 — 시작 의식 · 편안함 기록 · 차분한 표시 ===== */
+.ease{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+.ease button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 12px;border-radius:var(--r4);border:2px solid transparent}
+.ease button b{font-size:var(--t1)}.ease button span{font-size:var(--t-1);color:var(--sub);text-align:center;line-height:1.5}
+.ease button.e1{background:rgba(var(--accent-rgb),.12)}.ease button.e1:hover{border-color:var(--accent)}
+.ease button.e2{background:rgba(128,128,128,.10)}.ease button.e2:hover{border-color:rgba(128,128,128,.5)}
+.ease button.e3{background:rgba(255,128,0,.10)}.ease button.e3:hover{border-color:#e67700}
+.ease button .kbd{margin:4px 0 0}
+.calm{display:flex;align-items:center;gap:var(--s3);margin-top:var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r3);background:rgba(255,160,0,.10);color:var(--warn);font-size:var(--t-1);font-weight:600;line-height:1.6}
+.hb-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:var(--s2);animation:breath 10s ease-in-out infinite;box-shadow:0 0 12px 2px rgba(var(--accent-rgb),.35)}
+.h-cue{margin-top:var(--s2);color:var(--accent);font-size:var(--t0);font-weight:500;letter-spacing:.02em;opacity:.85}
+#slow .sl-hint.lesson-on{color:rgba(233,233,242,.72);font-size:var(--t1);line-height:1.9;transition:opacity 1.5s ease-in-out}
+#slow .sl-hint.lesson-on b{color:#fff}
+#slow .sl-lt{display:block;font-size:var(--t-1);letter-spacing:.1em;color:var(--accent-hi);font-weight:700;margin-bottom:var(--s2)}
+
+/* ===== 작은 창 모드: 본 창이 FP 한 줄로 줄어 다른 창 위에 떠 있다 (화면 비율 맞춤 없이 창 크기 그대로) ===== */
+#compact{display:none}
+html.compact,html.compact body{background:var(--bg)}
+html.compact #stage{display:none}
+html.compact #compact{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px 16px;background:radial-gradient(600px 160px at 0% 0%,rgba(var(--accent-rgb),.12),transparent 70%) var(--bg)}
+.c-top{display:flex;align-items:center;gap:8px;font-size:var(--t-1);color:var(--sub)}
+.c-top b{color:var(--accent);font-weight:700;letter-spacing:.12em;font-size:var(--t-2)}
+.c-num{font-variant-numeric:tabular-nums;font-weight:600;color:var(--text)}
+.c-dot{width:8px;height:8px;border-radius:50%;background:rgba(128,128,128,.4)}
+.c-dot.on{background:var(--accent);animation:pulse 1.6s ease-in-out infinite}
+.c-top .c-x{padding:2px 9px;font-size:var(--t-1);border-radius:var(--r2);background:none;color:var(--sub)}
+.c-top .c-x:hover{background:rgba(128,128,128,.16);color:var(--text)}
+.c-row{display:flex;align-items:center;gap:10px}
+.c-row[hidden]{display:none}
+.c-fp{flex:1;min-width:0;font-size:var(--t1);font-weight:700;line-height:1.35;letter-spacing:-.02em;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c-fp.empty{color:var(--sub);font-weight:500;font-size:var(--t0)}
+.c-fp.flash{animation:fpflash .8s var(--ease)}
+.c-row button{padding:8px 14px;font-weight:600;white-space:nowrap}
+.c-row input{flex:1;min-width:0;padding:7px 11px}
+
+/* ===== 다크 모드 — 교정차트와 같은 값 ===== */
+html[data-theme=dark]{color-scheme:dark;--bg:#1c1c1e;--panel:#2c2c2e;--line:rgba(255,255,255,.12);--text:#f2f2f7;--sub:#9b9ba3;
+  --accent:#0a84ff;--accent-weak:rgba(10,132,255,.20);--accent-rgb:10,132,255;--accent-hi:#64b5ff;--accent-hover:#409cff;--danger:#ff6961;--ok:#4cd964;--warn:#ffb340;--idea:#b894ff}
+html[data-theme=dark][data-accent=purple]{--bg:#19181f;--panel:#272630;--accent:#7d7aff;--accent-weak:rgba(125,122,255,.22);--accent-rgb:125,122,255;--accent-hi:#a9a7ff;--accent-hover:#8d8aff}
+html[data-theme=dark][data-accent=green]{--bg:#161d19;--panel:#252d28;--accent:#2aa862;--accent-weak:rgba(42,168,98,.22);--accent-rgb:42,168,98;--accent-hi:#6fd69a;--accent-hover:#34b96e}
+html[data-theme=dark],html[data-theme=dark] body{background:#0b0b0c}
+html[data-theme=dark] button{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button:hover{background:rgba(255,255,255,.17)}
+html[data-theme=dark] button:disabled:hover{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button.primary,html[data-theme=dark] .abar button.on,html[data-theme=dark] .chips button.on,html[data-theme=dark] .body .q button.on{background:var(--accent);color:#fff}
+html[data-theme=dark] button.primary:hover{background:var(--accent-hover)}
+html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:var(--text)}
+html[data-theme=dark] input::placeholder,html[data-theme=dark] textarea::placeholder{color:#7c7c84}
+html[data-theme=dark] .card{box-shadow:0 1px 2px rgba(0,0,0,.35),0 8px 28px rgba(0,0,0,.28)}
+html[data-theme=dark] td{border-bottom-color:rgba(255,255,255,.07)}
+html[data-theme=dark] .seg,html[data-theme=dark] .dseg{background:rgba(255,255,255,.09)}
+html[data-theme=dark] .seg button,html[data-theme=dark] .dseg button,html[data-theme=dark] header button.ghost,html[data-theme=dark] .kseg button,html[data-theme=dark] .lg .del{background:none}
+html[data-theme=dark] .seg button:hover{background:rgba(255,255,255,.07)}
+html[data-theme=dark] .seg button.on,html[data-theme=dark] .dseg button.on{background:#505054;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+html[data-theme=dark] .kseg button.on{background:#505054}
+html[data-theme=dark] header{background:rgba(28,28,30,.82)}
+html[data-theme=dark][data-accent=purple] header{background:rgba(25,24,31,.84)}
+html[data-theme=dark][data-accent=green] header{background:rgba(22,29,25,.84)}
+html[data-theme=dark] header button.ghost:hover{background:rgba(255,255,255,.10);color:var(--text)}
+html[data-theme=dark] header button.primary{background:var(--accent);color:#fff}
+html[data-theme=dark] .badge{background:rgba(255,255,255,.10)}
+html[data-theme=dark] .badge.ac{background:rgba(var(--accent-rgb),.22);color:var(--accent-hi)}
+html[data-theme=dark] .badge.warn{background:rgba(255,159,10,.20);color:#ffb340}
+html[data-theme=dark] .badge.ok{background:rgba(76,217,100,.18);color:#5fdc78}
+html[data-theme=dark] .clocks>div,html[data-theme=dark] .stat div,html[data-theme=dark] .body>div,html[data-theme=dark] .principles div{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .clocks .main{background:rgba(var(--accent-rgb),.14)}
+html[data-theme=dark] .modal{background:rgba(0,0,0,.5)}
+html[data-theme=dark] .modal .box{background:#2c2c2e;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme=dark] .pc.on{background:linear-gradient(145deg,rgba(var(--accent-rgb),.14),var(--panel) 55%)}
+html[data-theme=dark] .wd-h .sat{color:#6ab0ff}
+/* 몰입(Think Hard) 웹판 — 휴대폰 배치 (2026-10-08, tools/build_web.py 가 apps/think.html 의 스타일 끝에 넣는다 — 이 설명에 스타일 닫는 태그 글자를 쓰면 화면이 깨진다).
+   큰 화면은 2560×1440 무대를 줄여 보여 준다 → 폭 820px 이하에서는 무대를 풀고 화면 폭으로 다시 쌓는다 (영어스승과 같은 방식 — 무대 · 대기실 · 기록 · 리듬 플래너 모두 그대로). */
+#qhdBtn,#miniBtn,header #keybar kbd{display:none}   /* 창 크기 고정 · 작은 창은 PC 프로그램에서만 */
+@media (max-width: 820px){
+  html,body{height:auto;overflow:auto;background:var(--bg)}
+  #stage{position:static;width:100%!important;height:auto!important;min-height:100vh;min-height:100dvh;transform:none!important;overflow:visible}
+  header{height:auto;flex-wrap:wrap;gap:6px 8px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+  header .kbd,nav .kbd{display:none}
+  header #keybar{display:none}
+  #saved{display:none}
+  #nav{order:9;width:100%;overflow-x:auto;scrollbar-width:none}
+  #nav::-webkit-scrollbar{display:none}
+  #nav button{flex-shrink:0;white-space:nowrap}
+  main{position:static;overflow:visible;padding:12px 14px calc(32px + env(safe-area-inset-bottom))}
+  .sv,.room,.rec,.sv-row{display:flex;flex-direction:column;gap:12px}
+  .sv>*,.room>*,.rec>*,.sv-row>*{min-height:0}
+  .card.hero{padding:var(--s4)}
+  .h-top{flex-wrap:wrap;row-gap:6px}
+  .h-top .sp{flex-basis:100%;height:0}   /* 무대 이름 · 꼬리표 다음 줄에 버튼들 */
+  .h-top button{white-space:nowrap}
+  .fp{font-size:30px;margin:16px 0 8px}
+  .clocks{flex-wrap:wrap;gap:8px}
+  .clocks>div{min-width:0;flex:1 1 40%;padding:var(--s3) var(--s4)}
+  .clocks>div.main{flex-basis:100%}
+  .clocks>div.main b{font-size:var(--t3)}
+  .actions{flex-wrap:wrap}
+  .actions button.xl{flex:1 1 auto}
+  .principles,.ease{grid-template-columns:1fr}
+  .pgrid{grid-template-columns:1fr}
+  .wk{grid-template-columns:repeat(7,minmax(156px,1fr));overflow-x:auto;padding-bottom:6px}   /* 이레를 옆으로 넘겨 본다 */
+  .grid2,.ab-grid{grid-template-columns:1fr}
+  .modal .box,.modal .box.wide{width:auto;max-width:94%;padding:18px}
+  #slow .sl-fp{font-size:28px;padding:0 16px}
+  select[style*="min-width"]{min-width:0!important;max-width:100%}
+  input,select,textarea{font-size:16px}   /* 아이폰이 입력할 때 확대하지 않게 */
+}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+</head>
+<body>
+<div id="stage">
+<header>
+  <div class="brand" onclick="setView('stage')" title="무대"><span class="logo">🧠</span><h1>Think Hard</h1></div>
+  <nav class="seg" id="nav">
+    <button data-v="stage" onclick="setView('stage')">무대<kbd class="kbd">1</kbd></button>
+    <button data-v="room" onclick="setView('room')">문제 대기실<kbd class="kbd">2</kbd></button>
+    <button data-v="rec" onclick="setView('rec')">기록<kbd class="kbd">3</kbd></button>
+    <button data-v="plan" onclick="setView('plan')">리듬 플래너<kbd class="kbd">4</kbd></button>
+  </nav>
+  <button class="primary pill" onclick="openProblem()" title="새 문제를 대기실에 등록 (N)">＋ 새 문제<kbd class="kbd">N</kbd></button>
+  <button class="tpill" id="tpill" hidden onclick="toggleThink()" title="생각 중 — 누르면 멈춤 (Space)"></button>
+  <div class="sp" id="keybar"></div>
+  <span id="saved">✓ 저장됨</span>
+  <button class="ghost" onclick="openSlow()" title="어두운 화면에 FP 하나만 — 화면만 바뀌고 몰입 시간은 그대로 (F, 다시 F 또는 Esc 로 돌아오기)">☾ 전체화면<kbd class="kbd">F</kbd></button>
+  <button class="ghost" id="miniBtn" onclick="toggleMini()" title="이 창을 FP 한 줄짜리 작은 창으로 줄여 다른 창 위에 띄우기 (M) — 다시 누르면 원래대로">⧉ 작은 창<kbd class="kbd">M</kbd></button>
+  <button class="ghost" id="themeBtn" onclick="toggleTheme()" title="다크 모드 / 라이트 모드 (L)"></button>
+  <button class="ghost" id="qhdBtn" onclick="winMode('qhd')" title="창을 QHD(2560×1440) 크기로">QHD</button>
+  <button class="ghost" onclick="openSettings()" title="설정 · 백업">설정</button>
+  <button class="ghost" onclick="openAbout()" title="Think Hard 원리 · 단축키">ⓘ</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+</header>
+<main id="main"></main>
+</div>
+<div id="compact">
+  <div class="c-top"><span class="c-dot" id="cDot"></span><b>무대</b><span id="cState"></span><span class="sp"></span><span class="c-num" id="cClock"></span><button class="c-x" onclick="toggleMini()" title="원래 창으로 (M)">⤢ 큰 창</button></div>
+  <div class="c-row" id="cMain"><div class="c-fp" id="cFp"></div><button id="cTg" onclick="toggleThink()" title="몰입 시작 / 일시정지 (Space)">▶</button><button class="primary" onclick="cReturn()" title="잡념에서 무대로 복귀 (R)">↩ 복귀</button></div>
+  <div class="c-row" id="cPark" hidden><input id="cPin" placeholder="방금 잡념 한 줄 (선택) — Enter" onkeydown="if(event.key==='Enter'){cPark()}else if(event.key==='Escape'){cPark(true)}"><button class="primary" onclick="cPark()">돌아가기</button></div>
+</div>
+
+<script>
+/* ============================================================
+   Think Hard — 황농문 교수의 몰입(Think Hard · 슬로싱킹)을 실천하게 돕는 '의식의 무대 관리자'
+   막아야 할 세 가지: ① 무대에 엉뚱한 게 올라감  ② 생각의 연속성이 끊김  ③ 진전이 없을 때 포기함
+   ============================================================ */
+const KEY = 'thinkHard.v1';
+const SWAP_COOLDOWN_H = 24;        // 무대에 올린 뒤 이 시간이 지나야 다른 문제로 바꿀 수 있다 (해결은 언제든)
+const SWAP_REASON_MIN = 10;        // 교체 사유 최소 글자 수
+const UNDO_STAGE_MIN = 10;         // 무대에 올린 직후 이 시간 안에는 실수로 보고 되돌릴 수 있다
+const STRONG_DAY_MIN = 360;        // 한 문제로 하루 이만큼(분) 생각하면 '강한 몰입일'
+const SLOW_OK_MIN = 20;            // 슬로싱킹 1회로 인정하는 최소 시간(분)
+const IDLE_WAKE_MIN = 5;           // 슬로싱킹 중 이만큼(분) 움직임이 없다가 움직이면 '깼다'고 보고 기록 창을 띄운다
+const COOL_CAP_MIN = 120;          // 수면 부족한 날 허용하는 생각 시간(분) — 약한 몰입까지만
+const STAGE = {w: 2560, h: 1440};
+/* 슬로싱킹의 핵심: 세게가 아니라 편안하게, 오래. 생각을 멈출 때 '얼마나 힘을 줬나'를 남긴다 */
+const EASE = {1: ['편안했다', '몸은 편하고 생각만 이어졌다'], 2: ['보통', '조금 애썼다'], 3: ['힘을 줬다', '머리가 무겁거나 아프다']};
+const EASE_ASK_MIN = 3;            // 이보다 짧은 세션은 묻지 않는다
+const LESSON_CYCLE_S = 40;         // 슬로싱킹 배우기 안내가 한 장씩 머무는 시간(초)
+const LESSONS = [                 // 약한 몰입 1단계(슬로싱킹 배우기) — 처음 세 번의 슬로싱킹에서 하나씩 보여 준다
+  ['자세 — 힘을 빼는 것부터', '의자에 등을 기대거나 누워도 됩니다. 어깨 · 턱 · 이마의 힘을 뺍니다.<br>생각을 세게 밀어붙이지 말고, FP를 천천히 되뇌며 머릿속에 띄워 두기만 합니다.<br>오늘은 20분 동안 이것만 해 봅니다.'],
+  ['잡념이 오면 — 자책하지 않기', '잡념은 반드시 옵니다. 알아챈 것 자체가 잘한 것입니다.<br><b>R</b>을 누르고 FP로 천천히 돌아오세요. 몇 번이든 괜찮습니다.<br>돌아오는 횟수가 쌓일수록 무대가 단단해집니다.'],
+  ['졸음이 오면 — 자도 됩니다', '생각하다 졸리면 그대로 잠들어도 됩니다. 잠든 직후의 선잠에서 아이디어가 잘 떠오릅니다.<br>깨어나 움직이면 이 화면이 먼저 맞아 주고, 떠오른 것을 말로 남길 수 있습니다.<br>깼을 때 FP가 먼저 떠오르면 성공입니다.'],
+];
+const DIFFS = ['몇 시간', '며칠', '몇 주', '몇 달'];
+const DOMAINS = ['트레이딩', '치과', '연구', '개발', '삶', '기타'];
+const SOURCES = [['desk', '책상'], ['slow', '슬로싱킹'], ['nap', '선잠·기상'], ['walk', '산책'], ['shower', '샤워'], ['commute', '출퇴근'], ['exercise', '운동'], ['bed', '잠들기 전'], ['other', '기타']];
+const SRC = Object.fromEntries(SOURCES);
+const KINDS = {progress: '진전', idea: '아이디어', stuck: '막힘', question: '질문', solve: '해결', stage: '무대', swap: '교체'};
+const VIEWS = ['stage', 'room', 'rec', 'plan'];
+const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/* 질문 카드 — 답은 주지 않고 질문만 한다 (스스로 장기기억을 끌어내도록) */
+const QUESTIONS = {
+  stuck: [
+    '지금 막힌 지점을 한 문장으로 말하면?',
+    '이 문제에서 내가 당연하다고 가정하고 있는 것은 무엇인가?',
+    '조건 하나를 빼면 풀리는가? 그 조건은 왜 방해가 되는가?',
+    '문제를 절반 크기로 줄이면 어떤 모습인가?',
+    '가장 극단적인 경우(0 · 1 · 무한대)에는 어떻게 되는가?',
+    '이미 풀렸다고 치고 거꾸로 가면, 바로 앞 단계는 무엇인가?',
+    '같은 자리를 맴돌고 있다면, 맴도는 그 생각 자체가 틀린 전제 위에 있지 않은가?',
+  ],
+  structure: [
+    '비슷한 구조를 예전에 본 적이 있나? 그때는 어떻게 풀렸나?',
+    '이 문제를 그림 한 장으로 그리면 무엇이 가운데에 오는가?',
+    '구하려는 것이 정확히 무엇인가? 미지수를 한 단어로 말하면?',
+    '주어진 것과 구할 것 사이에 빠진 고리는 무엇인가?',
+    '다른 분야(공학 · 생물 · 시장)에서는 이 문제를 무엇이라고 부를까?',
+    '이 문제를 두 개의 더 작은 질문으로 쪼갠다면?',
+    '변하지 않는 것은 무엇인가? 무엇을 바꿔도 그대로 남는가?',
+  ],
+  progress: [
+    '방금 알게 된 사실은 다음에 무엇을 가능하게 하나?',
+    '지금 아이디어가 틀렸다면 어디서 틀렸을 가능성이 가장 큰가?',
+    '이 진전을 다른 사람에게 세 문장으로 설명한다면?',
+    '이 아이디어를 가장 싸고 빠르게 시험해 볼 방법은?',
+    '이 진전이 맞다면 반드시 함께 참이어야 하는 것은?',
+  ],
+  meta: [
+    '지금의 FP 문장은 핵심을 가리키고 있나? 더 날카롭게 다듬을 수 있나?',
+    '해결되었다는 것은 정확히 어떤 상태인가? 판정 기준은?',
+    '이 문제를 풀고 싶은 진짜 이유는 무엇인가?',
+    '지난번 결정적 아이디어는 어디서 왔나? 지금 그 조건을 만들 수 있나?',
+  ],
+};
+
+let db = null, serverOK = false, NATIVE = false, view = 'stage', THEME = 'light', ACCENT = 'purple';
+let logKind = 'progress', recPid = null, recKind = 'all', weekOff = 0, qNow = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const now = () => Date.now();
+const pad = n => String(n).padStart(2, '0');
+const dkey = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const today = () => dkey(now());
+const dayStart = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
+const dayDiff = (a, b) => Math.round((dayStart(b) - dayStart(a)) / 86400000);
+const addDays = (k, n) => { const [y, m, d] = k.split('-').map(Number); return dkey(new Date(y, m - 1, d + n).getTime()); };
+const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const md = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+function fmtDur(ms){
+  const m = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
+  if (d) return `${d}일 ${h}시간`;
+  if (h) return `${h}시간 ${mm}분`;
+  return `${mm}분`;
+}
+/* 슬로싱킹: 초가 흘러가는 시계는 사람을 서두르게 만든다 — 시간은 분 단위로만 조용히 보여 준다 */
+function fmtClock(ms){
+  const m = Math.floor(Math.max(0, ms) / 60000); if (m < 1) return '방금 시작';
+  const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
+  return (d ? `${d}일 ` : '') + (h ? `${h}시간 ` : '') + `${mm}분`;
+}
+
+/* ---------- 데이터 ---------- */
+function normalize(d){
+  d = d && typeof d === 'object' ? d : {};
+  const o = {
+    version: 1, problems: [], stage: null, active: null, sessions: [], returns: [], parking: [], logs: [], body: {}, plan: [],
+    settings: {lockMin: 60, sleepMin: 6, exGoal: 60}, ...d,
+  };
+  o.settings = {lockMin: 60, sleepMin: 6, exGoal: 60, ...(d.settings || {})};
+  for (const k of ['problems', 'sessions', 'returns', 'parking', 'logs', 'plan']) if (!Array.isArray(o[k])) o[k] = [];
+  if (!o.body || typeof o.body !== 'object') o.body = {};
+  if (o.stage && !o.problems.some(p => p.id === o.stage.pid)) o.stage = null;
+  return o;
+}
+let saveT = null, pushing = null, dirty = false;
+function save(){
+  clearTimeout(saveT);
+  if (serverOK) saveT = setTimeout(push, 400);
+  else { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){} flashSaved(); }
+}
+function push(){
+  clearTimeout(saveT); saveT = null;
+  if (pushing){ dirty = true; return pushing; }
+  pushing = (async () => {
+    try {
+      do {
+        dirty = false;
+        const r = await fetch('api/data', {method: 'POST', body: JSON.stringify(db)});
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+      } while (dirty);
+      flashSaved();
+    } catch(e){ toast('드라이브에 저장하지 못했습니다 — 인터넷 연결을 확인한 뒤 한 번 더 고쳐 주세요.'); }
+    pushing = null;
+  })();
+  return pushing;
+}
+function flashSaved(){ const s = $('saved'); if (!s) return; s.style.opacity = 1; clearTimeout(flashSaved.t); flashSaved.t = setTimeout(() => s.style.opacity = 0, 1400); }
+window.addEventListener('beforeunload', () => { if (serverOK && (saveT || dirty)) push(); });
+
+const P = id => db.problems.find(p => p.id === id);
+const stageP = () => db.stage ? P(db.stage.pid) : null;
+const solvedList = () => db.problems.filter(p => p.status === 'solved');
+function allSessions(){ const a = db.sessions.slice(); if (db.active) a.push({...db.active, end: now()}); return a; }
+function thinkMs(pid){ return allSessions().filter(s => s.pid === pid).reduce((t, s) => t + (s.end - s.start), 0); }
+function splitByDay(a, b, fn){   // 자정을 넘는 세션은 날짜별로 나눈다
+  let t = a;
+  while (t < b){ const k = dkey(t), e = Math.min(b, dayStart(addDays(k, 1))); fn(k, e - t); t = e; }
+}
+function dayMs(k, pid){
+  let ms = 0;
+  for (const s of allSessions()) if (!pid || s.pid === pid) splitByDay(s.start, s.end, (d, x) => { if (d === k) ms += x; });
+  return ms;
+}
+function minutesByProblemDay(){
+  const out = {};
+  for (const s of allSessions()) splitByDay(s.start, s.end, (d, x) => { const m = out[s.pid] || (out[s.pid] = {}); m[d] = (m[d] || 0) + x / 60000; });
+  return out;
+}
+function bestStreak(){   // 같은 문제로 '강한 몰입일'이 며칠 연속됐는가 (지금까지 최장)
+  let best = 0;
+  const m = minutesByProblemDay();
+  for (const pid in m){
+    let run = 0, prev = null;
+    for (const d of Object.keys(m[pid]).filter(d => m[pid][d] >= STRONG_DAY_MIN).sort()){
+      run = prev && dayDiff(prev, d) === 1 ? run + 1 : 1; prev = d; best = Math.max(best, run);
+    }
+  }
+  return best;
+}
+/* 몰입 지속: 세션 시작(또는 직전 복귀)부터 다음 잡념까지 걸린 시간 — 길어질수록 무대가 안정된 것 */
+function focusStats(k){
+  const ss = allSessions().filter(s => { let hit = false; splitByDay(s.start, s.end, d => { if (d === k) hit = true; }); return hit; });
+  const rets = db.returns.filter(r => dkey(r.ts) === k);
+  const gaps = [];
+  for (const s of ss){
+    const pts = [s.start, ...rets.filter(r => r.ts >= s.start && r.ts <= s.end).map(r => r.ts).sort((a, b) => a - b)];
+    for (let i = 1; i < pts.length; i++) gaps.push(pts[i] - pts[i - 1]);
+  }
+  const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
+  return {sessions: ss.length, returns: rets.length, avg, ms: dayMs(k), ease: easeMs(k)};
+}
+/* 하루 생각 시간을 '얼마나 힘을 줬나'로 나눈다: 1 편안 · 2 보통 · 3 힘줌 · 0 기록 없음 */
+function easeMs(k){
+  const o = {0: 0, 1: 0, 2: 0, 3: 0};
+  for (const s of allSessions()) splitByDay(s.start, s.end, (d, x) => { if (d === k) o[s.ease || 0] += x; });
+  return o;
+}
+/* 최근 기록한 세 번 중 두 번 이상 힘을 줬다면 — 속도를 늦추라고 알려 준다 */
+function strainRecent(){
+  const r = db.sessions.filter(s => s.ease).sort((a, b) => b.end - a.end).slice(0, 3);
+  return r.length >= 2 && r.filter(s => s.ease === 3).length >= 2;
+}
+const slowLearned = () => db.sessions.filter(s => s.kind === 'slow' && s.end - s.start >= SLOW_OK_MIN * 60000 && s.ease !== 3).length;
+
+/* ---------- 단계 (2024 확장판: 약한 몰입 3단계 · 강한 몰입 3단계, 기준은 생각의 연속성) ---------- */
+const H10 = 600 * 60000;
+function streakProg(n){ const b = bestStreak(); return {done: b >= n, txt: n === 1 ? (b ? '달성' : `오늘 ${fmtDur(todayStageMs())} / 6시간`) : `최장 ${b}일 / ${n}일`, r: n === 1 ? (b ? 1 : Math.min(1, todayStageMs() / (STRONG_DAY_MIN * 60000))) : Math.min(1, b / n)}; }
+function todayStageMs(){ const p = stageP(); return p ? dayMs(today(), p.id) : 0; }
+const LEVELS = [
+  {g: '약한 몰입', n: '1단계 · 슬로싱킹 배우기', goal: `안내를 따라 ${SLOW_OK_MIN}분 이상, 힘을 빼고 3회 (F)`, maxDiff: 0,
+   prog(){ const n = slowLearned(); return {done: n >= 3, txt: n >= 3 ? '달성' : `${n} / 3회 · 다음: ${LESSONS[n][0].split(' — ')[0]}`, r: Math.min(1, n / 3)}; }},
+  {g: '약한 몰입', n: '2단계 · 10분~10시간 도전', goal: '문제 하나를 해설 없이 스스로 해결', maxDiff: 0,
+   prog(){ const n = solvedList().filter(p => thinkMs(p.id) >= 10 * 60000).length; return {done: n >= 1, txt: n ? '달성' : '해결 0개', r: n ? 1 : 0}; }},
+  {g: '약한 몰입', n: '3단계 · 10시간 이상 도전', goal: '10시간 이상 생각한 문제를 해결', maxDiff: 1,
+   prog(){ const best = Math.max(0, ...solvedList().map(p => thinkMs(p.id))), sp = stageP(), cur = sp ? thinkMs(sp.id) : 0;
+     return {done: best >= H10, txt: best >= H10 ? '달성' : `${fmtDur(cur)} / 10시간`, r: Math.min(1, Math.max(best, cur) / H10)}; }},
+  {g: '강한 몰입', n: '1단계 · 하루 이상', goal: '한 문제로 6시간 이상 생각한 날 1일', maxDiff: 1, prog: () => streakProg(1)},
+  {g: '강한 몰입', n: '2단계 · 일주일 이상', goal: '같은 문제로 강한 몰입일 7일 연속', maxDiff: 2, prog: () => streakProg(7)},
+  {g: '강한 몰입', n: '3단계 · 한 달 이상', goal: '같은 문제로 강한 몰입일 30일 연속', maxDiff: 3, prog: () => streakProg(30)},
+];
+function levelState(){
+  const st = LEVELS.map(l => l.prog());
+  let cur = st.findIndex(s => !s.done); if (cur < 0) cur = LEVELS.length;
+  return {st, cur};
+}
+const allowedDiff = cur => cur >= LEVELS.length ? 3 : LEVELS[cur].maxDiff;
+const levelName = cur => cur >= LEVELS.length ? '모든 단계 달성' : `${LEVELS[cur].g} ${LEVELS[cur].n.split(' · ')[0]}`;
+
+/* ---------- 안전장치: 잠이 부족하면 강한 몰입을 막는다 ---------- */
+function coolToday(){ const b = db.body[today()]; return !!(b && b.sleep != null && b.sleep < db.settings.sleepMin); }
+
+/* ---------- 생각 세션 ---------- */
+/* 몰입 한 번(run) = Space 로 시작해서 Space 로 일시정지할 때까지. 그 사이 전체화면(F)을 오가면
+   기록은 책상(desk) · 슬로싱킹(slow) 조각으로 나뉘지만 같은 run 으로 묶인다 */
+function startSession(kind, run){
+  const p = stageP();
+  if (!p){ toast('무대에 올린 문제가 없습니다. 대기실에서 하나를 올리세요.', '대기실', () => setView('room')); return false; }
+  if (coolToday() && dayMs(today()) >= COOL_CAP_MIN * 60000){ coolBlock(); return false; }
+  if (db.active) stopSession();
+  db.active = {id: uid(), pid: p.id, kind, start: now(), beat: now(), run: run || uid()};
+  save(); return true;
+}
+function stopSession(){
+  const a = db.active; if (!a) return null;
+  db.active = null;
+  const s = {id: a.id, pid: a.pid, kind: a.kind, start: a.start, end: now(), run: a.run};
+  if (s.end - s.start >= 30000) db.sessions.push(s);
+  save(); return s;
+}
+/* 지금 몰입(run)의 전체 시간 — 전체화면을 오가며 조각이 나뉘어도 처음 시작부터 이어서 센다 */
+function runMs(){
+  const a = db.active; if (!a) return 0;
+  return db.sessions.filter(s => a.run && s.run === a.run).reduce((t, s) => t + (s.end - s.start), 0) + (now() - a.start);
+}
+function switchKind(kind){   // 몰입 중에 전체화면을 켜고 끌 때: 시간은 끊지 않고 종류만 바꾼다
+  const a = db.active; if (!a || a.kind === kind) return;
+  const run = a.run; stopSession(); startSession(kind, run);
+}
+/* Space · [▶ 몰입 시작] 버튼: 몰입 시작 ↔ 일시정지 (팝업 없이 바로) */
+function toggleThink(){
+  if (db.active){
+    const s = stopSession(); render();
+    const m = s ? Math.round((s.end - s.start) / 60000) : 0;
+    askEase(s, s && s.kind === 'slow' ? (m >= SLOW_OK_MIN ? `슬로싱킹 ${m}분 — 1회로 인정됩니다 ✓` : `슬로싱킹 ${Math.max(1, m)}분 (${SLOW_OK_MIN}분부터 1회로 인정)`) : '');
+    return;
+  }
+  if (startSession(slowOn ? 'slow' : 'desk')) render();
+}
+
+/* ---------- 일시정지할 때: 얼마나 힘을 줬나 ---------- */
+const runOf = s => db.sessions.filter(x => s && (x === s || (s.run && x.run === s.run)));
+function askEase(s, head){
+  const rs = runOf(s), ms = rs.reduce((t, x) => t + (x.end - x.start), 0);
+  if (!s || s.kind === 'scrap' || !rs.length || ms < EASE_ASK_MIN * 60000 || COMPACT){ if (head) toast(head); return; }
+  openModal(`<div id="easeBox"><h3>${head ? esc(head) : `${fmtClock(ms)} 몰입했습니다`}</h3>
+    <p class="tip" style="margin-top:0">슬로싱킹은 세게가 아니라 <b>편안하게, 오래</b>입니다. 방금 생각은 어땠나요?</p>
+    <div class="ease">${[1, 2, 3].map(n => `<button class="e${n}" onclick="setEase('${rs[rs.length - 1].id}',${n})"><b>${EASE[n][0]}</b><span>${EASE[n][1]}</span><kbd class="kbd">${n}</kbd></button>`).join('')}</div>
+    <div class="foot"><button onclick="closeModal()">건너뛰기 <kbd class="kbd">Esc</kbd></button></div></div>`);
+  $('easeBox').dataset.sid = rs[rs.length - 1].id;
+}
+function setEase(id, n){
+  const s = db.sessions.find(x => x.id === id); if (!s) return;
+  runOf(s).forEach(x => x.ease = n); closeModal(); save(); render();
+  if (n === 3) toast(strainRecent() ? '최근 힘을 준 생각이 많습니다. 다음엔 등을 기대고, 속도를 늦춰 보세요.' : '다음엔 조금 더 천천히. 힘을 빼야 오래 갑니다.');
+  else if (n === 1) toast('좋습니다. 그 편안함 그대로 — 그게 슬로싱킹입니다.');
+}
+function recoverActive(){   // 프로그램이 꺼져 있던 동안은 생각 시간으로 치지 않는다
+  const a = db.active;
+  if (a && now() - (a.beat || a.start) > 3 * 60000){
+    db.active = null;
+    if ((a.beat || a.start) - a.start >= 30000) db.sessions.push({id: a.id, pid: a.pid, kind: a.kind, start: a.start, end: a.beat || a.start, run: a.run});
+    save();
+  }
+}
+function coolBlock(){
+  openModal(`<h3>오늘은 회복하는 날</h3>
+    <p class="tip">어젯밤 수면이 <b>${db.body[today()].sleep}시간</b>으로 기준(${db.settings.sleepMin}시간)보다 적습니다.<br>
+    수면이 부족한 날은 슬로싱킹과 강한 몰입을 쉬고, 생각은 <b>하루 ${COOL_CAP_MIN / 60}시간</b>까지만 합니다. 통제되지 않은 몰입은 위험합니다.<br>
+    문제는 무대에 그대로 있습니다. 오늘 밤 충분히 자면 내일 다시 이어집니다.</p>
+    <div class="foot"><button class="primary" onclick="closeModal()">알겠습니다</button></div>`);
+}
+
+/* ---------- 잡념 복귀 ---------- */
+function recordReturn(text, quiet){
+  const p = stageP(); if (!p) return false;
+  if (!db.active && !startSession(slowOn ? 'slow' : 'desk')) return false;
+  db.returns.push({ts: now(), pid: p.id, sid: db.active.id});
+  if (text && text.trim()) db.parking.unshift({id: uid(), ts: now(), pid: p.id, text: text.trim(), done: false});
+  save();
+  if (!quiet){ const f = document.querySelector('.fp'); if (f){ f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); } }
+  return true;
+}
+function doReturn(){
+  const p = stageP();
+  if (!p){ toast('무대에 올린 문제가 없습니다.'); return; }
+  if (!recordReturn('', true)) return;
+  render();
+  openModal(`<h3>↩ 무대로 돌아왔습니다</h3>
+    <div class="mfp">${esc(p.fp)}</div>
+    <div class="fld"><span>방금 끼어든 잡념 (선택) — 잡념 보관함에 적어 두고 잊어버립니다</span>
+      <input id="m-park" placeholder="예: 내일 회의 자료 · 새 앱 아이디어 …" onkeydown="if(event.key==='Enter'){parkFromModal()}"></div>
+    <div class="foot"><button onclick="closeModal()">그냥 돌아가기 <kbd class="kbd">Esc</kbd></button><button class="primary" onclick="parkFromModal()">적어 두고 돌아가기 <kbd class="kbd">Enter</kbd></button></div>`);
+  setTimeout(() => $('m-park')?.focus(), 30);
+}
+function parkFromModal(){
+  const t = $('m-park').value.trim(), p = stageP();
+  if (t) db.parking.unshift({id: uid(), ts: now(), pid: p?.id, text: t, done: false});
+  closeModal(); save(); render();
+}
+
+/* ---------- 작은 창 모드: 이 창 자체가 FP 한 줄 창으로 줄어 다른 창 위에 뜬다 ---------- */
+let COMPACT = false;
+async function toggleMini(){
+  if (slowOn) return;
+  closeModal();
+  COMPACT = !COMPACT;
+  document.documentElement.classList.toggle('compact', COMPACT);
+  $('cPark').hidden = true; $('cMain').hidden = false;
+  if (COMPACT) drawCompact(); else { fit(); render(); }
+  if (NATIVE){
+    try { const r = await (await fetch('api/compact', {method: 'POST', body: JSON.stringify({on: COMPACT})})).json(); if (!r.ok) toast(r.error); } catch(e){}
+    if (!COMPACT) setTimeout(fit, 300);   // 창 크기가 바뀐 뒤 화면 비율을 다시 맞춘다
+  }
+}
+function drawCompact(){
+  const p = stageP(), a = db.active, f = $('cFp');
+  if (!p){ f.textContent = '무대가 비어 있습니다 — ⤢ 큰 창에서 문제를 올리세요'; f.classList.add('empty'); }
+  else { if (f.textContent !== p.fp) f.textContent = p.fp; f.title = p.fp; f.classList.remove('empty'); }
+  $('cDot').classList.toggle('on', !!a);
+  $('cTg').textContent = a ? '⏸' : '▶';
+  if (!cMsgT) $('cState').textContent = a ? (a.kind === 'slow' ? '슬로싱킹' : '생각 중') : p ? '무대에 오른 지' : '';
+  $('cClock').textContent = a ? fmtClock(runMs()) : db.stage ? fmtClock(now() - db.stage.since) : '';
+}
+let cMsgT = null;
+function cMsg(t){ $('cState').textContent = t; clearTimeout(cMsgT); cMsgT = setTimeout(() => { cMsgT = null; drawCompact(); }, 4000); }
+function cReturn(){
+  if (!stageP()){ cMsg('무대에 올린 문제가 없습니다'); return; }
+  if (!recordReturn('', true)) return;
+  const f = $('cFp'); f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash');
+  $('cMain').hidden = true; $('cPark').hidden = false; $('cPin').value = ''; $('cPin').focus();
+  drawCompact();
+}
+function cPark(skip){
+  const t = skip ? '' : $('cPin').value.trim();
+  if (t){ db.parking.unshift({id: uid(), ts: now(), pid: db.stage?.pid, text: t, done: false}); save(); cMsg('잡념 보관함에 적어 두었습니다'); }
+  $('cPark').hidden = true; $('cMain').hidden = false;
+  $('cPin').blur();
+}
+async function winMode(a){
+  if (!NATIVE){ if (a === 'fullscreen'){ if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); } return; }
+  try { await fetch('api/window', {method: 'POST', body: JSON.stringify({action: a})}); } catch(e){}
+}
+
+/* ---------- 화면 맞추기 · 테마 (교정차트와 같은 방식) ---------- */
+function fit(){
+  if (COMPACT) return;
+  const s = Math.min(innerWidth / STAGE.w, innerHeight / STAGE.h);
+  $('stage').style.transform = `translate(${(innerWidth - STAGE.w * s) / 2}px,${(innerHeight - STAGE.h * s) / 2}px) scale(${s})`;
+}
+window.addEventListener('resize', fit);
+const sysDark = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+function applyTheme(t){
+  THEME = ['light', 'dark', 'auto'].includes(t) ? t : 'light';
+  document.documentElement.dataset.theme = THEME === 'dark' || (THEME === 'auto' && sysDark.matches) ? 'dark' : 'light';
+  $('themeBtn').innerHTML = (isDark() ? '☀ 라이트' : '☾ 다크') + '<kbd class="kbd">L</kbd>';
+}
+sysDark.addEventListener('change', () => { if (THEME === 'auto') applyTheme('auto'); });
+function toggleTheme(){
+  const n = isDark() ? 'light' : 'dark'; applyTheme(n);
+  if (serverOK) fetch('api/config', {method: 'POST', body: JSON.stringify({theme: n})}).catch(() => {});
+}
+function applyAccent(a){ ACCENT = ['blue', 'purple', 'green'].includes(a) ? a : 'purple'; document.documentElement.dataset.accent = ACCENT; }
+function setAccent(a){
+  applyAccent(a);
+  if (serverOK) fetch('api/config', {method: 'POST', body: JSON.stringify({accent: a})}).catch(() => {});
+  if ($('modal')) openSettings();
+}
+
+/* ---------- 그리기 ---------- */
+function setView(v){ view = v; render(); }
+function render(){
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+  const m = $('main');
+  m.innerHTML = view === 'room' ? roomView() : view === 'rec' ? recView() : view === 'plan' ? planView() : stageView();
+  renderKeybar(); tick();
+}
+function renderKeybar(){
+  const K = {
+    stage: [['Space', '몰입 시작·일시정지'], ['F', '전체화면'], ['R','잡념 복귀'], ['P', '진전 기록']],
+    room: [['N', '새 문제'], ['1', '무대로'], ['R','잡념 복귀']],
+    rec: [['1', '무대로'], ['P', '진전 기록']],
+    plan: [['← →', '주 이동'], ['1', '무대로']],
+  }[view];
+  $('keybar').innerHTML = K.map(([k, t]) => `<span class="kh"><kbd class="kbd">${k}</kbd>${t}</span>`).join('') + `<span class="kh"><kbd class="kbd">?</kbd>단축키</span>`;
+}
+/* 1초마다: 시계 숫자만 바꾼다 (화면 전체를 다시 그리지 않는다) */
+let beatN = 0;
+function tick(){
+  const p = stageP(), a = db.active;
+  const tp = $('tpill');
+  if (a){ tp.hidden = false; tp.innerHTML = `<i></i>${a.kind === 'slow' ? '몰입 중 · 전체화면' : '몰입 중'} · ${fmtClock(runMs())}`; }
+  else tp.hidden = true;
+  document.querySelectorAll('[data-live]').forEach(el => {
+    const k = el.dataset.live;
+    if (k === 'stage' && db.stage) el.textContent = fmtClock(now() - db.stage.since);
+    else if (k === 'think' && p) el.textContent = fmtDur(thinkMs(p.id));
+    else if (k === 'today') el.textContent = fmtDur(dayMs(today()));
+    else if (k === 'sess') el.textContent = a ? fmtClock(runMs()) : '—';
+  });
+  if (a && ++beatN % 30 === 0){   // 30초마다 '살아 있음' 표시 (꺼졌다 켜졌을 때 생각 시간이 부풀지 않게)
+    a.beat = now(); save();
+    if (coolToday() && a.kind !== 'slow' && dayMs(today()) >= COOL_CAP_MIN * 60000){ stopSession(); render(); coolBlock(); }
+  }
+  if (slowOn){ slowTick(); slowStateTick(); }
+  if (COMPACT) drawCompact();
+}
+
+/* ----- 무대 ----- */
+function stageView(){
+  const p = stageP();
+  return `<div class="sv">
+    <div class="sv-l">${p ? heroHTML(p) : heroEmpty()}
+      <div class="sv-row">${todayCard()}${chartCard(14)}${p ? progressCard(p) : tipCard()}</div>
+    </div>
+    <div class="sv-r">${ladderCard()}${bodyCard()}${parkingCard()}${p ? vaultCard(p) : ''}</div>
+  </div>`;
+}
+function heroHTML(p){
+  const a = db.active, since = db.stage.since, left = SWAP_COOLDOWN_H * 3600000 - (now() - since);
+  const fs = focusStats(today()), len = p.fp.length;
+  return `<section class="card hero ${a ? 'on' : ''}">
+    <div class="h-top">${a ? '<span class="hb-dot" title="천천히 — 이 점의 숨에 맞춰"></span>' : ''}<span class="eyebrow">의식의 무대 · FP(Focus Point)</span><span class="badge ac">${esc(p.domain)}</span><span class="badge">${DIFFS[p.diff]}짜리</span><span class="sp"></span>
+      <button class="sm" onclick="openProblem('${p.id}')">문장 다듬기</button>
+      <button class="sm" onclick="openSolve()">✓ 해결됨</button>
+      <button class="sm" onclick="openSwap()" title="무대 교체는 사유를 써야 하고, 올린 뒤 ${SWAP_COOLDOWN_H}시간이 지나야 합니다">${left > 0 ? `교체 잠김 · ${fmtDur(left)} 남음` : '무대 교체…'}</button></div>
+    <div class="fp ${len > 90 ? 'l3' : len > 50 ? 'l2' : ''}">${esc(p.fp)}</div>
+    <div class="h-sub">문제: ${esc(p.title)}</div>
+    ${a ? '<div class="h-cue">몸은 편하게 · 생각의 끈만 놓지 않기 · 천천히</div>' : ''}
+    <div class="clocks">
+      <div class="main"><b data-live="stage">${fmtClock(now() - since)}</b><span>무대에 오른 뒤 연속 시간</span></div>
+      <div><b data-live="think">${fmtDur(thinkMs(p.id))}</b><span>이 문제를 생각한 시간</span></div>
+      <div><b data-live="today">${fmtDur(fs.ms)}</b><span>오늘 생각한 시간</span></div>
+      <div><b>${fmtDur(fs.ease[1])}</b><span>오늘 편안하게 생각한 시간</span></div>
+    </div>
+    <div class="actions">
+      <button class="xl ${a ? '' : 'primary'}" onclick="toggleThink()">${a ? `⏸ 일시정지 · <span data-live="sess">${fmtClock(runMs())}</span>` : '▶ 몰입 시작'}<kbd class="kbd">Space</kbd></button>
+      <button class="xl" onclick="doReturn()">↩ 잡념에서 복귀<kbd class="kbd">R</kbd></button>
+      <button class="xl" onclick="openLog()">＋ 진전 기록<kbd class="kbd">P</kbd></button>
+      <button class="xl" onclick="openScrap()" title="출퇴근·샤워·산책 중에 생각한 시간을 나중에 기록">⏱ 자투리 생각 기록</button>
+    </div>
+    ${strainRecent() && !coolToday() ? `<div class="calm">최근 생각에 힘이 많이 들어갔습니다. 세게 밀어붙이지 말고 등을 기대고 천천히 — 힘을 빼야 오래 갑니다.</div>` : ''}
+    ${coolToday() ? `<div class="cool">⚠ 수면 ${db.body[today()].sleep}시간 — 오늘은 강한 몰입 쿨다운입니다. 슬로싱킹은 쉬고, 생각은 ${COOL_CAP_MIN / 60}시간까지만.</div>` : ''}
+  </section>`;
+}
+function heroEmpty(){
+  const wait = db.problems.filter(p => p.status === 'wait');
+  return `<section class="card hero hero-empty">
+    <span class="eyebrow">의식의 무대</span>
+    <div class="fp">무대가 비어 있습니다.</div>
+    <div class="h-sub">풀고 싶은 문제 하나를 올리세요. 무대에는 한 번에 하나만 올라갑니다.</div>
+    <div class="actions" style="margin-top:32px">${wait.length ? `<button class="xl primary" onclick="setView('room')">대기실에서 고르기 (${wait.length})<kbd class="kbd">2</kbd></button>` : ''}
+      <button class="xl ${wait.length ? '' : 'primary'}" onclick="openProblem()">＋ 새 문제 등록<kbd class="kbd">N</kbd></button></div>
+    <div class="principles">
+      <div><b>Work Hard → Think Hard</b>몰입은 저절로 오지 않습니다. 산만한 상태에서 의도적으로 한 문제에 생각을 모으는 일입니다.</div>
+      <div><b>진전이 없어도 계속</b>생각하는 시간에 비례해 관련된 장기기억이 떠오릅니다. 막혀 있는 시간도 일하는 시간입니다.</div>
+      <div><b>슬로싱킹 — 천천히, 끊지 말고</b>세게 생각하면 지치고, 힘을 빼면 오래 갑니다. 몸은 편하게 두고 생각의 끈만 놓지 않습니다. 졸리면 자도 됩니다. 깼을 때 그 문제가 먼저 떠오르면 됩니다.</div>
+    </div>
+  </section>`;
+}
+function todayCard(){
+  const k = today(), fs = focusStats(k), t0 = dayStart(k), D = 86400000, x = t => ((t - t0) / D * 100).toFixed(2) + '%';
+  const ss = allSessions().filter(s => s.end > t0 && s.start < t0 + D);
+  const bars = ss.map(s => { const a = Math.max(s.start, t0), b = Math.min(s.end, t0 + D); return `<i class="${s.kind}" style="left:${x(a)};width:max(2px,${((b - a) / D * 100).toFixed(2)}%)"></i>`; }).join('');
+  const ticks = db.returns.filter(r => r.ts >= t0 && r.ts < t0 + D).map(r => `<u style="left:${x(r.ts)}" title="${hm(r.ts)} 복귀"></u>`).join('');
+  return `<div class="card cflex"><h3>오늘의 흐름<span class="sp"></span><small>${md(now())} ${DAYS[new Date().getDay()]}</small></h3>
+    <div class="tl">${bars}${ticks}<s style="left:${x(now())}"></s></div>
+    <div class="tlx"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span></div>
+    <div class="leg"><span><i style="background:rgba(var(--accent-rgb),.42)"></i>생각</span><span><i style="background:rgba(123,79,208,.5)"></i>슬로싱킹</span><span><i style="background:rgba(46,157,87,.45)"></i>자투리</span><span><i style="background:#e67700;width:3px"></i>잡념 복귀</span></div>
+    <div class="stat">
+      <div><b data-live="today">${fmtDur(fs.ms)}</b><span>생각한 시간</span></div>
+      <div><b>${fmtDur(fs.ease[1])}</b><span>편안하게 생각한 시간</span></div>
+      <div><b>${fs.returns}회</b><span>잡념 복귀</span></div>
+      <div><b>${fs.avg ? fmtDur(fs.avg) : '—'}</b><span>평균 몰입 지속</span></div>
+    </div>
+    <p class="tip" style="margin:12px 0 0">잡념이 끼어드는 건 당연합니다. 알아챈 순간 <b>R</b>을 눌러 자책 없이 돌아오세요. 몰입 지속 시간이 길어지는 것이 무대가 안정되는 신호입니다.</p>
+  </div>`;
+}
+function chartCard(n, big){
+  const days = [...Array(n)].map((_, i) => addDays(today(), i - n + 1));
+  const st = days.map(focusStats), mx = Math.max(60, ...st.map(s => s.ms / 60000));
+  return `<div class="card cflex"><h3>편안하게, 오래<span class="sp"></span><small>최근 ${n}일 · 막대 = 생각 시간 · 주황 숫자 = 평균 몰입 지속(분)</small></h3>
+    <div class="vc" style="${big ? 'height:300px' : ''}">${days.map((d, i) => { const m = st[i].ms / 60000, e = st[i].ease;
+      const seg = [1, 2, 0, 3].map(k => e[k] ? `<i class="e${k}" style="flex:${Math.max(1, Math.round(e[k] / 1000))} 1 0"></i>` : '').join('');
+      return `<div class="vcc ${d === today() ? 'hi' : ''}" title="${d} · ${fmtDur(st[i].ms)} (편안 ${fmtDur(e[1])} · 보통 ${fmtDur(e[2])} · 힘줌 ${fmtDur(e[3])}) · 복귀 ${st[i].returns}회"><em>${st[i].avg ? Math.round(st[i].avg / 60000) + '′' : ''}</em><b>${m >= 1 ? (m >= 60 ? (m / 60).toFixed(1) + 'h' : Math.round(m) + 'm') : ''}</b><div class="stk" style="height:${(m / mx * 100).toFixed(1)}%">${seg}</div><span>${n > 20 && i % 3 ? '' : md(dayStart(d))}</span></div>`; }).join('')}</div>
+    <div class="leg"><span><i class="e1"></i>편안했다</span><span><i class="e2"></i>보통</span><span><i class="e3"></i>힘을 줬다</span><span><i class="e0"></i>기록 없음</span></div>
+    <p class="tip" style="margin:8px 0 0">슬로싱킹의 목표는 세게가 아니라 <b>편안하게 오래</b>입니다. 진한 막대가 길어지고 주황 숫자가 커지면 몰입이 깊어지고 있는 것입니다.</p>
+  </div>`;
+}
+function logRow(l, showP){
+  const p = showP ? P(l.pid) : null;
+  return `<div class="lg"><span class="t">${md(l.ts)} ${hm(l.ts)}</span><span class="k"><span class="kk ${l.kind}">${KINDS[l.kind] || l.kind}</span></span>
+    <div class="x">${p ? `<span class="muted">[${esc(p.title)}]</span> ` : ''}${esc(l.text)}${l.src ? ` <span class="muted">· ${SRC[l.src] || ''}</span>` : ''}${l.voice ? `<audio controls preload="none" src="${WEB.voice(l.voice)}"></audio>` : ''}</div>
+    <button class="del" onclick="delLog('${l.id}')" title="지우기">✕</button></div>`;
+}
+function progressCard(p){
+  const ls = db.logs.filter(l => l.pid === p.id).sort((a, b) => b.ts - a.ts);
+  return `<div class="card cflex"><h3>진전 로그<span class="sp"></span><small>작은 진전도 한 줄씩 — 지루함이 자기의심으로 번지지 않게</small></h3>
+    <div class="qadd"><span class="kseg">${['progress', 'idea', 'stuck', 'question'].map(k => `<button class="${logKind === k ? 'on' : ''}" onclick="logKind='${k}';render()">${KINDS[k]}</button>`).join('')}</span>
+      <input id="qlog" placeholder="${{progress: '알게 된 것 · 좁혀진 것', idea: '떠오른 아이디어', stuck: '막힌 지점 한 문장', question: '스스로에게 던질 질문'}[logKind]}" onkeydown="if(event.key==='Enter'){quickLog()}"></div>
+    <div class="scroll">${ls.length ? ls.map(l => logRow(l)).join('') : '<div class="empty">아직 기록이 없습니다. 진전이 없다고 느껴지는 날에도 "어디까지 생각했는지"를 한 줄 남겨 두세요.</div>'}</div>
+  </div>`;
+}
+function tipCard(){
+  return `<div class="card cflex"><h3>처음이라면</h3><div class="scroll tip">
+    <p><b>1. 문제 대기실</b>에 풀고 싶은 문제를 모아 둡니다. 처음에는 <b>몇 시간~며칠</b>이면 풀릴 것 같은 문제가 좋습니다.</p>
+    <p><b>2. FP(Focus Point)</b>는 무대에 올릴 한 문장입니다. 질문 형태로, 짧고 날카롭게 씁니다.</p>
+    <p><b>3. 무대에는 하나만.</b> 바꾸려면 사유를 써야 하고, 올린 뒤 ${SWAP_COOLDOWN_H}시간이 지나야 합니다.</p>
+    <p><b>4. 자투리 시간</b>(출퇴근·샤워·산책)에도 FP를 떠올립니다. <b>⧉ 작은 창</b>으로 줄여 두면 다른 일을 하면서도 FP가 보입니다.</p>
+    <p><b>5. 답은 잠겨 있습니다.</b> 일정 시간 스스로 생각하기 전에는 자료와 해설을 열 수 없습니다.</p></div></div>`;
+}
+function ladderCard(){
+  const {st, cur} = levelState();
+  let g = '';
+  const rows = LEVELS.map((l, i) => {
+    const s = st[i], cls = s.done ? 'done' : i === cur ? 'cur' : 'lock';
+    const head = l.g !== g ? `<div class="lgp">${(g = l.g)}</div>` : '';
+    return head + `<div class="ldr ${cls}"><span class="o">${s.done ? '✓' : ''}</span><div><b>${l.n}</b><small>${l.goal}</small>${i === cur ? `<div class="bar"><i style="width:${(s.r * 100).toFixed(0)}%"></i></div>` : ''}</div><em>${s.done ? '달성' : i === cur ? s.txt : ''}</em></div>`;
+  }).join('');
+  return `<div class="card"><h3>몰입 단계<span class="sp"></span><small>지금: <b style="color:var(--accent)">${levelName(cur)}</b> · 권장 문제 ${DIFFS[allowedDiff(cur)]}까지</small></h3><div class="lad">${rows}</div></div>`;
+}
+function bodyCard(){
+  const k = today(), b = db.body[k] || {}, low = b.sleep != null && b.sleep < db.settings.sleepMin;
+  return `<div class="card"><h3>몸 · 안전장치<span class="sp"></span><small>몰입의 연료는 잠과 운동</small></h3>
+    <div class="body">
+      <div class="${low ? 'low' : ''}"><span>어젯밤 수면</span><b>${b.sleep != null ? b.sleep : '—'}<small>시간</small></b>
+        <div class="q">${[4, 5, 6, 7, 8, 9].map(h => `<button class="${b.sleep === h ? 'on' : ''}" onclick="setBody('${k}','sleep',${h})">${h}</button>`).join('')}</div></div>
+      <div><span>오늘 운동 (목표 ${db.settings.exGoal}분)</span><b>${b.ex || 0}<small>분</small></b>
+        <div class="q">${[0, 20, 30, 45, 60, 90].map(m => `<button class="${(b.ex || 0) === m && b.ex != null ? 'on' : ''}" onclick="setBody('${k}','ex',${m})">${m}</button>`).join('')}</div></div>
+    </div>
+    ${low ? `<div class="alert">⚠ 수면 부족 — 강한 몰입 쿨다운. 슬로싱킹 잠김, 생각은 ${COOL_CAP_MIN / 60}시간까지.</div>` : b.sleep == null ? `<div class="alert soft">어젯밤 수면 시간을 눌러 주세요. 잠이 부족한 날은 강한 몰입을 막아 줍니다.</div>` : ''}
+  </div>`;
+}
+function parkingCard(){
+  const list = db.parking.filter(x => !x.done).concat(db.parking.filter(x => x.done).slice(0, 5));
+  return `<div class="card cflex" style="flex:1"><h3>잡념 보관함<span class="sp"></span><small>잡념은 여기 적어 두고 무대로 · ${db.parking.filter(x => !x.done).length}개</small></h3>
+    <div class="qadd"><input id="qpark" placeholder="떠오른 잡념 · 새 아이디어를 던져 두기" onkeydown="if(event.key==='Enter'){addPark()}"></div>
+    <div class="scroll">${list.length ? list.map(x => `<div class="pk ${x.done ? 'done' : ''}"><input type="checkbox" ${x.done ? 'checked' : ''} onchange="togglePark('${x.id}')"><span class="x">${esc(x.text)}</span>
+      <span class="b"><button onclick="parkToProblem('${x.id}')" title="새 문제로 대기실에 등록">→ 문제로</button><button onclick="delPark('${x.id}')">✕</button></span><span class="t">${md(x.ts)} ${hm(x.ts)}</span></div>`).join('') : '<div class="empty">비어 있습니다. 새 아이디어가 떠올라도 무대에 올리지 말고 여기에 던져 두세요.</div>'}</div>
+  </div>`;
+}
+function vaultCard(p){
+  const need = db.settings.lockMin * 60000, have = thinkMs(p.id), open = have >= need, refs = p.refs || [];
+  if (!open) return `<div class="card vault"><h3>답 금고 · 질문 카드<span class="sp"></span><small>자료 ${refs.length}개 보관 중</small></h3>
+    <div class="lockbox"><span class="ic">🔒</span><b>${fmtDur(need - have)} 더 생각하면 열립니다</b>
+      <p>해설과 자료, 질문 카드는 스스로 ${db.settings.lockMin}분 이상 생각한 뒤에 엽니다.<br>먼저 묻고 찾아보면 뇌가 장기기억을 꺼낼 기회를 잃습니다.</p>
+      <div class="bar"><i style="width:${(have / need * 100).toFixed(0)}%"></i></div>
+      <button class="sm" onclick="addRef('${p.id}')">＋ 나중에 볼 자료 맡기기</button></div></div>`;
+  if (!qNow) qNow = pickQuestion(p);
+  return `<div class="card vault"><h3>질문 카드<span class="sp"></span><small>답은 주지 않습니다 · 질문만</small></h3>
+    <div class="qcard"><small>${{stuck: '막혔을 때', structure: '구조 보기', progress: '진전을 밀고 가기', meta: '문제 다시 보기'}[qNow.g]}</small>${esc(qNow.q)}</div>
+    <div class="row" style="margin-top:12px"><button class="sm" onclick="qNow=null;render()">다른 질문</button><button class="sm primary" onclick="answerQ()">이 질문에 답하기</button><span class="sp"></span><button class="sm" onclick="addRef('${p.id}')">＋ 자료</button></div>
+    ${refs.length ? `<ul class="refs">${refs.map(r => `<li>${/^https?:\/\//.test(r.text) ? `<span class="link" onclick="copyText('${esc(r.text)}')">${esc(r.text)}</span>` : esc(r.text)}</li>`).join('')}</ul>` : ''}</div>`;
+}
+function pickQuestion(p){
+  const last = db.logs.filter(l => l.pid === p.id).sort((a, b) => b.ts - a.ts)[0];
+  const g = last?.kind === 'stuck' ? 'stuck' : last?.kind === 'progress' || last?.kind === 'idea' ? (Math.random() < .6 ? 'progress' : 'structure') : ['stuck', 'structure', 'meta'][Math.floor(Math.random() * 3)];
+  const list = QUESTIONS[g];
+  return {g, q: list[Math.floor(Math.random() * list.length)]};
+}
+function answerQ(){
+  const p = stageP(); if (!p || !qNow) return;
+  openModal(`<h3>질문에 답하기</h3><div class="mfp" style="font-size:var(--t2)">${esc(qNow.q)}</div>
+    <textarea id="m-ans" rows="5" placeholder="떠오르는 대로 — 정답이 아니어도 됩니다"></textarea>
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" onclick="saveAnswer()">기록</button></div>`);
+  setTimeout(() => $('m-ans').focus(), 30);
+}
+function saveAnswer(){
+  const t = $('m-ans').value.trim(), p = stageP(); if (!t) return;
+  db.logs.push({id: uid(), pid: p.id, ts: now(), kind: 'question', text: `Q. ${qNow.q}\nA. ${t}`, src: 'desk'});
+  qNow = null; closeModal(); save(); render();
+}
+function addRef(pid){
+  openModal(`<h3>자료 맡기기</h3><p class="tip">읽고 싶은 자료 · 해설 · 링크를 여기에 맡겨 두면, ${db.settings.lockMin}분 이상 스스로 생각한 뒤에 열립니다.</p>
+    <input id="m-ref" placeholder="링크 또는 메모" onkeydown="if(event.key==='Enter'){saveRef('${pid}')}">
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" onclick="saveRef('${pid}')">맡기기</button></div>`);
+  setTimeout(() => $('m-ref').focus(), 30);
+}
+function saveRef(pid){ const t = $('m-ref').value.trim(), p = P(pid); if (!t || !p) return; (p.refs || (p.refs = [])).push({id: uid(), text: t, ts: now()}); closeModal(); save(); render(); }
+function copyText(t){ navigator.clipboard?.writeText(t).then(() => toast('링크를 복사했습니다'), () => {}); }
+
+/* 진전 · 잡념 보관함 · 몸 */
+function quickLog(){
+  const t = $('qlog').value.trim(), p = stageP(); if (!t || !p) return;
+  db.logs.push({id: uid(), pid: p.id, ts: now(), kind: logKind, text: t, src: db.active?.kind === 'slow' ? 'slow' : 'desk'});
+  save(); render(); setTimeout(() => $('qlog')?.focus(), 0);
+}
+function openLog(){
+  const p = stageP(); if (!p){ toast('무대에 올린 문제가 없습니다.'); return; }
+  openModal(`<h3>진전 기록</h3><div class="mfp" style="font-size:var(--t1)">${esc(p.fp)}</div>
+    <div class="fld"><span>종류</span><div class="chips" id="m-kind">${['progress', 'idea', 'stuck', 'question'].map(k => `<button class="${k === logKind ? 'on' : ''}" data-k="${k}" onclick="pickChip('m-kind',this)">${KINDS[k]}</button>`).join('')}</div></div>
+    <div class="fld" style="margin-top:12px"><span>어디서 떠올랐나</span><div class="chips" id="m-src">${SOURCES.map(([k, t]) => `<button class="${k === 'desk' ? 'on' : ''}" data-k="${k}" onclick="pickChip('m-src',this)">${t}</button>`).join('')}</div></div>
+    <textarea id="m-text" rows="4" style="margin-top:12px" placeholder="한 줄이면 충분합니다" onkeydown="if(event.key==='Enter'&&event.ctrlKey){saveLog()}"></textarea>
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" onclick="saveLog()">기록 <kbd class="kbd">Ctrl+Enter</kbd></button></div>`);
+  setTimeout(() => $('m-text').focus(), 30);
+}
+function pickChip(id, el){ document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b === el)); }
+const chipVal = id => document.querySelector(`#${id} button.on`)?.dataset.k;
+function saveLog(){
+  const t = $('m-text').value.trim(), p = stageP(); if (!t || !p) return;
+  db.logs.push({id: uid(), pid: p.id, ts: now(), kind: chipVal('m-kind'), text: t, src: chipVal('m-src')});
+  closeModal(); save(); render();
+}
+function delLog(id){ if (!confirm('이 기록을 지울까요?')) return; db.logs = db.logs.filter(l => l.id !== id); save(); render(); }
+function addPark(){ const t = $('qpark').value.trim(); if (!t) return; db.parking.unshift({id: uid(), ts: now(), pid: db.stage?.pid, text: t, done: false}); save(); render(); setTimeout(() => $('qpark')?.focus(), 0); }
+function togglePark(id){ const x = db.parking.find(x => x.id === id); if (x){ x.done = !x.done; save(); render(); } }
+function delPark(id){ db.parking = db.parking.filter(x => x.id !== id); save(); render(); }
+function parkToProblem(id){ const x = db.parking.find(x => x.id === id); if (!x) return; openProblem(null, x.text, id); }
+function setBody(k, f, v){ const b = db.body[k] || (db.body[k] = {}); b[f] = v; save(); render(); }
+function openScrap(){
+  const p = stageP(); if (!p){ toast('무대에 올린 문제가 없습니다.'); return; }
+  openModal(`<h3>자투리 생각 기록</h3><p class="tip">책상 밖에서 FP를 떠올리며 보낸 시간을 남깁니다. 연속성은 장소가 아니라 생각에 있습니다.</p>
+    <div class="fld"><span>어디서</span><div class="chips" id="m-src">${SOURCES.filter(([k]) => !['desk', 'slow'].includes(k)).map(([k, t], i) => `<button class="${i === 0 ? 'on' : ''}" data-k="${k}" onclick="pickChip('m-src',this)">${t}</button>`).join('')}</div></div>
+    <div class="fld" style="margin-top:12px"><span>몇 분 (방금 끝난 것으로 기록)</span><div class="chips" id="m-min">${[5, 10, 15, 20, 30, 45, 60].map((m, i) => `<button class="${i === 2 ? 'on' : ''}" data-k="${m}" onclick="pickChip('m-min',this)">${m}분</button>`).join('')}</div></div>
+    <input id="m-text" style="margin-top:12px" placeholder="떠오른 것이 있으면 한 줄 (선택)">
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" onclick="saveScrap()">기록</button></div>`);
+}
+function saveScrap(){
+  const p = stageP(), m = +chipVal('m-min'), src = chipVal('m-src'), t = $('m-text').value.trim(), end = now();
+  db.sessions.push({id: uid(), pid: p.id, kind: 'scrap', src, start: end - m * 60000, end});
+  if (t) db.logs.push({id: uid(), pid: p.id, ts: end, kind: 'idea', text: t, src});
+  closeModal(); save(); render(); toast(`자투리 ${m}분을 기록했습니다`);
+}
+
+/* ----- 문제 등록 · 무대 올리기 · 교체 · 해결 ----- */
+function openProblem(id, preset, parkId){
+  const p = id ? P(id) : null, {cur} = levelState(), d = p ? p.diff : 0;
+  openModal(`<h3>${p ? '문제 다듬기' : '새 문제 — 대기실에 등록'}</h3>
+    <div class="grid2">
+      <label class="fld wide"><span>문제 이름</span><input id="m-title" value="${esc(p?.title || '')}" placeholder="예: 치아 분할 알고리즘 · 나의 매매 엣지"></label>
+      <label class="fld wide"><span>FP(Focus Point) — 의식의 무대에 올릴 한 문장, 질문 형태로</span>
+        <textarea id="m-fp" rows="2" placeholder="예: 인접한 두 치아의 접촉면 경계는 무엇으로 정의되는가?">${esc(p?.fp || preset || '')}</textarea></label>
+      <label class="fld"><span>분야</span><select id="m-domain">${DOMAINS.map(x => `<option ${p?.domain === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <div class="fld"><span>예상 난이도 — 풀리는 데 걸릴 것 같은 시간</span><span class="dseg" id="m-diff">${DIFFS.map((t, i) => `<button class="${i === d ? 'on' : ''}" data-k="${i}" onclick="pickChip('m-diff',this);diffWarn()">${t}</button>`).join('')}</span></div>
+      <div class="wide dwarn" id="m-warn" hidden></div>
+      <label class="fld wide"><span>메모 (선택) — 왜 이 문제인가, 이미 아는 것</span><textarea id="m-note" rows="3">${esc(p?.note || '')}</textarea></label>
+    </div>
+    <p class="tip" style="margin:12px 0 0">지금 단계는 <b>${levelName(cur)}</b>, 권장 난이도는 <b>${DIFFS[allowedDiff(cur)]}</b>까지입니다. 몰입은 사전 지식이 충분히 쌓여 있어야 힘을 씁니다. 필요한 재료는 메모나 답 금고에 모아 두세요.</p>
+    <div class="foot">${p && p.status !== 'stage' ? `<button class="danger" onclick="delProblem('${p.id}')">삭제</button><span class="sp"></span>` : ''}<button onclick="closeModal()">취소</button>
+      <button class="primary" onclick="saveProblem('${id || ''}','${parkId || ''}')">${p ? '저장' : '대기실에 등록'}</button></div>`);
+  diffWarn(); setTimeout(() => (p ? $('m-fp') : $('m-title'))?.focus(), 30);
+}
+function diffWarn(){
+  const d = +chipVal('m-diff'), {cur} = levelState(), w = $('m-warn'); if (!w) return;
+  w.hidden = d <= allowedDiff(cur);
+  w.textContent = `⚠ ${DIFFS[d]}짜리 문제는 지금 단계(${levelName(cur)})에 비해 큽니다. 처음에는 풀릴 만한 문제로 성공 경험을 쌓고 난이도를 올리는 편이 좋습니다. 그래도 등록은 할 수 있습니다.`;
+}
+function saveProblem(id, parkId){
+  const title = $('m-title').value.trim(), fp = $('m-fp').value.trim().replace(/\s+/g, ' ');
+  if (!fp){ $('m-fp').focus(); return; }
+  const v = {title: title || fp.slice(0, 30), fp, domain: $('m-domain').value, diff: +chipVal('m-diff'), note: $('m-note').value.trim()};
+  if (id) Object.assign(P(id), v);
+  else db.problems.push({id: uid(), ...v, status: 'wait', created: now(), refs: []});
+  if (parkId) db.parking = db.parking.filter(x => x.id !== parkId);
+  closeModal(); save(); render(); if (!id) toast('대기실에 등록했습니다', db.stage ? '' : '바로 무대에', () => stageProblem(db.problems[db.problems.length - 1].id));
+}
+function delProblem(id){
+  if (!confirm('이 문제와 진전 기록을 지울까요? (생각한 시간 기록은 단계 계산을 위해 남습니다)')) return;
+  db.problems = db.problems.filter(p => p.id !== id); db.logs = db.logs.filter(l => l.pid !== id);
+  closeModal(); save(); render();
+}
+function stageProblem(id){
+  const p = P(id); if (!p) return;
+  if (db.stage){ openSwap(id); return; }
+  const {cur} = levelState();
+  if (p.diff > allowedDiff(cur) && !confirm(`${DIFFS[p.diff]}짜리 문제는 지금 단계(${levelName(cur)})에 비해 큽니다.\n그래도 무대에 올릴까요?`)) return;
+  p.status = 'stage'; p.staged = now();
+  db.stage = {pid: id, since: now()};
+  db.logs.push({id: uid(), pid: id, ts: now(), kind: 'stage', text: '무대에 올림'});
+  qNow = null; save(); view = 'stage'; render();
+}
+function unstage(fate, reason){
+  const p = stageP(); if (!p) return;
+  if (db.active) stopSession();
+  p.status = fate; db.stage = null;
+  if (reason) db.logs.push({id: uid(), pid: p.id, ts: now(), kind: 'swap', text: `무대에서 내림 — ${reason}`});
+}
+function openSwap(nextId){
+  const p = stageP(); if (!p) return;
+  const el = now() - db.stage.since, left = SWAP_COOLDOWN_H * 3600000 - el, undo = el < UNDO_STAGE_MIN * 60000;
+  if (left > 0 && !undo){
+    openModal(`<h3>무대 교체 잠김</h3><div class="mfp" style="font-size:var(--t1)">${esc(p.fp)}</div>
+      <p class="tip">무대의 문제는 올린 뒤 <b>${SWAP_COOLDOWN_H}시간</b>이 지나야 바꿀 수 있습니다. 남은 시간 <b>${fmtDur(left)}</b>.<br>
+      새 문제가 떠올랐다면 대기실이나 잡념 보관함에 두세요. 무대가 여러 개가 되면 몰입이 흩어집니다.<br>
+      풀렸다면 <b>해결됨</b>으로 내리는 것은 언제든 할 수 있습니다.</p>
+      <div class="foot"><button onclick="closeModal();openSolve()">✓ 해결됨으로 내리기</button><button class="primary" onclick="closeModal()">계속 생각하기</button></div>`);
+    return;
+  }
+  const nx = nextId ? P(nextId) : null;
+  openModal(`<h3>${undo ? '방금 올린 문제 되돌리기' : '무대 교체'}</h3>
+    <div class="fld"><span>지금 무대</span><div class="mfp" style="font-size:var(--t1);margin:0">${esc(p.fp)}</div></div>
+    ${nx ? `<div class="fld" style="margin-top:12px"><span>새로 올릴 문제</span><div style="font-weight:600">${esc(nx.fp)}</div></div>` : ''}
+    ${undo ? `<p class="tip">올린 지 ${UNDO_STAGE_MIN}분이 지나지 않아 실수로 보고 사유 없이 되돌립니다.</p>` :
+    `<label class="fld" style="margin-top:12px"><span>왜 내리나요? (${SWAP_REASON_MIN}자 이상) — 귀찮게 만드는 것이 이 앱의 핵심 장치입니다</span><textarea id="m-why" rows="3" oninput="$('m-go').disabled=this.value.trim().length<${SWAP_REASON_MIN}"></textarea></label>`}
+    <div class="fld" style="margin-top:12px"><span>내린 문제는</span><div class="chips" id="m-fate"><button class="on" data-k="wait" onclick="pickChip('m-fate',this)">대기실로</button><button data-k="shelved" onclick="pickChip('m-fate',this)">내려놓기 (보류)</button></div></div>
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" id="m-go" ${undo ? '' : 'disabled'} onclick="doSwap('${nextId || ''}',${undo})">${nx ? '교체' : '내리기'}</button></div>`);
+}
+function doSwap(nextId, undo){
+  const why = undo ? '올린 직후 되돌림' : $('m-why').value.trim();
+  if (!undo && why.length < SWAP_REASON_MIN) return;
+  unstage(chipVal('m-fate'), why); closeModal();
+  if (nextId) stageProblem(nextId); else { save(); render(); }
+}
+function openSolve(){
+  const p = stageP(); if (!p) return;
+  openModal(`<h3>✓ 해결 — 축하합니다</h3><div class="mfp" style="font-size:var(--t1)">${esc(p.fp)}</div>
+    <label class="fld"><span>결정적 아이디어 한 줄</span><textarea id="m-idea" rows="3"></textarea></label>
+    <div class="fld" style="margin-top:12px"><span>그 아이디어는 어디서 왔나요? — 쌓이면 나에게 아이디어가 오는 조건이 보입니다</span><div class="chips" id="m-src">${SOURCES.map(([k, t], i) => `<button class="${i === 0 ? 'on' : ''}" data-k="${k}" onclick="pickChip('m-src',this)">${t}</button>`).join('')}</div></div>
+    <p class="tip">생각한 시간 <b>${fmtDur(thinkMs(p.id))}</b> · 무대에 있던 시간 <b>${fmtDur(now() - db.stage.since)}</b></p>
+    <div class="foot"><button onclick="closeModal()">아직</button><button class="primary" onclick="doSolve()">해결로 기록</button></div>`);
+  setTimeout(() => $('m-idea').focus(), 30);
+}
+function doSolve(){
+  const p = stageP(), idea = $('m-idea').value.trim(), src = chipVal('m-src');
+  unstage('solved'); p.solved = now(); p.solvedSrc = src; p.solvedIdea = idea;
+  db.logs.push({id: uid(), pid: p.id, ts: now(), kind: 'solve', text: idea || '해결', src});
+  closeModal(); save(); render(); toast('해결로 기록했습니다. 다음 문제는 조금 더 어려운 것으로 골라 보세요.');
+}
+
+/* ----- 문제 대기실 ----- */
+function roomView(){
+  const by = s => db.problems.filter(p => p.status === s);
+  const sec = (t, list, hint) => list.length ? `<div class="sech">${t} <span class="badge">${list.length}</span>${hint ? `<span class="muted" style="font-weight:400;letter-spacing:0">${hint}</span>` : ''}</div><div class="pgrid">${list.map(pcard).join('')}</div>` : '';
+  const wait = by('wait').sort((a, b) => a.diff - b.diff || a.created - b.created);
+  const {cur} = levelState();
+  return `<div class="abar"><span class="ttl">문제 대기실</span><button class="primary" onclick="openProblem()">＋ 새 문제<kbd class="kbd">N</kbd></button><span class="sp"></span><span class="muted">풀고 싶은 문제를 모아 두는 곳 · 무대에는 하나만 올라갑니다</span></div>
+  <div class="room">
+    <div class="scroll">${db.problems.length ? sec('무대 위', by('stage')) + sec('대기 중', wait, '· 쉬운 순서') + sec('해결함', by('solved').sort((a, b) => b.solved - a.solved)) + sec('내려놓음', by('shelved'))
+      : `<div class="card"><div class="empty">아직 문제가 없습니다. 오른쪽 안내를 보고 첫 문제를 등록해 보세요.</div></div>`}</div>
+    <div class="scroll"><div class="card"><h3>좋은 문제 고르기</h3><div class="tip">
+      <p><b>지금 단계: ${levelName(cur)}</b> — 권장 난이도 <b>${DIFFS[allowedDiff(cur)]}</b>까지.</p>
+      <p>· 처음엔 <b>몇 시간~며칠이면 풀릴 것 같은 문제</b>로 시작해 성공 경험을 쌓고, 단계를 올리며 난이도를 키웁니다.</p>
+      <p>· 해설을 찾아보지 않고 <b>스스로 풀 수 있는</b> 문제여야 합니다. 결과보다 생각하는 과정 자체가 목적입니다.</p>
+      <p>· 몰입은 <b>사전 지식</b>이 충분할 때 힘을 씁니다. 재료가 부족하면 먼저 읽고 모으세요.</p>
+      <p>· 직장인이라면 문제 리스트를 만들고, 하나를 골라 <b>출퇴근 · 샤워 · 산책</b> 같은 자투리 시간에 생각합니다.</p>
+      <p>· FP는 <b>질문 형태의 한 문장</b>으로. "무엇을 알아내면 풀리는가?"를 겨냥합니다.</p></div></div>
+      <div class="card"><h3>문제 후보 예시</h3><div class="tip">
+      <p><b>트레이딩</b> — 내 엣지는 정확히 어떤 조건에서 생기고 어디서 사라지는가? (장중 판단은 슬로싱킹 대상이 아닙니다. 장 마감 뒤에 다룰 질문들입니다)</p>
+      <p><b>치과</b> — 인접 치아의 접촉면 경계를 자동으로 찾는 기준은 무엇인가?</p>
+      <p><b>삶</b> — 내가 가장 잘 몰입하는 조건은 무엇인가?</p></div></div></div>
+  </div>`;
+}
+function pcard(p){
+  const ms = thinkMs(p.id), n = db.logs.filter(l => l.pid === p.id && !['stage', 'swap'].includes(l.kind)).length;
+  const st = p.status, {cur} = levelState(), big = st === 'wait' && p.diff > allowedDiff(cur);
+  const btn = st === 'stage' ? `<button onclick="setView('stage')">무대로 가기</button><button onclick="openProblem('${p.id}')">문장 다듬기</button>`
+    : st === 'wait' ? `<button class="primary" onclick="stageProblem('${p.id}')">무대에 올리기</button><button onclick="openProblem('${p.id}')">편집</button>`
+    : `<button onclick="reviveProblem('${p.id}')">대기실로 되돌리기</button><button onclick="recPid='${p.id}';setView('rec')">기록 보기</button>`;
+  return `<div class="card pc ${st === 'stage' ? 'on' : st}">
+    <div class="pc-h"><b>${st === 'solved' ? '✓ ' : ''}${esc(p.title)}</b><span class="badge ac">${esc(p.domain)}</span><span class="badge ${big ? 'warn' : ''}" title="${big ? '지금 단계에 비해 큰 문제' : ''}">${big ? '⚠ ' : ''}${DIFFS[p.diff]}</span></div>
+    <div class="pc-fp">${esc(p.fp)}</div>
+    <div class="pc-m">생각 ${fmtDur(ms)} · 기록 ${n}개 · 등록 ${md(p.created)}${st === 'solved' ? ` · 해결 ${md(p.solved)} (${SRC[p.solvedSrc] || ''})` : ''}</div>
+    ${st === 'solved' && p.solvedIdea ? `<div class="pc-m" style="color:var(--ok)">💡 ${esc(p.solvedIdea)}</div>` : ''}
+    <div class="pc-b">${btn}</div></div>`;
+}
+function reviveProblem(id){ const p = P(id); if (p){ p.status = 'wait'; save(); render(); } }
+
+/* ----- 기록 ----- */
+function recView(){
+  const ps = db.problems.slice().sort((a, b) => (b.status === 'stage') - (a.status === 'stage') || b.created - a.created);
+  if (recPid !== 'all' && !P(recPid)) recPid = ps[0]?.id || 'all';
+  const ls = db.logs.filter(l => (recPid === 'all' || l.pid === recPid) && (recKind === 'all' || l.kind === recKind)).sort((a, b) => b.ts - a.ts);
+  const ideas = db.logs.filter(l => ['idea', 'solve', 'progress'].includes(l.kind) && l.src);
+  const cnt = {}; ideas.forEach(l => cnt[l.src] = (cnt[l.src] || 0) + (l.kind === 'solve' ? 3 : 1));
+  const mx = Math.max(1, ...Object.values(cnt));
+  const solved = solvedList().sort((a, b) => b.solved - a.solved);
+  return `<div class="abar"><span class="ttl">기록</span>
+    <select style="width:auto;min-width:360px" onchange="recPid=this.value;render()"><option value="all" ${recPid === 'all' ? 'selected' : ''}>모든 문제</option>${ps.map(p => `<option value="${p.id}" ${recPid === p.id ? 'selected' : ''}>${p.status === 'stage' ? '● ' : p.status === 'solved' ? '✓ ' : ''}${esc(p.title)}</option>`).join('')}</select>
+    <span class="kseg">${['all', 'progress', 'idea', 'stuck', 'question', 'solve'].map(k => `<button class="${recKind === k ? 'on' : ''}" onclick="recKind='${k}';render()">${k === 'all' ? '전체' : KINDS[k]}</button>`).join('')}</span>
+    <span class="sp"></span>${recPid !== 'all' ? `<span class="muted">생각한 시간 <b style="color:var(--text)">${fmtDur(thinkMs(recPid))}</b></span>` : ''}</div>
+  <div class="rec">
+    <div class="card cflex">${ls.length ? `<div class="scroll">${ls.map(l => logRow(l, recPid === 'all')).join('')}</div>` : '<div class="empty">기록이 없습니다.</div>'}</div>
+    <div class="rec-r scroll">
+      ${chartCard(21, true)}
+      <div class="card"><h3>아이디어는 어디서 오나<span class="sp"></span><small>진전·아이디어 1 · 해결 3으로 셈</small></h3>
+        ${Object.keys(cnt).length ? `<div class="hb">${SOURCES.filter(([k]) => cnt[k]).sort((a, b) => cnt[b[0]] - cnt[a[0]]).map(([k, t]) => `<div class="hbr"><span>${t}</span><div class="hbb"><i style="width:${(cnt[k] / mx * 100).toFixed(0)}%"></i></div><b>${cnt[k]}</b></div>`).join('')}</div>`
+        : '<div class="empty">진전과 아이디어를 기록할 때 "어디서 떠올랐나"를 고르면 여기에 쌓입니다.</div>'}</div>
+      <div class="card"><h3>해결한 문제<span class="sp"></span><small>${solved.length}개</small></h3>
+        ${solved.length ? `<table><tr><th>문제</th><th>생각</th><th>해결</th><th>출처</th></tr>${solved.map(p => `<tr><td><b>${esc(p.title)}</b>${p.solvedIdea ? `<div class="muted">💡 ${esc(p.solvedIdea)}</div>` : ''}</td><td>${fmtDur(thinkMs(p.id))}</td><td>${md(p.solved)}</td><td>${SRC[p.solvedSrc] || ''}</td></tr>`).join('')}</table>` : '<div class="empty">아직 없습니다.</div>'}</div>
+    </div>
+  </div>`;
+}
+
+/* ----- 리듬 플래너: 주중은 자투리 약한 몰입, 주말·연휴는 강한 몰입 블록 ----- */
+function weekDays(){
+  const t = new Date(); const mon = addDays(today(), -((t.getDay() + 6) % 7) + weekOff * 7);
+  return [...Array(7)].map((_, i) => addDays(mon, i));
+}
+function planView(){
+  const days = weekDays(), cool = coolToday();
+  const blocks = db.plan.filter(b => days.includes(b.date));
+  const sl = days.map(d => db.body[d]?.sleep).filter(x => x != null), ex = days.reduce((s, d) => s + (db.body[d]?.ex || 0), 0);
+  return `<div class="abar"><span class="ttl">리듬 플래너</span><button onclick="weekOff--;render()">‹ 지난주</button><button class="${weekOff === 0 ? 'on' : ''}" onclick="weekOff=0;render()">이번 주</button><button onclick="weekOff++;render()">다음 주 ›</button>
+    <span class="sp"></span><span class="muted">강한 몰입 블록 <b style="color:var(--text)">${blocks.filter(b => b.kind === 'strong').length}</b> · 약한 몰입 <b style="color:var(--text)">${blocks.filter(b => b.kind === 'weak').length}</b> · 평균 수면 <b style="color:var(--text)">${sl.length ? (sl.reduce((a, b) => a + b, 0) / sl.length).toFixed(1) + '시간' : '—'}</b> · 운동 <b style="color:var(--text)">${ex}분</b></span></div>
+  <div class="wk">${days.map(d => { const dt = new Date(dayStart(d)), w = dt.getDay(), b = db.body[d] || {}, isT = d === today();
+    const bl = blocks.filter(x => x.date === d).sort((a, b) => a.start.localeCompare(b.start));
+    return `<div class="card wd ${isT ? 'today' : ''}">
+      <div class="wd-h"><b class="${w === 6 ? 'sat' : w === 0 ? 'sun' : ''}">${DAYS[w]}</b><span>${dt.getMonth() + 1}월 ${dt.getDate()}일${isT ? ' · 오늘' : ''}</span><span class="sp"></span><span>${fmtDur(dayMs(d))}</span></div>
+      <div class="body"><div class="${b.sleep != null && b.sleep < db.settings.sleepMin ? 'low' : ''}"><span>수면</span><input type="number" min="0" max="16" step="0.5" value="${b.sleep ?? ''}" onchange="setBody('${d}','sleep',this.value===''?null:+this.value)"></div>
+        <div><span>운동(분)</span><input type="number" min="0" max="600" step="5" value="${b.ex ?? ''}" onchange="setBody('${d}','ex',this.value===''?null:+this.value)"></div></div>
+      ${bl.map(x => { const done = (x.prep || []).filter(i => i.done).length, all = (x.prep || []).length;
+        return `<div class="blk ${x.kind} ${x.kind === 'strong' && isT && cool ? 'warn' : ''}" onclick="openBlock('${x.id}')"><b>${x.kind === 'strong' ? '강한 몰입' : '약한 몰입'} ${x.start}–${x.end}</b>${esc(x.note || '')}${x.kind === 'strong' ? `<div class="pp">재료 준비 ${done}/${all}${isT && cool ? ' · ⚠ 수면 부족: 쿨다운' : ''}</div>` : ''}</div>`; }).join('')}
+      <div class="add"><button onclick="openBlock(null,'${d}','weak')">＋ 약한</button><button onclick="openBlock(null,'${d}','strong')">＋ 강한</button></div>
+    </div>`; }).join('')}</div>`;
+}
+const PREP_DEFAULT = ['읽을 자료 · 데이터 미리 모으기', '필요한 도구 · 파일 열어 두기', '알림 끄기 · 연락 미리 정리', '하루 1시간 운동 시간 넣기', '전날 7시간 이상 자기'];
+function openBlock(id, date, kind){
+  const b = id ? db.plan.find(x => x.id === id) : {date, kind, start: kind === 'strong' ? '09:00' : '07:30', end: kind === 'strong' ? '18:00' : '08:10', note: kind === 'weak' ? '출퇴근 · 산책 중 FP' : '', prep: kind === 'strong' ? PREP_DEFAULT.map(t => ({t, done: false})) : []};
+  window._blk = JSON.parse(JSON.stringify(b));
+  openModal(`<h3>${id ? '블록 편집' : '블록 추가'} · ${md(dayStart(b.date))}</h3>
+    <div class="grid2">
+      <div class="fld wide"><span>종류</span><span class="dseg" id="m-bk"><button class="${b.kind === 'weak' ? 'on' : ''}" data-k="weak" onclick="pickChip('m-bk',this)">약한 몰입 (자투리)</button><button class="${b.kind === 'strong' ? 'on' : ''}" data-k="strong" onclick="pickChip('m-bk',this)">강한 몰입 (하루 이상)</button></span></div>
+      <label class="fld"><span>시작</span><input type="time" id="m-s" value="${b.start}"></label>
+      <label class="fld"><span>끝</span><input type="time" id="m-e" value="${b.end}"></label>
+      <label class="fld wide"><span>메모</span><input id="m-n" value="${esc(b.note || '')}"></label>
+      <div class="fld wide"><span>재료 준비 체크리스트 — 강한 몰입 전에</span><div class="prep" id="m-prep">${prepHTML()}</div>
+        <div class="qadd" style="margin-top:6px"><input id="m-pi" placeholder="준비 항목 추가" onkeydown="if(event.key==='Enter'){addPrep()}"><button onclick="addPrep()">추가</button></div></div>
+    </div>
+    <div class="foot">${id ? `<button class="danger" onclick="delBlock('${id}')">삭제</button><span class="sp"></span>` : ''}<button onclick="closeModal()">취소</button><button class="primary" onclick="saveBlock('${id || ''}')">저장</button></div>`);
+}
+function prepHTML(){ return (window._blk.prep || []).map((i, n) => `<label><input type="checkbox" ${i.done ? 'checked' : ''} onchange="_blk.prep[${n}].done=this.checked">${esc(i.t)}</label>`).join('') || '<span class="muted">없음</span>'; }
+function addPrep(){ const t = $('m-pi').value.trim(); if (!t) return; (_blk.prep || (_blk.prep = [])).push({t, done: false}); $('m-prep').innerHTML = prepHTML(); $('m-pi').value = ''; }
+function saveBlock(id){
+  const b = {..._blk, kind: chipVal('m-bk'), start: $('m-s').value || '09:00', end: $('m-e').value || '10:00', note: $('m-n').value.trim()};
+  if (id) Object.assign(db.plan.find(x => x.id === id), b); else db.plan.push({...b, id: uid()});
+  closeModal(); save(); render();
+}
+function delBlock(id){ db.plan = db.plan.filter(x => x.id !== id); closeModal(); save(); render(); }
+
+/* ---------- 슬로싱킹 화면 ---------- */
+let slowOn = false, lastAct = 0, idleFlag = false, rec = null, recChunks = [];
+function openSlow(){
+  const p = stageP();
+  if (!p){ toast('무대에 올린 문제가 없습니다.'); return; }
+  if (coolToday()){ coolBlock(); return; }
+  if (slowOn) return;
+  slowOn = true; lastAct = now(); idleFlag = false;
+  switchKind('slow');   // 몰입 중이면 시간은 그대로 이어서 슬로싱킹으로 (F 는 화면만 바꾼다 — 시작·일시정지는 Space)
+  const el = document.createElement('div'); el.id = 'slow';
+  el.innerHTML = `<div class="sl-time" id="slState"></div>
+    <div class="breath"></div>
+    <div class="sl-lab">FP(Focus Point)</div>
+    <div class="sl-fp">${esc(p.fp)}</div>
+    <div class="sl-hint"></div>
+    <div class="sl-bar"><button onclick="slowIdea()">💡 떠올랐다 <kbd class="kbd">Enter</kbd></button><button id="slMic" onclick="slowVoice()">🎙 음성 메모 <kbd class="kbd">V</kbd></button><button onclick="slowReturn()">↩ 잡념 복귀 <kbd class="kbd">R</kbd></button><button id="slTg" onclick="toggleThink()"></button><button onclick="closeSlow()">전체화면 끝내기 <kbd class="kbd">F</kbd><kbd class="kbd">Esc</kbd></button></div>`;
+  const n = slowLearned();
+  if (n < LESSONS.length){   // 1단계(슬로싱킹 배우기) 동안은 힌트 자리에서 안내 1/3 → 2/3 → 3/3 을 천천히 돌아가며 — 화면을 막지 않고 누를 것도 없다
+    const h = el.querySelector('.sl-hint'); let i = n;
+    const show = () => { const [t, body] = LESSONS[i]; h.innerHTML = `<span class="sl-lt">슬로싱킹 배우기 ${i + 1}/${LESSONS.length} · ${t}</span>${body}`; };
+    h.classList.add('lesson-on'); show();
+    const cycle = setInterval(() => {   // 애니메이션 끝 신호에 기대지 않는다 (창이 가려지면 애니메이션이 멈춰 넘어가지 않으므로)
+      if (!h.isConnected){ clearInterval(cycle); return; }
+      h.style.opacity = 0;
+      setTimeout(() => { i = (i + 1) % LESSONS.length; show(); h.style.opacity = 1; }, 1500);
+    }, LESSON_CYCLE_S * 1000);
+  }
+  $('stage').appendChild(el);
+  ['mousemove', 'mousedown', 'keydown', 'wheel'].forEach(t => el.addEventListener(t, slowAct, true));
+  document.addEventListener('keydown', slowAct, true);
+  tick(); render();
+}
+function slowAct(){
+  if (!slowOn) return;
+  if (idleFlag && !$('wake')){ idleFlag = false; showWake(); }   // 오래 가만히 있다가 움직였다 = 깼다
+  lastAct = now();
+  const s = $('slow'); if (s){ s.classList.add('act'); clearTimeout(slowAct.t); slowAct.t = setTimeout(() => s.classList.remove('act'), 2500); }
+}
+function slowTick(){ if (!idleFlag && now() - lastAct >= IDLE_WAKE_MIN * 60000) idleFlag = true; }
+function showWake(src){
+  const p = stageP(); if (!p) return;
+  const w = document.createElement('div'); w.className = 'wake'; w.id = 'wake';
+  w.innerHTML = `<div class="wb"><h2>${src ? '💡 떠오른 것을 바로' : '☀ 깨어났나요? 떠오른 것부터'}</h2>
+    <p>선잠 직후에 떠오른 생각은 빨리 사라집니다. 말로 남기는 게 가장 빠릅니다.</p>
+    <div class="sl-lab" style="margin:0">FP(Focus Point)</div>
+    <div class="wfp">${esc(p.fp)}</div>
+    <button class="mic" id="wMic" onclick="wakeVoice()">🎙 눌러서 말하기 <kbd class="kbd">V</kbd></button>
+    <textarea id="wText" placeholder="또는 글로 — 단어 몇 개라도"></textarea>
+    <div class="wbtn"><button onclick="closeWake()">아직 생각 중 <kbd class="kbd">Esc</kbd></button><button style="background:rgba(var(--accent-rgb),.85)" onclick="saveWake('${src || 'nap'}')">남기기 <kbd class="kbd">Ctrl+Enter</kbd></button></div></div>`;
+  $('slow').appendChild(w);
+  setTimeout(() => $('wText')?.focus(), 30);
+}
+function closeWake(){ if (rec) stopRec(); $('wake')?.remove(); lastAct = now(); }
+let wakeVoiceFile = null;
+function saveWake(src){
+  const t = $('wText').value.trim(), p = stageP();
+  if (t || wakeVoiceFile) db.logs.push({id: uid(), pid: p.id, ts: now(), kind: 'idea', text: t || '(음성 메모)', src, voice: wakeVoiceFile || undefined});
+  wakeVoiceFile = null; save(); closeWake(); toast('남겼습니다. 다시 천천히 이어 가세요.');
+}
+function wakeVoice(){
+  if (rec){ stopRec(); return; }
+  startRec(file => { wakeVoiceFile = file; const b = $('wMic'); if (b){ b.classList.remove('rec'); b.innerHTML = file ? '✓ 녹음됨 — 다시 누르면 새로 녹음' : '🎙 눌러서 말하기'; } });
+  const b = $('wMic'); if (b){ b.classList.add('rec'); b.innerHTML = '■ 녹음 중 — 누르면 멈춤'; }
+}
+function slowIdea(){ if (!$('wake')) showWake('slow'); }
+function slowVoice(){
+  if ($('wake')){ wakeVoice(); return; }
+  if (rec){ stopRec(); return; }
+  const p = stageP(), b = $('slMic');
+  startRec(file => { b.classList.remove('rec'); b.innerHTML = '🎙 음성 메모 <kbd class="kbd">V</kbd>'; if (file){ db.logs.push({id: uid(), pid: p.id, ts: now(), kind: 'idea', text: '(음성 메모)', src: 'slow', voice: file}); save(); toast('음성 메모를 남겼습니다'); } });
+  b.classList.add('rec'); b.innerHTML = '■ 녹음 중 <kbd class="kbd">V</kbd>';
+}
+function slowReturn(){ recordReturn('', true); const f = document.querySelector('#slow .sl-fp'); if (f){ f.animate([{opacity: .3}, {opacity: .92}], {duration: 900}); } }
+function closeSlow(){
+  if (rec) stopRec();
+  slowOn = false; document.removeEventListener('keydown', slowAct, true);
+  $('slow')?.remove();
+  switchKind('desk');   // 몰입 중이면 시간은 끊지 않고 기본 화면에서 이어진다
+  render();
+}
+function slowStateTick(){   // 전체화면 왼쪽 위 상태 · 시작/일시정지 버튼
+  const a = db.active, st = $('slState'), b = $('slTg'); if (!st) return;
+  st.textContent = a ? `☾ 몰입 중 · ${fmtClock(runMs())}` : '☾ 일시정지 — Space 로 몰입 시작';
+  if (b) b.innerHTML = (a ? '⏸ 일시정지' : '▶ 몰입 시작') + ' <kbd class="kbd">Space</kbd>';
+}
+async function startRec(onDone){
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({audio: true});
+    rec = new MediaRecorder(st); recChunks = [];
+    rec.ondataavailable = e => recChunks.push(e.data);
+    rec.onstop = async () => {
+      st.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recChunks, {type: rec.mimeType || 'audio/webm'}); rec = null;
+      let file = null;
+      if (serverOK && blob.size){
+        const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+        try { const r = await (await fetch('api/voice', {method: 'POST', body: JSON.stringify({data})})).json(); if (r.ok) file = r.file; else toast(r.error); } catch(e){ toast('음성 메모를 저장하지 못했습니다'); }
+      } else if (!serverOK) toast('음성 메모는 ThinkHard.pyw 로 실행했을 때 저장됩니다');
+      onDone(file);
+    };
+    rec.start();
+  } catch(e){ rec = null; toast('마이크를 쓸 수 없습니다 — ' + e.message); onDone(null); }
+}
+function stopRec(){ try { rec && rec.state !== 'inactive' && rec.stop(); } catch(e){} }
+
+/* ---------- 모달 · 알림 ---------- */
+function openModal(html){ closeModal(); const m = document.createElement('div'); m.id = 'modal'; m.className = 'modal'; m.innerHTML = `<div class="box">${html}</div>`; m.addEventListener('mousedown', e => { if (e.target === m) closeModal(); }); $('stage').appendChild(m); }
+function closeModal(){ $('modal')?.remove(); }
+function toast(msg, label, fn){
+  if (COMPACT){ cMsg(msg); return; }   // 작은 창에서는 윗줄에 잠깐 보여 준다
+  $('toast')?.remove();
+  const t = document.createElement('div'); t.id = 'toast'; t.className = 'toast';
+  t.innerHTML = `<span>${esc(msg)}</span>${label ? `<button>${esc(label)}</button>` : ''}`;
+  if (label) t.querySelector('button').onclick = () => { t.remove(); fn(); };
+  $('stage').appendChild(t); setTimeout(() => t.remove(), 7000);
+}
+function openKeys(){
+  const K = [['Space', '몰입 시작 · 한 번 더 누르면 일시정지 (시간 계산)'], ['R','잡념에서 복귀 (잡념 보관함에 적어 두기)'], ['F', '전체화면만 켜기·끄기 (시간 계산은 그대로)'], ['P', '진전 기록'], ['N', '새 문제'], ['M', '작은 창 (항상 위)'], ['1 2 3 4', '무대 · 대기실 · 기록 · 플래너'], ['L', '다크 / 라이트'], ['Esc', '창 닫기']];
+  openModal(`<div id="kbcard"><h3>단축키</h3>${K.map(([k, t]) => `<div class="kb-r"><span>${k.split(' ').map(x => `<kbd class="kbd">${x}</kbd>`).join('')}</span><em>${t}</em></div>`).join('')}
+    <p class="tip" style="margin-top:12px">생각을 멈춘 뒤 '어땠나요?' 창에서는 1 편안했다 · 2 보통 · 3 힘을 줬다<br>슬로싱킹 화면에서는 Enter = 떠올랐다 · V = 음성 메모 · R = 복귀 · Space = 몰입 시작·일시정지 · F 또는 Esc = 전체화면 끝내기</p></div>`);
+}
+function openAbout(){
+  openModal(`<h3>Think Hard — 의식의 무대 관리자</h3>
+    <p class="tip">황농문 교수의 몰입 이론을 바탕으로 만들었습니다. 몰입은 하나의 문제로 의식이 가득 찬 상태이고, 그 상태는 의도적인 노력으로 만듭니다. 생각하는 시간에 비례해 장기기억이 인출되므로, 진전이 없어도 계속 생각하는 것 자체가 몰입입니다.<br>
+    그리고 그 바탕은 <b>슬로싱킹</b>입니다. 세게 생각하면 금방 지치지만, 몸과 마음의 힘을 빼고 천천히 생각하면 몇 시간, 며칠씩 이어집니다. 그래서 이 프로그램은 '얼마나 오래, 얼마나 편안하게'를 가장 중요한 숫자로 봅니다.<br>
+    이 프로그램은 사람이 실패하는 세 지점을 막습니다: <b>무대에 엉뚱한 게 올라가는 것 · 연속성이 끊기는 것 · 진전이 없을 때 포기하는 것</b>.</p>
+    <div class="ab-grid">
+      <div><b>① 무대는 한 자리</b><p>FP 하나만 올라갑니다. 교체는 사유 + ${SWAP_COOLDOWN_H}시간 잠금으로 일부러 귀찮게.</p></div>
+      <div><b>② 잡념 복귀 (R)</b><p>알아챈 순간 한 번. 잡념은 잡념 보관함에, 화면은 FP로. 복귀 간격이 몰입도 그래프가 됩니다.</p></div>
+      <div><b>③ 연속성 시계 · 단계</b><p>무대에 오른 연속 시간이 핵심 숫자. 약한 1~3 · 강한 1~3단계를 실제 기록으로 올라갑니다.</p></div>
+      <div><b>④ 슬로싱킹 — 편안하게, 오래</b><p>Space 로 몰입 시작 · 일시정지, 일시정지할 때 '얼마나 힘을 줬나' 기록. 전체화면(F)은 어두운 화면에 FP만 — 졸면 자도 되고, 깨어 움직이면 음성 메모가 먼저 뜹니다. 1단계는 안내를 따라 배웁니다.</p></div>
+      <div><b>⑤ 답 금고 · 질문 카드</b><p>스스로 ${db.settings.lockMin}분 생각하기 전엔 자료가 잠깁니다. 열린 뒤에도 답이 아니라 질문만.</p></div>
+      <div><b>⑥ 진전 로그</b><p>작은 진전도 한 줄씩. 해결하면 아이디어가 어디서 왔는지 남겨 나만의 조건을 찾습니다.</p></div>
+      <div><b>⑦ 리듬 플래너</b><p>주중엔 자투리 약한 몰입, 주말엔 강한 몰입 블록과 재료 준비. 운동과 수면도 함께.</p></div>
+      <div><b>⑧ 안전장치</b><p>수면이 ${db.settings.sleepMin}시간보다 적은 날은 슬로싱킹을 잠그고 생각을 ${COOL_CAP_MIN / 60}시간까지로 제한합니다.</p></div>
+    </div>
+    <div class="foot"><button onclick="openKeys()">단축키</button><button class="primary" onclick="closeModal()">닫기</button></div>`);
+  $('modal').querySelector('.box').classList.add('wide');
+}
+function openSettings(){
+  const s = db.settings;
+  openModal(`<h3>설정</h3>
+    <div class="grid2">
+      <label class="fld"><span>답 금고가 열리는 생각 시간 (분)</span><input type="number" id="s-lock" min="10" max="1440" step="10" value="${s.lockMin}"></label>
+      <label class="fld"><span>안전장치 — 최소 수면 시간</span><input type="number" id="s-sleep" min="3" max="10" step="0.5" value="${s.sleepMin}"></label>
+      <label class="fld"><span>하루 운동 목표 (분)</span><input type="number" id="s-ex" min="0" max="300" step="5" value="${s.exGoal}"></label>
+      <div class="fld"><span>포인트 색 — 교정차트의 세 모드와 같은 색</span><span class="dseg">${[['blue', '파랑'], ['purple', '보라'], ['green', '초록']].map(([k, t]) => `<button class="${ACCENT === k ? 'on' : ''}" onclick="setAccent('${k}')">${t}</button>`).join('')}</span></div>
+      <div class="fld wide"><span>백업 — data/think_data.json 이 전부이고, 하루 한 번 backup/ 에 자동으로 복사됩니다</span>
+        <div class="row"><button onclick="exportData()">백업 내보내기</button><button onclick="$('importFile').click()">백업 불러오기</button></div></div>
+    </div>
+    <div class="foot"><button onclick="closeModal()">취소</button><button class="primary" onclick="saveSettings()">저장</button></div>`);
+}
+function saveSettings(){
+  const n = (id, lo, hi, d) => { const v = +$(id).value; return isFinite(v) && v >= lo && v <= hi ? v : d; };
+  db.settings.lockMin = n('s-lock', 10, 1440, 60); db.settings.sleepMin = n('s-sleep', 3, 10, 6); db.settings.exGoal = n('s-ex', 0, 300, 60);  closeModal(); save(); render();
+}
+function exportData(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], {type: 'application/json'}));
+  a.download = `ThinkHard_백업_${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function importData(inp){
+  const f = inp.files[0]; inp.value = ''; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result); if (!Array.isArray(d.problems)) throw 0;
+      if (!confirm(`백업을 불러오면 지금 데이터가 바뀝니다. (문제 ${d.problems.length}개)\n계속할까요?`)) return;
+      db = normalize(d); closeModal(); save(); render(); toast('백업을 불러왔습니다');
+    } catch(e){ toast('Think Hard 백업 파일이 아닙니다'); }
+  };
+  r.readAsText(f);
+}
+
+/* ---------- 하루의 시작: 수면 체크 ---------- */
+function dailyCheck(){
+  const k = today();
+  if (db.body[k]?.sleep != null || sessionStorage.getItem('th.sleepAsked') === k) return;
+  sessionStorage.setItem('th.sleepAsked', k);
+  openModal(`<h3>좋은 아침입니다</h3><p class="tip">어젯밤 몇 시간 잤나요? 잠이 부족한 날은 강한 몰입을 쉬도록 안전장치가 걸립니다.</p>
+    <div class="chips">${[4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 9].map(h => `<button onclick="setBody('${k}','sleep',${h});closeModal()">${h}시간</button>`).join('')}</div>
+    <div class="foot"><button onclick="closeModal()">나중에</button></div>`);
+}
+
+/* ---------- 키보드 (한글 입력 상태에서도 되도록 e.code 사용) ---------- */
+document.addEventListener('keydown', e => {
+  if (slowOn){
+    const typing = /INPUT|TEXTAREA/.test(e.target.tagName);
+    if (e.key === 'Escape'){ e.preventDefault(); if ($('wake')) closeWake(); else closeSlow(); }
+    else if ($('wake')){ if (e.key === 'Enter' && e.ctrlKey) $('wake').querySelector('.wbtn button:last-child').click(); else if (e.code === 'KeyV' && !typing){ e.preventDefault(); wakeVoice(); } }
+    else if (e.key === 'Enter'){ e.preventDefault(); slowIdea(); }
+    else if (e.code === 'KeyV'){ e.preventDefault(); slowVoice(); }
+    else if (e.code === 'KeyR'){ e.preventDefault(); slowReturn(); }
+    else if (e.code === 'KeyF'){ e.preventDefault(); closeSlow(); }   // F 를 한 번 더 누르면 기본 화면으로 (몰입 시간은 그대로 이어짐)
+    else if (e.code === 'Space'){ e.preventDefault(); toggleThink(); }   // Space: 몰입 시작 ↔ 일시정지
+    return;
+  }
+  if (COMPACT){   // 작은 창: M 원래 창 · Space 생각 시작/멈춤 · R 복귀 (잡념 입력 칸은 자체 Enter/Esc)
+    if (/INPUT/.test(e.target.tagName) || e.ctrlKey || e.altKey || e.isComposing) return;
+    const f = {KeyM: toggleMini, Space: toggleThink, KeyR: cReturn}[e.code];
+    if (f){ e.preventDefault(); f(); }
+    return;
+  }
+  if ($('modal')){
+    const ek = {Digit1: 1, Digit2: 2, Digit3: 3, Numpad1: 1, Numpad2: 2, Numpad3: 3}[e.code];
+    if (ek && $('easeBox')){ e.preventDefault(); setEase($('easeBox').dataset.sid, ek); return; }
+    if (e.key === 'Escape') closeModal();
+    return;
+  }
+  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){ if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+  // Space: 몰입 시작 ↔ 일시정지 · F: 전체화면만 (시간 계산과 무관)
+  const c = e.code, act = {
+    Space: toggleThink, KeyR: doReturn, KeyF: openSlow, KeyP: openLog, KeyN: () => openProblem(), KeyM: toggleMini, KeyL: toggleTheme,
+    Digit1: () => setView('stage'), Digit2: () => setView('room'), Digit3: () => setView('rec'), Digit4: () => setView('plan'), Slash: openKeys,
+    ArrowLeft: () => { if (view === 'plan'){ weekOff--; render(); } }, ArrowRight: () => { if (view === 'plan'){ weekOff++; render(); } },
+  }[c];
+  if (act){ e.preventDefault(); act(); }
+});
+
+/* ---------- 시작 ---------- */
+async function boot(){
+  try {
+    const c = await (await fetch('api/config')).json();
+    if (c.width >= 800 && c.height >= 600){ STAGE.w = c.width; STAGE.h = c.height; }
+    NATIVE = !!c.native; applyAccent(c.accent); applyTheme(c.theme);
+  } catch(e){ applyTheme('light'); }
+  document.documentElement.style.setProperty('--W', STAGE.w + 'px'); document.documentElement.style.setProperty('--H', STAGE.h + 'px'); fit();
+  let local = null; try { local = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
+  db = normalize(local);
+  try {
+    const r = await fetch('api/data');
+    if (r.ok){
+      const d = await r.json(); serverOK = true;
+      if (d && Array.isArray(d.problems)) db = normalize(d); else if (local) push();
+    }
+  } catch(e){}
+  if (!serverOK) toast('파일 저장 없이 열었습니다 — 데이터가 이 브라우저에만 남습니다. ThinkHard.pyw 로 실행하세요.');
+  recoverActive(); render();
+  setInterval(tick, 1000);
+  dailyCheck();
+}
+boot();
+
+/* ---------- 나의 도서관 통합판: 책장에 꽂힌 '몰입' 책으로 열린다 ----------
+   보일 때 화면 비율을 다시 맞추고, 숨을 때(책장으로 돌아갈 때) 바로 저장한다.
+   Esc 로 책장에 돌아가도 되는가: 슬로싱킹(전체화면) · 작은 창 · 열린 창 · 입력 중이 아니면 (그때는 원래대로 그것부터 닫는다) */
+window.__roomShown = () => { try { if (db){ fit(); render(); } } catch(e){} };
+window.__roomHidden = () => { if (saveT || dirty) push(); };
+window.__roomEscBack = e => !slowOn && !COMPACT && !$('modal') && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+</script>
+</body>
+</html>
