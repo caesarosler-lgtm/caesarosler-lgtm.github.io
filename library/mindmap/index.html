@@ -1,0 +1,1717 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마인드맵</title>
+<style>
+/* ===== 디자인 기준: 교정차트(index.html)와 같은 값 =====
+   글자: 15px 기준 × 1.2 비율 · 모서리: 4 · 8 · 12 · 16 · 24 · 간격: 4의 배수 · 움직임: 89 · 144 · 233ms 한 가지 곡선 */
+:root{
+  --t-3:8.7px; --t-2:10.4px; --t-1:12.5px; --t0:15px; --t1:18px; --t2:21.6px; --t3:25.9px; --t4:31.1px;
+  --r1:4px; --r2:8px; --r3:12px; --r4:16px; --r5:24px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --ease:cubic-bezier(.2,.8,.2,1); --d1:89ms; --d2:144ms; --d3:233ms;
+  --e1:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.05);
+  --bg:#f5f5f7;--panel:#fff;--line:rgba(0,0,0,.09);--text:#1d1d1f;--sub:#6e6e73;--accent:#0071e3;--accent-weak:#eaf3fe;--accent-rgb:0,113,227;--accent-hi:#4aa3ff;--accent-hover:#0a7cf0;--danger:#d70015;--ok:#248a3d;--warn:#b25000;
+  /* 가지 색 6가지 (교정차트에서 쓰는 색 계열) */
+  --b1:#0071e3;--b2:#7b4fd0;--b3:#248a3d;--b4:#c26a00;--b5:#d70015;--b6:#2e7d6b;
+  --dot:rgba(0,0,0,.075);
+  --hl:rgba(255,214,0,.62);
+  --hlm:rgba(255,221,0,.82);                         /* 주제에 칠한 마커 색 (글자는 검게) */
+}
+html[data-mode=doctor]{--bg:#f3f2fa;--accent:#5856d6;--accent-weak:#ecebfb;--accent-rgb:88,86,214;--accent-hi:#8e8cf0;--accent-hover:#6a68e0}
+html[data-mode=desk]{--bg:#f0f6f2;--accent:#1c8f4e;--accent-weak:#e6f4ec;--accent-rgb:28,143,78;--accent-hi:#5ccf8c;--accent-hover:#22a15a}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:var(--t0);color:var(--text);letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:var(--text);background:rgba(0,0,0,.055);border:none;border-radius:var(--r3);padding:7px 14px;font-weight:500;transition:background var(--d2) var(--ease),transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease)}
+button:hover{background:rgba(0,0,0,.095)}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-hover)}
+button.danger{color:var(--danger)}
+button.sm{padding:3px 10px;font-size:var(--t-1);border-radius:var(--r2)}
+button:disabled{opacity:.38;cursor:default}
+input,textarea{font:inherit;color:var(--text);width:100%;border:1px solid rgba(0,0,0,.14);border-radius:var(--r3);padding:8px 11px;background:#fff;transition:box-shadow var(--d2) var(--ease),border-color var(--d2) var(--ease)}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.16)}
+textarea{resize:vertical;line-height:1.5}
+.muted{color:var(--sub)}
+.empty{color:var(--sub);padding:14px 4px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kbd{display:inline-block;font:600 10px/1 ui-monospace,Consolas,monospace;color:var(--text);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--r1);padding:2px 6px;background:var(--panel);opacity:.9}
+
+/* 머리글 (교정차트와 같은 모양) */
+header{display:flex;align-items:center;height:52px;padding:0 22px;gap:16px;background:color-mix(in srgb,var(--bg) 22%,rgba(255,255,255,.84));backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);color:var(--text);border-bottom:1px solid var(--line);position:relative;z-index:40}
+header>*{flex:0 0 auto;white-space:nowrap}
+.brand{display:flex;align-items:center;gap:12px;cursor:default}
+.logo{width:28px;height:28px;border-radius:var(--r2);background:linear-gradient(145deg,var(--accent-hi),var(--accent));display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(var(--accent-rgb),.4)}
+header h1{font-size:var(--t0);font-weight:700;margin:0;letter-spacing:-.02em}
+header button{background:rgba(0,0,0,.055)}
+header button.ghost{background:none;color:var(--sub);padding:6px 10px}
+header button.ghost:hover{background:rgba(0,0,0,.06);color:var(--text)}
+header #themeBtn{width:116px;text-align:center}
+.search{position:relative;flex:0 0 380px;width:380px}
+.search input{height:36px;border-radius:var(--r3);background:rgba(0,0,0,.055);border:1px solid transparent;padding:0 62px 0 38px;font-size:var(--t0)}
+.search input:focus{background:#fff;border-color:var(--accent)}
+.search .sicon{position:absolute;left:13px;top:10px;color:var(--sub);pointer-events:none}
+.search kbd{position:absolute;right:10px;top:9px;font:inherit;font-size:var(--t-2);color:var(--sub);background:rgba(0,0,0,.07);border-radius:var(--r2);padding:1px 8px;pointer-events:none}
+.sres{position:absolute;top:44px;left:0;width:620px;max-height:70vh;overflow:auto;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r4);box-shadow:0 22px 60px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.06);padding:8px;z-index:60}
+.sres[hidden]{display:none}
+.sr{padding:8px 12px;border-radius:var(--r3);cursor:pointer;white-space:normal}
+.sr .st{font-weight:600}
+.sr .sp2{font-size:var(--t-1);color:var(--sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr mark{background:rgba(255,214,10,.45);color:inherit;border-radius:var(--r1);padding:0 1px}
+.sr.on{background:var(--accent);color:#fff}
+.sr.on .sp2{color:rgba(255,255,255,.8)}
+.sr.on mark{background:rgba(255,255,255,.3)}
+#keybar{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:var(--s4);min-width:0;overflow:hidden;font-size:var(--t-1);color:var(--sub)}
+#keybar .kh{display:inline-flex;align-items:center;gap:var(--s1);flex:0 0 auto;cursor:pointer;padding:4px 6px;border-radius:var(--r2);user-select:none;transition:background var(--d2) var(--ease)}
+#keybar .kh:hover{background:rgba(128,128,128,.14);color:var(--text)}
+#keybar .kh:active{transform:scale(.97)}
+#keybar #khPen.on{background:var(--hlm);color:#1d1d1f;font-weight:600}
+#keybar .kh em{font-style:normal;margin-left:var(--s1)}
+#saved{font-size:var(--t-1);color:var(--sub);opacity:0;transition:opacity var(--d3) var(--ease)}
+#saved.show{opacity:1}
+#saved.fail{opacity:1;color:var(--danger);font-weight:600}
+
+/* 3단: 마인드맵 목록 · 캔버스 · 선택한 주제 */
+.wrap{display:flex;height:calc(100% - 52px)}
+aside{width:300px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+aside .tools{padding:12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+#mlist{overflow:auto;flex:1;min-height:0}
+.pitem{padding:0 12px;height:58px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pitem:hover{background:rgba(0,0,0,.03)}
+.pitem.on{background:var(--accent-weak)}
+.pitem .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem>div{min-width:0}
+.pitem .meta{font-size:var(--t-1);color:var(--sub)}
+.badge{font-size:var(--t-2);padding:2px 9px;border-radius:var(--r3);background:#eef1f4;color:var(--sub);white-space:nowrap;font-weight:500}
+.pitem.on .badge{background:rgba(var(--accent-rgb),.14);color:var(--accent)}
+.lbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-top:1px solid var(--line);font-size:var(--t-1);color:var(--sub)}
+
+aside.insp{width:340px;border-right:none;border-left:1px solid var(--line);overflow:auto;padding:var(--s4);gap:var(--s4);background:var(--bg)}
+.card{background:var(--panel);border-radius:var(--r4);box-shadow:var(--e1);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card h3{margin:0;font-size:var(--t0);font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.card h3 .dotc{width:10px;height:10px;border-radius:50%;background:var(--c,var(--accent));flex-shrink:0}
+.path{font-size:var(--t-1);color:var(--sub);line-height:1.5;word-break:keep-all}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld>span{font-size:var(--t-1);color:var(--sub)}
+.sws{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sw{width:26px;height:26px;border-radius:50%;padding:0;background:var(--c)!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.sw.on{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--c)}
+.sws .auto.on{background:var(--accent);color:#fff}
+.stat{display:flex;gap:8px;flex-wrap:wrap}
+.stat div{background:rgba(0,0,0,.035);border-radius:var(--r3);padding:10px 14px;min-width:80px;flex:1}
+.stat b{display:block;font-size:var(--t2)}
+.stat span{font-size:var(--t-1);color:var(--sub)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* 캔버스 */
+#cv{flex:1;min-width:0;position:relative;overflow:hidden;background-color:var(--bg);background-image:radial-gradient(circle,var(--dot) 1.1px,transparent 1.5px);touch-action:none;outline:none}
+#cv.panning{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#links{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+#links path{fill:none;stroke-linecap:round}
+#ink{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+#ink path{fill:none;stroke:var(--hl);stroke-linecap:round;stroke-linejoin:round}
+.nd{position:absolute;left:0;top:0;width:max-content;min-width:44px;max-width:360px;padding:8px 14px;border-radius:var(--r3);background:var(--panel);box-shadow:var(--e1),0 0 0 1px var(--line);font-size:var(--t0);line-height:1.4;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;user-select:none;cursor:default;transition:box-shadow var(--d2) var(--ease)}
+.nd.d0{padding:14px 26px;min-width:120px;text-align:center;border-radius:var(--r4);background:linear-gradient(145deg,var(--accent-hi),var(--accent));color:#fff;font-size:var(--t2);font-weight:700;letter-spacing:-.02em;box-shadow:0 8px 24px rgba(var(--accent-rgb),.32)}
+.nd.d1{padding:9px 18px;font-size:var(--t1);font-weight:600;box-shadow:var(--e1),inset 0 0 0 2px var(--c)}
+.nd.d2 .tx::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c);margin:0 8px 2px 0;vertical-align:middle}
+.nd:hover{box-shadow:var(--e1),0 0 0 1px rgba(var(--accent-rgb),.45)}
+.nd.d1:hover{box-shadow:var(--e1),inset 0 0 0 2px var(--c),0 0 0 3px rgba(var(--accent-rgb),.18)}
+.nd.sel{box-shadow:var(--e1),0 0 0 3px rgba(var(--accent-rgb),.55)!important}
+.nd.d1.sel{box-shadow:var(--e1),inset 0 0 0 2px var(--c),0 0 0 4px rgba(var(--accent-rgb),.45)!important}
+.nd.d0.sel{box-shadow:0 8px 24px rgba(var(--accent-rgb),.32),0 0 0 3px var(--bg),0 0 0 6px var(--accent-hi)!important}
+.nd .tx.ph{color:var(--sub);font-weight:400}
+.nd.d0 .tx.ph{color:rgba(255,255,255,.75)}
+.nd.dragging{opacity:.78;pointer-events:none;z-index:20;box-shadow:0 18px 44px rgba(0,0,0,.28)!important}
+.nd.drop{box-shadow:0 0 0 3px var(--accent),0 10px 30px rgba(var(--accent-rgb),.3)!important}
+.nd .memo{position:absolute;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--bg)}
+/* 암기카드 기억 상태 (나의 도서관 통합판): 이 주제에서 만든 카드 수 + 색 — 초록 잘 기억함 · 주황 오늘 복습 · 빨강 자주 틀림 · 회색 아직 안 배움 */
+.nd .mem{position:absolute;top:-9px;left:-9px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;font:700 11px/14px inherit;font-style:normal;color:#fff;text-align:center;border:2px solid var(--bg);letter-spacing:0}
+.nd .mem.ok{background:#2fa84f}.nd .mem.due{background:#e8890c}.nd .mem.weak{background:#e0383e}.nd .mem.new{background:#8e8e93}
+.memline{margin-top:8px;font-size:var(--t-1);color:var(--sub)}
+.memline b.ok{color:#2fa84f}.memline b.due{color:#e8890c}.memline b.weak{color:#e0383e}
+.nd.d0 .memo{background:#fff;border-color:var(--accent)}
+.fold{position:absolute;top:50%;right:-13px;transform:translateY(-50%);min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:var(--panel);box-shadow:inset 0 0 0 2px var(--c);color:var(--c);font:700 var(--t-1)/24px inherit;text-align:center;cursor:pointer;display:none;z-index:2}
+.nd.L .fold{right:auto;left:-13px}
+.nd:hover .fold,.nd.sel .fold{display:block}
+.nd.collapsed .fold{display:block;background:var(--c);color:var(--panel)}
+#ed{position:absolute;left:0;top:0;width:100%;height:100%;margin:0;padding:inherit;border:0;border-radius:inherit;font:inherit;letter-spacing:inherit;line-height:inherit;text-align:inherit;color:inherit;background:transparent;resize:none;overflow:hidden;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;opacity:0;pointer-events:none;caret-color:transparent;box-shadow:none;outline:none}
+#ed.off{left:-9999px;width:10px;height:10px}
+.nd.editing{cursor:text;user-select:text}
+.nd.editing .tx{visibility:hidden}
+.nd.editing #ed{opacity:1;pointer-events:auto;caret-color:auto}
+.nd.d2.editing #ed{padding-left:28px}
+.zoombar{position:absolute;right:20px;bottom:20px;display:flex;gap:2px;padding:3px;background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(16px);border-radius:var(--r3);box-shadow:var(--e1),0 0 0 1px var(--line);z-index:5}
+.zoombar button{background:none;padding:5px 12px;border-radius:var(--r2);color:var(--sub)}
+.zoombar button:hover{background:rgba(0,0,0,.06);color:var(--text)}
+#zv{min-width:64px;font-variant-numeric:tabular-nums}
+.cvhint{position:absolute;left:20px;bottom:20px;font-size:var(--t-1);color:var(--sub);z-index:5;pointer-events:none}
+#emptyBox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#emptyBox[hidden]{display:none}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:80}
+.modal[hidden]{display:none}
+.modal .box{background:#fff;border-radius:var(--r5);padding:24px;width:640px;max-width:92vw;max-height:86vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.modal h3{margin:0 0 16px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 8px;text-align:left;font-size:var(--t-1);border-bottom:1px solid rgba(0,0,0,.055)}
+th{color:var(--sub);font-weight:600;white-space:nowrap;width:180px}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(30,30,32,.94);color:#fff;border-radius:var(--r4);padding:12px 14px 12px 20px;display:flex;align-items:center;gap:16px;font-size:var(--t0);box-shadow:0 14px 40px rgba(0,0,0,.35);z-index:90}
+.toast[hidden]{display:none}
+.toast button{background:rgba(255,255,255,.18);color:#fff;padding:5px 14px;border-radius:var(--r3)}
+.toast button:hover{background:rgba(255,255,255,.3)}
+
+/* 교차 연결 · 허브 · 길 찾기 */
+.nd{transition:box-shadow var(--d2) var(--ease),opacity var(--d3) var(--ease)}
+#links path{transition:opacity var(--d3) var(--ease)}
+#links path.xl{stroke:var(--accent);stroke-dasharray:7 7}
+#links path.onpath{stroke:var(--accent)!important;stroke-opacity:1!important;stroke-dasharray:none}
+.nd.onpath{box-shadow:var(--e1),0 0 0 3px var(--accent)!important}
+.nd.d2.hub{font-size:var(--t1);font-weight:600}
+.nd .xm,.nd .wm{position:absolute;bottom:-8px;font:700 var(--t-2)/15px inherit;font-style:normal;padding:0 6px;border-radius:999px;color:#fff;letter-spacing:0}
+.nd .xm{right:8px;background:var(--accent)}
+.nd.d0 .xm{background:#fff;color:var(--accent)}
+.nd .wm{left:8px;background:var(--warn)}
+#cv.linking,#cv.linking .nd{cursor:crosshair}
+.banner{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 18px;max-width:86%;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(16px);border-radius:var(--r4);box-shadow:var(--e1),0 0 0 1px var(--line)}
+.banner span{margin-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.banner b{color:var(--accent)}
+.banner button{flex-shrink:0}
+.li{display:flex;align-items:center;gap:8px;font-size:var(--t-1);padding:6px 8px;border-radius:var(--r2);cursor:pointer}
+.li:hover{background:rgba(128,128,128,.12)}
+.li .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .c{color:var(--sub);font-size:var(--t-2);white-space:nowrap}
+.li button{padding:1px 8px;font-size:var(--t-1);border-radius:var(--r2);flex-shrink:0}
+.note{font-size:var(--t-1);color:var(--sub);line-height:1.55}
+.note.warn{color:var(--warn)}
+.sec-t{font-size:var(--t-1);font-weight:700;color:var(--accent);margin:4px 0 2px}
+.tg{display:flex;flex-wrap:wrap;gap:8px}
+.tg button.on{background:var(--accent);color:#fff}
+.lst{display:flex;flex-direction:column;gap:2px}
+
+/* 외우기: 가리고 떠올리기 */
+.nd.mask{cursor:help}
+.nd.mask .tx{visibility:hidden}
+/* 형광펜: 글자 아래쪽 절반에 노란 칠 (실제 형광펜처럼) */
+/* 형광펜: 굵은 마커로 한 번 쓱 그은 것처럼 — 상자보다 조금 길게, 살짝 기울고 끝이 고르지 않게. 글자는 그 위에 */
+.nd.hl::before{content:"";position:absolute;left:-9px;right:-11px;top:10%;bottom:8%;background:var(--hlm);border-radius:5px 14px 7px 16px/9px 6px 12px 7px;transform:rotate(-1.4deg) skewX(-8deg);pointer-events:none;z-index:0}
+.nd.hl>.tx,.nd.hl>.q,.nd.hl>.memo,.nd.hl>.fold,.nd.hl>.xm,.nd.hl>.wm,.nd.hl>#ed{position:relative;z-index:1}
+.nd.hl>.q,.nd.hl>.memo,.nd.hl>.fold,.nd.hl>.xm,.nd.hl>.wm,.nd.hl>#ed{position:absolute}
+.nd.hl .tx,.nd.hl .q,.nd.hl #ed{color:#1d1d1f}
+.hlb{background:var(--hl)!important;color:var(--text)!important}
+.hlb:hover{filter:brightness(1.06)}
+.hlb.on{box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+/* 형광펜을 든 동안: 마우스가 형광펜 모양, 아래 안내가 바뀜 */
+#cv.pen,#cv.pen .nd,#cv.pen .fold{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 22l2.6-6.4 10-10 3.8 3.8-10 10z' fill='%23ffd60a' stroke='%23222' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M4 22l2.6-6.4 3.8 3.8z' fill='%23222'/%3E%3C/svg%3E") 4 22,crosshair}
+#cv.pen .nd:hover{box-shadow:var(--e1),0 0 0 2px var(--hl)!important}
+.cvhint .p{display:none}
+#cv.pen .cvhint .a{display:none}
+#cv.pen .cvhint .p{display:inline;color:var(--text);background:var(--hl);padding:4px 10px;border-radius:var(--r2)}
+.memrow{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.memrow button{padding:12px;font-size:var(--t1);font-weight:600}
+.nd.mask .memo{display:none}
+.nd .q{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;color:var(--sub)}
+.nd.d0 .q{color:#fff}
+.nd.q-ok{box-shadow:var(--e1),0 0 0 2px var(--ok)!important}
+.nd.q-weak{box-shadow:var(--e1),0 0 0 2px var(--warn)!important}
+.nd.q-miss{box-shadow:var(--e1),0 0 0 2px var(--danger)!important;cursor:pointer}
+.quizbar{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 18px;max-width:92%;background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(16px);border-radius:var(--r4);box-shadow:0 14px 40px rgba(0,0,0,.25),0 0 0 1px var(--line)}
+.quizbar input{width:300px;flex-shrink:0}
+.quizbar span{white-space:nowrap;font-size:var(--t-1);color:var(--sub);margin-right:4px}
+.quizbar b{color:var(--text)}
+.quizbar button{flex-shrink:0}
+.quizbar.no input{animation:shake var(--d3);border-color:var(--danger)}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.sws button.sm.on,.grid2 button.on{background:var(--accent);color:#fff}
+
+/* ===== 다크 모드 (교정차트와 같은 값) ===== */
+html[data-theme=dark]{color-scheme:dark;--bg:#1c1c1e;--panel:#2c2c2e;--line:rgba(255,255,255,.12);--text:#f2f2f7;--sub:#9b9ba3;
+  --accent:#0a84ff;--accent-weak:rgba(10,132,255,.20);--accent-rgb:10,132,255;--accent-hi:#64b5ff;--accent-hover:#409cff;--danger:#ff6961;--ok:#4cd964;--warn:#ffb340;
+  --b1:#409cff;--b2:#b894ff;--b3:#4cd964;--b4:#ffb340;--b5:#ff6961;--b6:#6fd3b8;--dot:rgba(255,255,255,.075);--hl:rgba(255,204,0,.5);--hlm:rgba(255,214,10,.9);
+  --e1:0 1px 2px rgba(0,0,0,.35),0 8px 28px rgba(0,0,0,.28)}
+html[data-theme=dark][data-mode=doctor]{--bg:#19181f;--panel:#272630;--accent:#7d7aff;--accent-weak:rgba(125,122,255,.22);--accent-rgb:125,122,255;--accent-hi:#a9a7ff;--accent-hover:#8d8aff}
+html[data-theme=dark][data-mode=desk]{--bg:#161d19;--panel:#252d28;--accent:#2aa862;--accent-weak:rgba(42,168,98,.22);--accent-rgb:42,168,98;--accent-hi:#6fd69a;--accent-hover:#34b96e}
+html[data-theme=dark] button{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button:hover{background:rgba(255,255,255,.17)}
+html[data-theme=dark] button.primary{background:var(--accent);color:#fff}
+html[data-theme=dark] button.primary:hover{background:var(--accent-hover)}
+html[data-theme=dark] input,html[data-theme=dark] textarea{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18)}
+html[data-theme=dark] input::placeholder,html[data-theme=dark] textarea::placeholder{color:#7c7c84}
+html[data-theme=dark] header{background:rgba(28,28,30,.82)}
+html[data-theme=dark][data-mode=doctor] header{background:rgba(25,24,31,.84)}
+html[data-theme=dark][data-mode=desk] header{background:rgba(22,29,25,.84)}
+html[data-theme=dark] header button.ghost{background:none}
+html[data-theme=dark] header button.ghost:hover{background:rgba(255,255,255,.10);color:var(--text)}
+html[data-theme=dark] .search input{background:rgba(255,255,255,.09);border-color:transparent}
+html[data-theme=dark] .search input:focus{background:rgba(255,255,255,.14);border-color:var(--accent)}
+html[data-theme=dark] .search kbd{background:rgba(255,255,255,.12)}
+html[data-theme=dark] .sres{background:rgba(44,44,46,.98);box-shadow:0 22px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.10)}
+html[data-theme=dark] .pitem:hover{background:rgba(255,255,255,.04)}
+html[data-theme=dark] .badge{background:rgba(255,255,255,.10)}
+html[data-theme=dark] .pitem.on .badge{background:rgba(var(--accent-rgb),.25);color:var(--accent-hi)}
+html[data-theme=dark] .stat div{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .zoombar button{background:none}
+html[data-theme=dark] .zoombar button:hover{background:rgba(255,255,255,.10)}
+html[data-theme=dark] .modal{background:rgba(0,0,0,.5)}
+html[data-theme=dark] .modal .box{background:#2c2c2e;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme=dark] td{border-bottom-color:rgba(255,255,255,.07)}
+html[data-theme=dark] #ed{background:transparent;border:0}
+html[data-theme=dark] .nd.d0{box-shadow:0 8px 28px rgba(var(--accent-rgb),.28)}
+/* 마인드맵 웹판 — 휴대폰 배치 (2026-10-09, tools/build_web.py 가 apps/mindmap.html 의 스타일 끝에 넣는다 — 이 설명에 스타일 닫는 태그 글자를 쓰면 화면이 깨진다).
+   큰 화면 = 맵 목록 | 캔버스 | 선택한 주제 세 칸. 폭 820px 이하에서는 위아래로: 머리글(검색 · 도구 줄) → 캔버스(화면의 2/3) → 맵 목록 → 선택한 주제.
+   도구 줄(하위 주제 · 같은 단계 · 고치기 · 접기 · 지우기 · 되돌리기 · 외우기 · 형광펜)은 휴대폰에서 자판 대신 쓰는 단추라 옆으로 넘겨 볼 수 있게 남긴다.
+   캔버스 안은 손가락 끌기 · 두 손가락 확대라(touch-action:none) 화면을 넘길 때는 캔버스 바깥을 쓸어 넘긴다 */
+#qhdBtn{display:none}   /* 창 크기 고정은 PC 프로그램에서만 */
+@media (max-width: 820px){
+  html,body{height:auto;overflow:auto}
+  header{height:auto;flex-wrap:wrap;gap:6px 8px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+  header #themeBtn{width:auto}
+  #saved{display:none}
+  .search{order:8;flex:1 1 100%;width:auto}
+  .search kbd{display:none}
+  .search input{font-size:16px}
+  .sres{width:100%;max-height:60vh}
+  #keybar{order:9;flex:1 1 100%;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;gap:4px}
+  #keybar::-webkit-scrollbar{display:none}
+  #keybar .kh{padding:7px 9px;background:rgba(128,128,128,.12);border-radius:999px}
+  #keybar .kh .kbd{display:none}
+  .wrap{display:flex;flex-direction:column;height:auto}
+  #cv{order:1;flex:none;height:66vh;height:66dvh;border-bottom:1px solid var(--line)}
+  .wrap>aside:not(.insp){order:2;width:auto;border-right:none;max-height:none}
+  #mlist{max-height:34vh;overflow:auto}
+  aside.insp{order:3;width:auto;border-left:none;border-top:1px solid var(--line)}
+  .nd{max-width:240px}
+  .zoombar{right:12px;bottom:12px}
+  .cvhint{display:none}   /* "빈 곳 두 번 클릭" 같은 마우스 안내 — 휴대폰에선 확대 막대와 겹친다 */
+  input,select,textarea{font-size:16px}   /* 아이폰이 입력할 때 확대하지 않게 */
+}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="2.6" fill="#fff" stroke="none"/><circle cx="3.5" cy="4.5" r="1.6"/><circle cx="16.5" cy="4.5" r="1.6"/><circle cx="3.5" cy="15.5" r="1.6"/><circle cx="16.5" cy="15.5" r="1.6"/><path d="M8 8.6 4.8 5.6M12 8.6l3.2-3M8 11.4l-3.2 3M12 11.4l3.2 3"/></svg></span><h1>마인드맵</h1></div>
+  <div class="search">
+    <svg class="sicon" viewBox="0 0 20 20" width="16" height="16"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="search" placeholder="주제 검색 — 모든 마인드맵에서" autocomplete="off" oninput="sInput()" onfocus="sInput()" onblur="setTimeout(()=>$('#sres').hidden=true,150)" onkeydown="sKey(event)">
+    <kbd>Ctrl+F</kbd>
+    <div id="sres" class="sres" hidden></div>
+  </div>
+  <div id="keybar">
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('child')" title="고른 주제 아래에 하위 주제 만들기"><span class="kbd">Tab</span><em>하위 주제</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('sib')" title="고른 주제와 같은 단계에 주제 만들기"><span class="kbd">Enter</span><em>같은 단계</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('edit')" title="고른 주제 글 고치기"><span class="kbd">F2</span><em>고치기</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('fold')" title="고른 가지 접기 · 펼치기"><span class="kbd">Space</span><em>접기</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('del')" title="고른 주제 지우기"><span class="kbd">Del</span><em>지우기</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('undo')" title="되돌리기"><span class="kbd">Ctrl</span><span class="kbd">Z</span><em>되돌리기</em></span>
+    <span class="kh" onmousedown="event.preventDefault()" onclick="khDo('quiz')" title="외우기 시작"><span class="kbd">F6</span><em>외우기</em></span>
+    <span class="kh" id="khPen" onmousedown="event.preventDefault()" onclick="khDo('pen')" title="형광펜 들기 · 내려놓기"><span class="kbd">H</span><em>형광펜</em></span>
+  </div>
+  <span id="saved">저장됨</span>
+  <button class="ghost" id="themeBtn" onclick="toggleTheme()" title="다크 모드 / 라이트 모드 (교정차트와 함께 바뀝니다)"></button>
+  <button class="ghost" id="qhdBtn" onclick="winQhd()" title="창을 QHD(2560×1440) 크기로 맞추기">QHD</button>
+  <button class="ghost" onclick="helpOpen()" title="단축키 · 사용법">ⓘ</button>
+</header>
+
+<div class="wrap">
+  <aside>
+    <div class="tools">
+      <button class="primary" onclick="newMap()" title="새 마인드맵 (Ctrl+N)">＋ 새 마인드맵</button>
+      <input id="mapq" placeholder="마인드맵 이름으로 찾기" oninput="renderList()" autocomplete="off">
+    </div>
+    <div id="mlist"></div>
+    <div class="lbar"><span id="mcount"></span><span>자동 저장</span></div>
+  </aside>
+
+  <div id="cv" tabindex="-1">
+    <div id="world"><svg id="links"></svg><svg id="ink"></svg><div id="nodes"></div></div>
+    <div id="emptyBox" hidden><div class="card" style="width:360px;align-items:center;text-align:center"><h3>마인드맵이 없습니다</h3><div class="muted" style="font-size:var(--t-1)">새 마인드맵을 만들어 생각을 펼쳐 보세요.</div><button class="primary" onclick="newMap()">＋ 새 마인드맵</button></div></div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="quizbar" id="quizbar" hidden>
+      <span id="qInfo"></span>
+      <input id="qIn" placeholder="떠오르는 주제를 쓰고 Enter" autocomplete="off" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();quizAnswer()}">
+      <button id="qRevealBtn" onclick="quizReveal()" title="남은 주제를 모두 보여 줍니다 (놓친 것으로 표시)">정답 보기</button>
+      <button id="qHlBtn" class="hlb" onclick="quizHl()" title="놓친 주제와 힌트를 보고 떠올린 주제에 형광펜을 칠합니다. 바로 떠올린 주제의 형광펜은 지웁니다">형광펜 칠하기</button>
+      <button id="qRetryBtn" onclick="quizRetry()" title="놓친 주제만 다시 가리고 떠올립니다">놓친 것만 다시</button>
+      <button id="qEndBtn" onclick="quizEnd()" title="Esc">끝내기</button>
+    </div>
+    <div class="cvhint"><span class="a">빈 곳 두 번 클릭 — 큰 가지 추가 · 끌어서 옮기기 · 휠 — 확대·축소</span><span class="p">형광펜 — 어디든 드래그해서 칠하기 · 칠한 곳에서 시작하면 지우기 · 화면은 움직이지 않습니다 · <b>H</b> 또는 <b>Esc</b> 로 내려놓기</span></div>
+    <div class="zoombar">
+      <button onclick="zoomCenter(1/1.2)" title="축소 (Ctrl+−)">−</button>
+      <button id="zv" onclick="zoomTo(1)" title="100%로">100%</button>
+      <button onclick="zoomCenter(1.2)" title="확대 (Ctrl+＋)">＋</button>
+      <button onclick="fitView()" title="한눈에 보기 (Ctrl+0)">맞춤</button>    </div>
+  </div>
+
+  <aside class="insp" id="insp">
+    <div class="card" id="nodeCard">
+      <h3><i class="dotc" id="iDot"></i><span id="iHead">선택한 주제</span></h3>
+      <div class="path" id="iPath"></div>
+      <label class="fld"><span>주제</span><textarea id="iText" rows="2"></textarea></label>
+      <label class="fld"><span>메모</span><textarea id="iNote" rows="9" placeholder="자세한 내용 · 근거 · 할 일 …"></textarea></label>
+      <div class="fld" id="iColorRow"><span>가지 색</span><div class="sws" id="iColors"></div></div>
+      <div class="lst" id="iLinks" hidden></div>
+      <button id="iHlBtn" onclick="toggleHl(sel)" title="이 주제 하나만 칠하거나 지웁니다. 여러 개는 H 를 누르고 드래그하세요">형광펜 칠하기</button>
+      <button onclick="startLink()" title="Ctrl+L — 가지가 달라도, 다른 마인드맵의 주제와도 이을 수 있습니다">⤳ 다른 주제와 잇기</button>
+      <div class="grid2">
+        <button onclick="addChild()" title="Tab">＋ 하위 주제</button>
+        <button onclick="addSibling()" id="iSibBtn" title="Enter">＋ 같은 단계</button>
+        <button onclick="toggleFold(sel)" id="iFoldBtn" title="Space">접기</button>
+        <button class="danger" onclick="delNode()" id="iDelBtn" title="Delete">지우기</button>
+      </div>
+    </div>
+    <div class="card" id="noSelCard"><h3>선택한 주제 없음</h3><div class="muted" style="font-size:var(--t-1);line-height:1.6">주제를 클릭하거나 방향키를 누르면 여기에서 메모와 색을 고칠 수 있습니다.</div></div>
+    <div class="memrow" id="memRow">
+      <button class="primary" id="memBtn" onclick="startQuiz()" title="F6 — 가운데 주제만 남기고 모두 가립니다. 떠오르는 대로 써서 맞춰 보세요">외우기</button>
+      <button class="hlb" id="memHlBtn" onclick="startQuiz(null, true)" title="Shift+F6 — 형광펜 칠한 주제만 가립니다. 나머지는 보이는 채로 단서가 됩니다">형광펜 부분만 외우기</button>
+    </div>
+    <div class="card" id="mapCard">
+      <h3>이 마인드맵</h3>
+      <div class="stat"><div><b id="mN">0</b><span>주제</span></div><div><b id="mD">0</b><span>단계</span></div><div><b id="mM">0</b><span>메모</span></div></div>
+      <div class="path" id="mDates"></div>
+      <div class="grid2">
+        <button onclick="copyOutline()" title="개요(Markdown)를 클립보드에 복사 — 메모장·한글·노션에 붙여넣기">개요 복사</button>
+        <button onclick="exportMd()" title="마인드맵_내보내기 폴더에 .md 파일로 저장">파일로 저장</button>
+        <button onclick="setAllFold(false)">모두 펼치기</button>
+        <button onclick="setAllFold(true)">큰 가지만</button>
+      </div>
+      <button class="danger" onclick="deleteMap(cur && cur.id)">이 마인드맵 지우기</button>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="help" hidden onclick="if(event.target===this)this.hidden=true">
+  <div class="box">
+    <h3>마인드맵 사용법</h3>
+    <table>
+      <tr><th>새 주제</th><td><span class="kbd">Tab</span> 하위 주제 · <span class="kbd">Enter</span> 같은 단계 · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> 위쪽에 같은 단계 · 빈 곳 두 번 클릭 — 큰 가지</td></tr>
+      <tr><th>글 고치기</th><td>주제를 고른 채 그냥 타자 — 새로 쓰기 · <span class="kbd">F2</span> 또는 두 번 클릭 — 이어 쓰기<br>쓰는 중: <span class="kbd">Enter</span> 끝내고 바로 다음 주제 (빈 주제에서 <span class="kbd">Enter</span> — 멈춤) ·<span class="kbd">Shift</span>+<span class="kbd">Enter</span> 줄 바꿈 · <span class="kbd">Tab</span> 끝내고 하위 주제 · <span class="kbd">Esc</span> 취소</td></tr>
+      <tr><th>움직이기</th><td><span class="kbd">←</span><span class="kbd">→</span><span class="kbd">↑</span><span class="kbd">↓</span> 주제 사이 이동 · <span class="kbd">Esc</span> 선택 해제</td></tr>
+      <tr><th>정리</th><td>주제를 끌어 다른 주제 위에 놓기 — 그 아래로 옮기기 · 빈 곳에 놓기 — 순서·방향 바꾸기<br><span class="kbd">Alt</span>+<span class="kbd">↑</span><span class="kbd">↓</span> 순서 바꾸기 · <span class="kbd">Space</span> 접기·펼치기 · <span class="kbd">Del</span> 지우기</td></tr>
+      <tr><th>복사 · 붙여넣기</th><td><span class="kbd">Ctrl</span>+<span class="kbd">C</span> / <span class="kbd">X</span> / <span class="kbd">V</span> — 가지째 복사 · 잘라내기 · 붙여넣기<br>들여쓰기된 개요(메모장·노션·한글의 글머리표)를 붙여넣으면 가지로 펼쳐집니다.</td></tr>
+      <tr><th>되돌리기</th><td><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 되돌리기 · <span class="kbd">Ctrl</span>+<span class="kbd">Y</span> 다시 하기</td></tr>
+      <tr><th>보기</th><td>휠 — 확대·축소 · 빈 곳 끌기 — 화면 이동 · <span class="kbd">Ctrl</span>+<span class="kbd">0</span> 한눈에 보기</td></tr>
+      <tr><th>그 밖</th><td><span class="kbd">Ctrl</span>+<span class="kbd">F</span> 모든 마인드맵에서 찾기 · <span class="kbd">Ctrl</span>+<span class="kbd">N</span> 새 마인드맵 · <span class="kbd">Ctrl</span>+<span class="kbd">S</span> 바로 저장</td></tr>
+      <tr><th>외우기</th><td><b>외우기</b> 버튼 또는 <span class="kbd">F6</span> — 가운데 주제만 남기고 모두 가립니다.<br>떠오르는 주제를 쓰고 <span class="kbd">Enter</span>. 맞으면 그 자리에 나타납니다. 가려진 주제를 클릭하면 첫 글자 힌트, 한 번 더 클릭하면 정답.<br>끝나면 놓친 것만 다시 해 볼 수 있습니다. <span class="kbd">Esc</span> 끝내기</td></tr>
+      <tr><th>형광펜</th><td><span class="kbd">H</span> 또는 위쪽 안내줄의 <b>H 형광펜</b> 클릭 — 형광펜을 듭니다. 화면 어디든 드래그하면 자를 대고 긋듯 곧은 가로(또는 세로) 줄이 그어집니다. 줄이 지나간 주제는 글자에 형광펜이 칠해지고, 빈 곳에 그은 줄만 막대로 남습니다. 칠한 곳에서 시작해 그으면 지워집니다. 들고 있는 동안에는 화면 이동 · 확대가 멈춥니다. 외우는 중에도 됩니다.<br><span class="kbd">H</span> 또는 <span class="kbd">Esc</span> — 내려놓기 · 한 번 긋기는 <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 로 되돌릴 수 있습니다. 글자 h 를 바로 쓰려면 <span class="kbd">Shift</span>+<span class="kbd">H</span>.<br>외우기를 마친 뒤 <b>형광펜 칠하기</b> — 놓친 주제와 힌트를 보고 떠올린 주제에 한 번에 칠하고, 바로 떠올린 주제의 형광펜은 지웁니다.<br><b>형광펜 부분만 외우기</b> 버튼 또는 <span class="kbd">Shift</span>+<span class="kbd">F6</span> — 칠한 주제만 가리고 외웁니다(나머지는 보이는 채로 단서가 됩니다).</td></tr>
+      <tr><th>잇기 (교차 연결)</th><td><span class="kbd">Ctrl</span>+<span class="kbd">L</span> 누르고 다른 주제 클릭 — 가지가 달라도 점선으로 이어집니다. 다른 마인드맵을 열어 골라도 됩니다.<br>자주 오간 가지와 연결은 점점 굵고 진해지고, 자주 함께 본 두 주제는 이으라고 알려 줍니다.</td></tr>
+      <tr><th>그 밖의 연결 기능</th><td><span class="kbd">Shift</span>+클릭 — 고른 주제에서 그 주제까지 가장 짧은 길 · 빈 검색창을 누르면 고른 주제에서 연상되는 주제가 가까운 순서로 나옵니다.<br>하위 주제가 7개를 넘으면 묶으라고 알려 줍니다.</td></tr>
+      <tr><th>저장 위치</th><td>data/mindmap_data.json (자동 저장) · 하루 한 번 backup/ 폴더에 자동 백업<br>테마(라이트·다크)와 색은 교정차트의 설정을 함께 씁니다.</td></tr>
+    </table>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="primary" onclick="$('#help').hidden=true">닫기</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const KEY = 'mindmap.v1', PAL = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'];
+const HG0 = 64, HG = 44, VG0 = 22, VG = 12;          // 가지 사이 가로·세로 간격 (가운데 → 큰 가지는 더 넓게)
+let db = {maps: [], current: null}, serverOK = false, cur = null, sel = null, edit = null, clip = null;
+let undoS = [], redoS = [], quiz = null;             // quiz: 가리고 떠올리기 시험 중일 때의 상태
+const idx = new Map(), els = new Map(), pos = new Map();
+const view = {x: 0, y: 0, k: 1};
+const cv = $('#cv');
+const ed = document.createElement('textarea');       // 글을 쓰는 칸 하나를 고른 주제 위에 겹쳐 둔다 → 한글 입력이 첫 글자부터 끊기지 않는다
+ed.id = 'ed'; ed.spellcheck = false; ed.rows = 1; ed.className = 'off';
+
+const uid = () => Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 7);
+const nowISO = () => new Date().toISOString();
+const mk = (text, extra) => ({id: uid(), text: text || '', note: '', color: null, collapsed: false, children: [], c: nowISO(), ...extra});   // c 만든 때 · v 본 횟수
+const countAll = n => n.children.reduce((a, c) => a + 1 + countAll(c), 0);
+const depthOf = n => n.children.length ? 1 + Math.max(...n.children.map(depthOf)) : 0;
+const countNotes = n => (n.note ? 1 : 0) + n.children.reduce((a, c) => a + countNotes(c), 0);
+function fmt(iso){
+  if (!iso) return '';
+  const d = new Date(iso), t = new Date(), p = v => String(v).padStart(2, '0');
+  return d.toDateString() === t.toDateString() ? `오늘 ${p(d.getHours())}:${p(d.getMinutes())}` : `${d.getFullYear() !== t.getFullYear() ? d.getFullYear() + '/' : ''}${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function sampleMap(){
+  const r = mk('마인드맵 사용법');
+  const add = (t, side, kids) => r.children.push(mk(t, {side, children: kids.map(k => mk(k))}));
+  add('주제 만들기', 'R', ['Tab — 하위 주제', 'Enter — 같은 단계 주제', '빈 곳 두 번 클릭 — 큰 가지']);
+  add('글 고치기', 'R', ['그냥 타자 — 새로 쓰기', 'F2 · 두 번 클릭 — 이어 쓰기', 'Shift+Enter — 줄 바꿈']);
+  add('정리하기', 'L', ['끌어서 다른 주제에 놓기', 'Alt+↑↓ — 순서 바꾸기', 'Space — 접기 · 펼치기']);
+  add('보기', 'L', ['휠 — 확대 · 축소', '빈 곳 끌기 — 화면 이동', 'Ctrl+0 — 한눈에 보기']);
+  add('외우기', 'R', ['F6 — 모두 가리고 떠올리기', '쓰고 Enter — 맞으면 나타남', '가려진 주제 클릭 — 힌트']);  r.children[0].note = '오른쪽 칸에서 메모와 가지 색을 고칠 수 있습니다.';
+  return {id: uid(), created: nowISO(), updated: nowISO(), root: r, view: null};
+}
+
+/* ---------- 구조 ---------- */
+function reindex(){
+  idx.clear();
+  const walk = (n, p, d, side) => {
+    idx.set(n.id, {n, p, d, side});
+    n.children.forEach(c => walk(c, n, d + 1, d === 0 ? (c.side === 'L' ? 'L' : 'R') : side));
+  };
+  if (cur) walk(cur.root, null, 0, null);
+}
+function colorKey(id){
+  for (let i = idx.get(id); i; i = i.p && idx.get(i.p.id)){
+    if (i.d === 0) return null;
+    if (i.n.color) return i.n.color;
+    if (i.d === 1) return PAL[i.p.children.indexOf(i.n) % PAL.length];
+  }
+  return null;
+}
+/* 큰 가지의 색은 만들 때 한 번 정해 두고 바꾸지 않는다 (순서가 바뀌거나 다른 가지가 지워져도 그대로 — 색이 기억의 단서) */
+function ensureColors(){
+  for (const c of cur.root.children) if (!c.color){
+    const used = PAL.map(p => cur.root.children.filter(x => x.color === p).length);
+    c.color = PAL[used.indexOf(Math.min(...used))];
+  }
+}
+const eachNode = (n, fn) => { fn(n); n.children.forEach(c => eachNode(c, fn)); };
+const dropOld = n => { delete n.fx; delete n.fy; delete n.t; delete n.r; delete n.miss; delete n.icon; };   // 없앤 기능(자리 고정 · 복습 기록 · 그림)이 남긴 값
+const folded = n => n.collapsed && !(quiz && quiz.open.has(n.id));       // 시험 중에는 가린 주제가 보이도록 접힌 가지도 펼쳐 보인다
+const cssColor = k => k ? `var(--${k})` : 'var(--accent)';
+const isDesc = (a, b) => { for (let i = idx.get(b); i && i.p; i = idx.get(i.p.id)) if (i.p.id === a) return true; return false; };
+function sideForNew(){
+  const w = s => cur.root.children.filter(c => (c.side === 'L' ? 'L' : 'R') === s).reduce((a, c) => a + 1 + countAll(c), 0);
+  return w('L') < w('R') ? 'L' : 'R';
+}
+
+/* ---------- 그리기 ---------- */
+function render(){
+  const keep = document.activeElement === ed;
+  const box = $('#nodes'); box.textContent = ''; els.clear();
+  $('#emptyBox').hidden = !!cur;
+  if (!cur){ $('#links').innerHTML = ''; $('#ink').innerHTML = ''; pos.clear(); placeEditor(false); return; }
+  const deg = linkDeg();
+  const walk = n => {
+    const i = idx.get(n.id), el = document.createElement('div'), lk = deg.get(n.id), fd = folded(n), qs = quiz && quiz.set.get(n.id), masked = qs === 'mask' || qs === 'hint';
+    el.className = `nd d${Math.min(i.d, 2)}` + (i.side === 'L' ? ' L' : '') + (fd && n.children.length ? ' collapsed' : '') + (n.id === sel ? ' sel' : '')
+      + (lk && lk.n * 2 + n.children.length >= 6 ? ' hub' : '')           // 연결이 많은 허브 주제는 크게
+      + (masked ? ' mask' : qs ? ' q-' + qs : '')                         // 시험 중: 가려짐 · 떠올림 · 힌트 · 놓침
+      + (n.hl && i.d > 0 ? ' hl' : '');                                   // 형광펜
+    el.dataset.id = n.id;
+    el.style.setProperty('--c', cssColor(colorKey(n.id)));
+    if (masked){ const q = document.createElement('i'); q.className = 'q'; q.textContent = qs === 'hint' ? [...n.text.trim()][0] + ' …' : '?'; el.appendChild(q); }
+    const tx = document.createElement('span'); tx.className = 'tx';
+    if (n.text) tx.textContent = n.text; else { tx.textContent = '빈 주제'; tx.classList.add('ph'); }
+    el.appendChild(tx);
+    if (n.note){ const m = document.createElement('i'); m.className = 'memo'; m.title = n.note; el.appendChild(m); }
+    const mm = MEM.get(n.id);
+    if (mm && !quiz){ const m = document.createElement('i'); m.className = 'mem ' + mm.s; m.textContent = mm.n; m.title = `암기카드 ${mm.n}장 — ${MEM_KO[mm.s]}`; el.appendChild(m); }
+    if (lk && lk.x){ const m = document.createElement('i'); m.className = 'xm'; m.textContent = '↗' + lk.x; m.title = '다른 마인드맵의 주제와 이어져 있습니다'; el.appendChild(m); }
+    if (n.children.length > 7){ const m = document.createElement('i'); m.className = 'wm'; m.textContent = n.children.length; m.title = '하위 주제가 많습니다 — 4~7개로 묶어 보세요'; el.appendChild(m); }
+    if (n.children.length && i.d > 0){
+      const f = document.createElement('b'); f.className = 'fold';
+      f.textContent = fd ? countAll(n) : '−'; f.title = fd ? '펼치기 (Space)' : '접기 (Space)';
+      if (!quiz) el.appendChild(f);
+    }
+    box.appendChild(el); els.set(n.id, el);
+    if (!fd) n.children.forEach(walk);
+  };
+  walk(cur.root);
+  placeEditor(keep);
+  relayout();
+}
+
+/* 자리 잡기: 가운데 주제를 중심으로 큰 가지는 오른쪽·왼쪽에, 하위 가지는 바깥으로 펼친다 */
+function relayout(){
+  pos.clear();
+  if (!cur) return;
+  const vis = n => folded(n) ? [] : n.children, sh = new Map();
+  const size = n => { const el = els.get(n.id); const P = {x: 0, y: 0, w: el.offsetWidth, h: el.offsetHeight}; pos.set(n.id, P); return P; };
+  const subH = n => {
+    const P = size(n), kids = vis(n);
+    let h = P.h;
+    if (kids.length) h = Math.max(h, kids.reduce((a, c) => a + subH(c), 0) + VG * (kids.length - 1));
+    sh.set(n.id, h); return h;
+  };
+  const place = (kids, p, dir, cy, hg, vg) => {
+    const P = pos.get(p.id);
+    let y = cy - (kids.reduce((a, c) => a + sh.get(c.id), 0) + vg * (kids.length - 1)) / 2;
+    for (const c of kids){
+      const C = pos.get(c.id), h = sh.get(c.id), ccy = y + h / 2;
+      C.x = dir > 0 ? P.x + P.w + hg : P.x - hg - C.w; C.y = ccy - C.h / 2;
+      place(vis(c), c, dir, ccy, HG, VG);
+      y += h + vg;
+    }
+  };
+  const r = cur.root, R0 = size(r);
+  R0.x = -R0.w / 2; R0.y = -R0.h / 2;
+  r.children.forEach(subH);
+  place(r.children.filter(c => c.side !== 'L'), r, 1, 0, HG0, VG0);
+  place(r.children.filter(c => c.side === 'L'), r, -1, 0, HG0, VG0);
+  let svg = '';
+  for (const [id, P] of pos){
+    const el = els.get(id); el.style.left = P.x + 'px'; el.style.top = P.y + 'px';
+    const i = idx.get(id); if (!i.p) continue;
+    const Q = pos.get(i.p.id), dir = i.side === 'L' ? -1 : 1;
+    const x1 = i.d === 1 ? Q.x + Q.w / 2 + dir * Q.w * .32 : (dir > 0 ? Q.x + Q.w : Q.x), y1 = Q.y + Q.h / 2;
+    const x2 = dir > 0 ? P.x : P.x + P.w, y2 = P.y + P.h / 2, mx = (x1 + x2) / 2;
+    const v = i.n.v || 0, w = (i.d === 1 ? 3.5 : i.d === 2 ? 2.25 : 1.6) + Math.min(2.5, Math.log2(1 + v) * .45);   // 자주 오간 가지는 굵고 진하게 (수초화)
+    svg += `<path data-a="${i.p.id}" data-b="${id}" d="M${x1.toFixed(1)} ${y1.toFixed(1)}C${mx.toFixed(1)} ${y1.toFixed(1)} ${mx.toFixed(1)} ${y2.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}" style="stroke:${cssColor(colorKey(id))};stroke-width:${w.toFixed(2)};stroke-opacity:${Math.min(1, .6 + v * .05).toFixed(2)}"/>`;
+  }
+  // 교차 연결(시냅스): 가지가 다른 두 주제를 점선으로. 접혀서 안 보이는 주제는 보이는 윗주제에 잇는다
+  const visAnc = id => { while (!pos.has(id)) id = idx.get(id).p.id; return id; };
+  for (const l of localLinks()){
+    const a = visAnc(l.a), b = visAnc(l.b); if (a === b) continue;
+    const A = pos.get(a), B = pos.get(b);
+    const dx = B.x + B.w / 2 - (A.x + A.w / 2), dy = B.y + B.h / 2 - (A.y + A.h / 2), hz = Math.abs(dx) > Math.abs(dy);
+    const x1 = hz ? (dx > 0 ? A.x + A.w : A.x) : A.x + A.w / 2, y1 = hz ? A.y + A.h / 2 : (dy > 0 ? A.y + A.h : A.y);
+    const x2 = hz ? (dx > 0 ? B.x : B.x + B.w) : B.x + B.w / 2, y2 = hz ? B.y + B.h / 2 : (dy > 0 ? B.y : B.y + B.h);
+    const cx = (x1 + x2) / 2 - (y2 - y1) * .18, cy = (y1 + y2) / 2 + (x2 - x1) * .18;
+    svg += `<path class="xl" data-a="${l.a}" data-b="${l.b}" d="M${x1.toFixed(1)} ${y1.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}" style="stroke-width:${(1.5 + Math.min(3, Math.log2(l.w) * .7)).toFixed(2)};stroke-opacity:${Math.min(1, .5 + l.w * .05).toFixed(2)}"/>`;
+  }
+  $('#links').innerHTML = svg;
+  drawInk();
+  decorate();
+}
+
+function placeEditor(focus){
+  const el = sel && els.get(sel);
+  if (el){ if (ed.parentNode !== el) el.appendChild(ed); ed.className = ''; }
+  else { if (ed.parentNode !== cv) cv.appendChild(ed); ed.className = 'off'; }
+  if (!edit) ed.value = '';
+  if (focus) ed.focus({preventScroll: true});
+}
+
+/* ---------- 화면 이동 · 확대 ---------- */
+function applyView(){
+  $('#world').style.transform = `translate(${view.x}px,${view.y}px) scale(${view.k})`;
+  let g = 24 * view.k; while (g < 12) g *= 2;
+  cv.style.backgroundSize = `${g}px ${g}px`; cv.style.backgroundPosition = `${view.x}px ${view.y}px`;
+  $('#zv').textContent = Math.round(view.k * 100) + '%';
+}
+function zoomAt(f, sx, sy){
+  const k = Math.min(3, Math.max(.2, view.k * f));
+  view.x = sx - (sx - view.x) * k / view.k; view.y = sy - (sy - view.y) * k / view.k; view.k = k;
+  applyView(); saveView();
+}
+const zoomCenter = f => zoomAt(f, cv.clientWidth / 2, cv.clientHeight / 2);
+const zoomTo = k => zoomCenter(k / view.k);
+function fitView(){
+  if (!pos.size) return;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const P of pos.values()){ x0 = Math.min(x0, P.x); y0 = Math.min(y0, P.y); x1 = Math.max(x1, P.x + P.w); y1 = Math.max(y1, P.y + P.h); }
+  const W = cv.clientWidth, H = cv.clientHeight, m = 90;
+  view.k = Math.max(.2, Math.min(1, (W - 2 * m) / (x1 - x0), (H - 2 * m) / (y1 - y0)));
+  view.x = W / 2 - (x0 + x1) / 2 * view.k; view.y = H / 2 - (y0 + y1) / 2 * view.k;
+  applyView(); saveView();
+}
+function ensureVisible(id){
+  if (pen) return;                                   // 형광펜을 든 동안에는 화면을 저절로 움직이지 않는다
+  const P = pos.get(id); if (!P) return;
+  const W = cv.clientWidth, H = cv.clientHeight, m = 56, k = view.k;
+  const sx = view.x + P.x * k, sy = view.y + P.y * k, sw = P.w * k, shh = P.h * k;
+  let moved = false;
+  if (sx + sw > W - m){ view.x -= sx + sw - (W - m); moved = true; }
+  if (view.x + P.x * k < m){ view.x += m - (view.x + P.x * k); moved = true; }
+  if (sy + shh > H - m){ view.y -= sy + shh - (H - m); moved = true; }
+  if (view.y + P.y * k < m){ view.y += m - (view.y + P.y * k); moved = true; }
+  if (moved){ applyView(); saveView(); }
+}
+let viewT = null;
+function saveView(){ if (!cur) return; clearTimeout(viewT); viewT = setTimeout(() => { if (cur) webViewSave(cur.id, view); }, 600); }
+
+/* ---------- 고르기 · 고치기 ---------- */
+function select(id, opts = {}){
+  if (edit && edit.id !== id) finishEdit(true);
+  const prev = sel;
+  sel = id && idx.has(id) ? id : null;
+  els.forEach((el, k) => el.classList.toggle('sel', k === sel));
+  placeEditor(opts.focus !== false);
+  if (pathSet){ pathSet = null; pathInfo = ''; showBanner(); }
+  renderInsp(); decorate();
+  if (sel && opts.reveal !== false) ensureVisible(sel);
+  if (sel !== prev){                                 // 1.5초 머무르면 '들여다본' 것으로 친다 (방향키로 지나가기만 한 주제는 세지 않는다)
+    clearTimeout(dwellT);
+    if (sel){ const s = sel, m = cur; dwellT = setTimeout(() => { if (sel === s && cur === m) touch(s); }, 1500); }
+  }
+}
+function startEdit(id, {text, isNew = false, selectAll = false} = {}){
+  const i = idx.get(id);
+  if (!i || !els.get(id)) return;
+  if (pen) setPen(false);                            // 글을 쓰기 시작하면 형광펜은 내려놓는다
+  if (sel !== id) select(id);
+  edit = {id, orig: i.n.text, isNew};
+  els.get(id).classList.add('editing');
+  if (text === undefined) text = i.n.text;
+  if (ed.value !== text) ed.value = text;          // 한글 조합 중에는 값을 다시 넣지 않는다 (조합이 끊긴다)
+  ed.focus({preventScroll: true});
+  if (selectAll) ed.select(); else if (text !== '' && document.activeElement === ed && !ed._composing) ed.setSelectionRange(text.length, text.length);
+  syncEdit();
+}
+function syncEdit(){
+  if (!edit) return;
+  const tx = els.get(edit.id)?.querySelector('.tx'); if (!tx) return;
+  tx.classList.remove('ph'); tx.textContent = ed.value + '​';
+  relayout(); ensureVisible(edit.id);
+}
+function finishEdit(save){
+  if (!edit) return;
+  const e = edit; edit = null;
+  const i = idx.get(e.id), text = ed.value.trim();
+  ed.value = '';
+  if (!i){ render(); return; }
+  if (e.isNew && (!save || !text)){                 // 새로 만든 주제를 비운 채 끝내면 없던 일로
+    const sibs = i.p.children; sibs.splice(sibs.indexOf(i.n), 1);
+    undoS.pop(); sel = i.p.id;
+    changed(); return;
+  }
+  if (save && text && text !== e.orig){
+    if (e.isNew) i.n.text = text;                   // 만들 때 이미 되돌리기 지점을 남겼다
+    else { pushUndo(); i.n.text = text; }
+    changed(); return;
+  }
+  render(); renderInsp();
+}
+/* h 를 한글 자판으로 누르면 keydown 을 막아도 'ㅗ' 조합이 시작될 수 있다 → 방금 h 를 눌렀으면 그 입력은 버린다 */
+let hAt = 0;
+const justH = () => Date.now() - hAt < 400;
+const hChar = (el, e) => justH() && /^[hㅗ]?$/i.test(el.value);          // 방금 누른 h 가 만든 글자 하나만 (그 뒤에 친 글자는 남긴다)
+function dropH(el){ el.value = ''; el.blur(); el.focus({preventScroll: true}); el.value = ''; }
+ed.addEventListener('compositionstart', () => { ed._composing = true; if (justH() && !edit) return dropH(ed); if (!edit && sel) startEdit(sel, {text: ed.value}); });
+ed.addEventListener('compositionend', () => { ed._composing = false; });
+$('#qIn').addEventListener('compositionstart', () => { if (justH() && !$('#qIn').value) dropH($('#qIn')); });
+$('#qIn').addEventListener('input', e => { if (hChar($('#qIn'), e)) $('#qIn').value = ''; });
+ed.addEventListener('input', e => {
+  if (edit) return syncEdit();
+  if (hChar(ed, e)){ ed.value = ''; return; }
+  if (!ed.value) return;
+  if (!sel){ ed.value = ''; return; }
+  startEdit(sel, {text: ed.value});                  // 고른 채 타자를 치면 그 글자로 새로 쓰기
+});
+/* 쓰는 중 Enter: 끝내고 바로 같은 단계의 다음 주제를 연다 (Tab 이 하위 주제를 바로 여는 것처럼).
+   비어 있는 새 주제에서 Enter 를 누르면 그 주제는 지우고 멈춘다. 가운데 주제는 Enter 로 끝내기만 한다. */
+function editEnter(){
+  if (!edit) return;
+  const id = edit.id, empty = !ed.value.trim(), isNew = edit.isNew;
+  finishEdit(true);
+  const i = idx.get(id);
+  if (i && i.d > 0 && !(empty && isNew)) addSibling();
+}
+ed.addEventListener('keydown', e => {
+  if (!edit) return;                                 // 고치는 중이 아닐 때는 아래 공용 단축키가 처리
+  e.stopPropagation();
+  if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); editEnter(); }
+  else if (e.key === 'Escape'){ e.preventDefault(); finishEdit(false); }
+  else if (e.key === 'Tab'){ e.preventDefault(); finishEdit(true); addChild(); }
+});
+/* 한글 입력: 마지막 글자를 조합하는 중에 Enter 를 누르면 조합만 끝나고 Enter 가 사라지는 경우가 있다 (Windows).
+   조합이 끝난 직후 Enter 키를 뗄 때 한 번만 Enter 로 처리해, Enter 를 두 번 누르지 않아도 되게 한다. */
+function imeEnter(el, fn){
+  let pend = false;
+  el.addEventListener('compositionend', () => { pend = true; });
+  el.addEventListener('keydown', e => { if (!(e.isComposing || e.keyCode === 229)) pend = false; }, true);   // 조합 없이 눌린 Enter 는 keydown 에서 이미 처리됨
+  el.addEventListener('keyup', e => { if (e.key === 'Enter' && pend && !e.shiftKey){ pend = false; fn(); } else if (e.key !== 'Enter') pend = false; });
+}
+imeEnter(ed, () => { if (edit) editEnter(); });
+imeEnter($('#qIn'), () => quizAnswer());             // 외우기 답 칸도 같은 문제가 있다
+ed.addEventListener('blur', () => { if (edit) setTimeout(() => { if (edit && document.activeElement !== ed) finishEdit(true); }, 0); });
+
+/* ---------- 바꾸기 (모두 되돌리기 가능) ---------- */
+const snap = () => JSON.stringify({r: cur.root, l: db.links, k: cur.ink || []});
+function pushUndo(){ undoS.push({s: snap(), sel}); if (undoS.length > 300) undoS.shift(); redoS = []; }
+function changed(){
+  cur.updated = nowISO();
+  ensureColors();
+  reindex(); if (sel && !idx.has(sel)) sel = cur.root.id;
+  db.links = db.links.filter(l => (l.am !== cur.id || idx.has(l.a)) && (l.bm !== cur.id || idx.has(l.b)));   // 지워진 주제의 연결은 함께 정리
+  if (cur.ink) cur.ink = cur.ink.filter(s => idx.has(s.a));                          // 지워진 주제에 붙은 형광펜 줄도
+  render(); renderList(); renderInsp(); scheduleSave();
+}
+function commit(fn, newSel){
+  if (!cur) return;
+  if (edit) finishEdit(true);
+  pushUndo(); fn(); changed();
+  if (newSel) select(newSel);
+}
+function restore(u){ const s = JSON.parse(u.s); cur.root = s.r; db.links = s.l; cur.ink = s.k || []; sel = u.sel; reindex(); if (!idx.has(sel)) sel = cur.root.id; changed(); select(sel); }
+function undo(){ if (!undoS.length) return toast('더 되돌릴 것이 없습니다'); redoS.push({s: snap(), sel}); restore(undoS.pop()); }
+function redo(){ if (!redoS.length) return; undoS.push({s: snap(), sel}); restore(redoS.pop()); }
+
+function addChild(){
+  const i = idx.get(sel); if (!i) return;
+  const n = mk('');
+  commit(() => { if (i.d === 0) n.side = sideForNew(); i.n.collapsed = false; i.n.children.push(n); });
+  select(n.id); startEdit(n.id, {text: '', isNew: true});
+}
+function addSibling(before = false){
+  const i = idx.get(sel); if (!i) return;
+  if (i.d === 0) return addChild();
+  const n = mk('', i.d === 1 ? {side: i.side} : {});
+  commit(() => { const s = i.p.children; s.splice(s.indexOf(i.n) + (before ? 0 : 1), 0, n); });
+  select(n.id); startEdit(n.id, {text: '', isNew: true});
+}
+function addMainAt(wx){
+  if (!cur) return;
+  const n = mk('', {side: wx < 0 ? 'L' : 'R'});
+  commit(() => cur.root.children.push(n));
+  select(n.id); startEdit(n.id, {text: '', isNew: true});
+}
+function delNode(){
+  const i = idx.get(sel); if (!i) return;
+  if (i.d === 0) return toast('가운데 주제는 지울 수 없습니다');
+  const sibs = i.p.children.filter(c => i.d !== 1 || (c.side === 'L' ? 'L' : 'R') === i.side), k = sibs.indexOf(i.n);
+  const next = (sibs[k + 1] || sibs[k - 1] || i.p).id, cnt = 1 + countAll(i.n);
+  commit(() => i.p.children.splice(i.p.children.indexOf(i.n), 1), next);
+  if (cnt > 1) toast(`주제 ${cnt}개를 지웠습니다`, '되돌리기', undo);
+}
+function toggleFold(id){
+  const i = idx.get(id); if (!i || !i.n.children.length || i.d === 0) return;
+  commit(() => i.n.collapsed = !i.n.collapsed, id);
+}
+function setAllFold(c){
+  if (!cur) return;
+  commit(() => { const w = (n, d) => { if (d >= 1 && n.children.length) n.collapsed = c; n.children.forEach(x => w(x, d + 1)); }; w(cur.root, 0); });
+  if (sel && !els.has(sel)) select(cur.root.id);
+  fitView();
+}
+function moveSib(dir){
+  const i = idx.get(sel); if (!i || i.d === 0) return;
+  const sibs = i.p.children.filter(c => i.d !== 1 || (c.side === 'L' ? 'L' : 'R') === i.side), o = sibs[sibs.indexOf(i.n) + dir];
+  if (!o) return;
+  commit(() => { const s = i.p.children, a = s.indexOf(i.n), b = s.indexOf(o); [s[a], s[b]] = [s[b], s[a]]; }, sel);
+}
+function moveNode(id, tgt, wx){
+  const i = idx.get(id), t = idx.get(tgt);
+  commit(() => {
+    i.p.children.splice(i.p.children.indexOf(i.n), 1);
+    if (t.d === 0) i.n.side = wx < 0 ? 'L' : 'R'; else { delete i.n.side; if (i.d === 1) i.n.color = null; }   // 큰 가지가 다른 가지 아래로 들어가면 그 가지 색을 따른다
+    t.n.collapsed = false; t.n.children.push(i.n);
+  }, id);
+}
+/* 빈 곳에 놓기: 같은 부모 아래에서 놓은 높이에 맞게 순서를 바꾼다 (큰 가지는 왼쪽·오른쪽도) */
+function dropEmpty(id, wx, wy){
+  const i = idx.get(id);
+  commit(() => {
+    const s = i.p.children; s.splice(s.indexOf(i.n), 1);
+    if (i.d === 1) i.n.side = wx < 0 ? 'L' : 'R';
+    const side = i.d === 1 ? i.n.side : null;
+    const after = s.find(c => (!side || (c.side === 'L' ? 'L' : 'R') === side) && pos.get(c.id) && pos.get(c.id).y + pos.get(c.id).h / 2 > wy);
+    s.splice(after ? s.indexOf(after) : s.length, 0, i.n);
+  }, id);
+}
+
+/* ---------- 방향키 ---------- */
+function nav(k){
+  const i = idx.get(sel), P = pos.get(sel); if (!i || !P) return;
+  const cy = Q => Q.y + Q.h / 2;
+  const nearest = kids => kids.filter(c => pos.has(c.id)).sort((a, b) => Math.abs(cy(pos.get(a.id)) - cy(P)) - Math.abs(cy(pos.get(b.id)) - cy(P)))[0];
+  if (k === 'ArrowLeft' || k === 'ArrowRight'){
+    const dir = k === 'ArrowRight' ? 'R' : 'L';
+    if (i.d === 0){ const c = nearest(i.n.children.filter(c => (c.side === 'L' ? 'L' : 'R') === dir)); if (c) select(c.id); return; }
+    if (dir === i.side){
+      if (!i.n.children.length) return;
+      if (i.n.collapsed) return toggleFold(sel);
+      const c = nearest(i.n.children); if (c) select(c.id);
+    } else select(i.p.id);
+    return;
+  }
+  const dir = k === 'ArrowUp' ? -1 : 1;
+  if (i.d > 0){
+    const sibs = i.p.children.filter(c => i.d !== 1 || (c.side === 'L' ? 'L' : 'R') === i.side), o = sibs[sibs.indexOf(i.n) + dir];
+    if (o) return select(o.id);
+  }
+  let best = null, bs = 1e9; const cx = P.x + P.w / 2;
+  for (const [id, Q] of pos){
+    if (id === sel) continue;
+    const dy = (cy(Q) - cy(P)) * dir; if (dy <= 4) continue;
+    const s = dy + Math.abs(Q.x + Q.w / 2 - cx) * 2;
+    if (s < bs){ bs = s; best = id; }
+  }
+  if (best) select(best);
+}
+
+/* ---------- 복사 · 붙여넣기 · 개요 ---------- */
+function toMd(n, d = 0){
+  const pad = '  '.repeat(Math.max(0, d - 1));
+  const t = n.text.replace(/\n/g, ' ');
+  let s = d === 0 ? `# ${t}\n\n` : `${pad}- ${n.hl ? '==' + t + '==' : t}\n`;     // 형광펜은 ==글== (옵시디언 · 타이포라의 형광펜 표기)
+  if (n.note) s += n.note.split('\n').map(l => `${d === 0 ? '' : pad + '  '}> ${l}`).join('\n') + '\n' + (d === 0 ? '\n' : '');
+  n.children.forEach(c => s += toMd(c, d + 1));
+  return s;
+}
+function cloneFresh(n){ const {v, ...rest} = n; return {...rest, id: uid(), c: nowISO(), children: n.children.map(cloneFresh)}; }   // 복사본은 본 횟수 없이 새 주제로
+function parseOutline(text){
+  const out = [], stack = [];
+  let last = null;
+  for (const line of text.replace(/\r/g, '').split('\n')){
+    if (!line.trim()) continue;
+    const q = line.match(/^\s*>\s?(.*)$/);
+    if (q && last){ last.note = last.note ? last.note + '\n' + q[1] : q[1]; continue; }
+    const m = line.match(/^([ \t]*)(#{1,6}\s+|[-*+•·▪◦]\s+|\d+[.)]\s+)?(.*)$/);
+    const ind = m[1].replace(/\t/g, '    ').length, mark = (m[2] || '').trim();
+    const lv = mark.startsWith('#') ? mark.length - 1 : 100 + ind;
+    const hm = m[3].trim().match(/^==(.+)==$/), n = mk(hm ? hm[1].trim() : m[3].trim(), hm ? {hl: 1} : {});
+    while (stack.length && stack[stack.length - 1].lv >= lv) stack.pop();
+    if (stack.length) stack[stack.length - 1].n.children.push(n); else out.push(n);
+    stack.push({lv, n}); last = n;
+  }
+  return out;
+}
+function insertUnder(list){
+  const i = idx.get(sel); if (!i || !list.length) return;
+  commit(() => {
+    for (const n of list){ if (i.d === 0) n.side = sideForNew(); else delete n.side; i.n.children.push(n); }
+    i.n.collapsed = false;
+  }, list[0].id);
+  toast(`주제 ${list.reduce((a, n) => a + 1 + countAll(n), 0)}개를 붙여넣었습니다`);
+}
+document.addEventListener('copy', e => {
+  if (e.target !== ed || edit || !sel) return;
+  const n = idx.get(sel).n, text = toMd(n, 1);
+  e.preventDefault(); e.clipboardData.setData('text/plain', text);
+  clip = {json: JSON.stringify(n), text};
+  toast('가지를 복사했습니다 — 다른 주제를 고르고 Ctrl+V');
+});
+document.addEventListener('cut', e => {
+  if (e.target !== ed || edit || !sel) return;
+  if (idx.get(sel).d === 0) return;
+  const n = idx.get(sel).n, text = toMd(n, 1);
+  e.preventDefault(); e.clipboardData.setData('text/plain', text);
+  clip = {json: JSON.stringify(n), text};
+  delNode();
+});
+ed.addEventListener('paste', e => {
+  if (edit || !sel) return;
+  const text = e.clipboardData.getData('text/plain');
+  if (clip && text === clip.text){ e.preventDefault(); return insertUnder([cloneFresh(JSON.parse(clip.json))]); }
+  if (text.trim().includes('\n')){ e.preventDefault(); return insertUnder(parseOutline(text)); }
+});                                                  // 한 줄 글은 그대로 들어가 '새로 쓰기'가 된다
+async function copyOutline(){
+  if (!cur) return;
+  try { await navigator.clipboard.writeText(toMd(cur.root)); toast('개요를 복사했습니다 — 메모장 · 한글 · 노션에 붙여넣기'); }
+  catch(e){ toast('클립보드에 복사하지 못했습니다'); }
+}
+async function exportMd(){
+  if (!cur) return;
+  if (!serverOK) return toast('파일로 저장할 수 없습니다');
+  try {
+    const r = await (await fetch('api/export', {method: 'POST', body: JSON.stringify({title: cur.root.text, md: toMd(cur.root)})})).json();
+    toast(r.ok ? `${r.file} 을(를) 내려받았습니다` : (r.error || '저장하지 못했습니다'));
+  } catch(e){ toast('저장하지 못했습니다'); }
+}
+
+/* ---------- 연결 ----------
+   나무(가지) 위에 그물을 얹는다: 교차 연결(시냅스) · 함께 본 주제 잇기 제안(헤브 법칙) · 자주 오간 선 굵게(수초화) ·
+   연상 검색(확산 활성화) · 7개 넘으면 묶기(작업 기억) · 허브와 가장 짧은 길(작은 세상) */
+const DAY = 864e5, pairKey = (a, b) => a < b ? a + '|' + b : b + '|' + a;
+let linking = null, pathSet = null, pathInfo = '', dwellT = null, recent = [], groupSug = [];
+
+/* 연결 */
+const linksOf = id => db.links.filter(l => (l.am === cur.id && l.a === id) || (l.bm === cur.id && l.b === id));
+const otherEnd = (l, id) => l.am === cur.id && l.a === id ? {m: l.bm, n: l.b} : {m: l.am, n: l.a};
+const localLinks = () => db.links.filter(l => l.am === cur.id && l.bm === cur.id && idx.has(l.a) && idx.has(l.b));
+const hasLink = (am, a, bm, b) => db.links.some(l => (l.am === am && l.a === a && l.bm === bm && l.b === b) || (l.am === bm && l.a === b && l.bm === am && l.b === a));
+function findNode(mid, nid){
+  const m = db.maps.find(x => x.id === mid); if (!m) return null;
+  let f = null; (function w(n){ if (n.id === nid) f = n; else if (!f) n.children.forEach(w); })(m.root);
+  return f ? {m, n: f} : null;
+}
+function pathOf(id){ const p = []; for (let i = idx.get(id); i.p; i = idx.get(i.p.id)) p.unshift(i.p.text || '빈 주제'); return p; }
+function linkDeg(){                                  // 주제마다 교차 연결 수 (n 전체 · x 다른 마인드맵과의 연결)
+  const m = new Map(); if (!cur) return m;
+  const add = (id, x) => { const o = m.get(id) || m.set(id, {n: 0, x: 0}).get(id); o.n++; if (x) o.x++; };
+  for (const l of db.links){
+    const x = l.am !== l.bm;
+    if (x && !db.maps.some(mm => mm.id === (l.am === cur.id ? l.bm : l.am))) continue;
+    if (l.am === cur.id && idx.has(l.a)) add(l.a, x);
+    if (l.bm === cur.id && idx.has(l.b)) add(l.b, x);
+  }
+  return m;
+}
+function addLink(am, a, bm, b){
+  if (am === bm && a === b) return toast('같은 주제입니다');
+  if (hasLink(am, a, bm, b)) return toast('이미 이어져 있습니다');
+  if (am === cur.id && bm === cur.id){
+    const A = idx.get(a), B = idx.get(b); if (!A || !B) return;
+    if (A.p === B.n || B.p === A.n) return toast('이미 가지로 이어진 주제입니다');
+    if (cur.co) delete cur.co[pairKey(a, b)];
+  }
+  commit(() => db.links.push({id: uid(), am, a, bm, b, w: 1}));
+  ed.focus({preventScroll: true});
+  toast(am === bm ? '두 주제를 이었습니다' : '다른 마인드맵의 주제와 이었습니다', '되돌리기', undo);
+}
+function removeLink(id){ commit(() => { db.links = db.links.filter(l => l.id !== id); }); ed.focus({preventScroll: true}); }
+function startLink(){
+  const i = idx.get(sel); if (!i) return toast('먼저 주제를 골라 주세요');
+  if (edit) finishEdit(true);
+  linking = {m: cur.id, n: sel, text: i.n.text}; showBanner();
+}
+function cancelLink(){ linking = null; showBanner(); }
+function showBanner(){
+  const b = $('#banner'), t = id => esc(idx.get(id)?.n.text || '빈 주제');
+  cv.classList.toggle('linking', !!linking);
+  if (linking) b.innerHTML = `<span><b>${esc(linking.text || '빈 주제')}</b> 와(과) 이을 주제를 클릭하세요 · 다른 마인드맵을 열어서 골라도 됩니다</span><button onclick="cancelLink()">취소</button>`;
+  else if (pathInfo) b.innerHTML = `<span>${pathInfo}</span><button onclick="clearPath()">닫기</button>`;
+  b.hidden = !(linking || pathInfo);
+}
+function expandTo(...ids){                           // 접힌 윗주제를 펼쳐 그 주제가 보이게 한다
+  let opened = false;
+  for (const id of ids) for (let p = idx.get(id)?.p; p; p = idx.get(p.id).p) if (p.collapsed){ p.collapsed = false; opened = true; }
+  if (opened){ reindex(); render(); scheduleSave(); }
+  return opened;
+}
+function reveal(id){ if (!idx.has(id)) return; expandTo(id); select(id); }
+function goNode(m, n){
+  if (!cur || cur.id !== m){ if (!db.maps.some(x => x.id === m)) return; openMap(m); }
+  reveal(n);
+}
+
+/* 그물 위의 거리: 가지는 1걸음, 교차 연결은 자주 쓸수록 가깝다 */
+function graph(){
+  const g = new Map(), add = (a, b, c) => { g.get(a).push([b, c]); g.get(b).push([a, c]); };
+  for (const id of idx.keys()) g.set(id, []);
+  for (const [id, i] of idx) if (i.p) add(id, i.p.id, 1);
+  for (const l of localLinks()) add(l.a, l.b, Math.max(.4, 1 / (1 + Math.log2(l.w) * .5)));
+  return g;
+}
+function distances(src, g, max = Infinity){
+  const d = new Map([[src, 0]]), prev = new Map(), q = [src];
+  while (q.length){
+    let bi = 0; for (let k = 1; k < q.length; k++) if (d.get(q[k]) < d.get(q[bi])) bi = k;
+    const u = q.splice(bi, 1)[0], du = d.get(u);
+    for (const [v, c] of g.get(u) || []){
+      const nd = du + c;
+      if (nd <= max && nd < (d.get(v) ?? Infinity)){ if (!d.has(v)) q.push(v); d.set(v, nd); prev.set(v, u); }
+    }
+  }
+  return {d, prev};
+}
+
+/* 주제를 들여다봤을 때: 본 횟수를 세고, 조금 전에 본 주제와의 연결을 강하게 한다 (헤브 법칙) */
+function touch(id){
+  const i = cur && idx.get(id); if (!i) return;
+  const n = i.n, now = new Date();
+  n.v = (n.v || 0) + 1;
+  recent = recent.filter(r => r.m === cur.id && now - r.at < 120000 && r.id !== id && idx.has(r.id));
+  for (const r of recent.slice(-2)){
+    const l = db.links.find(l => l.am === cur.id && l.bm === cur.id && pairKey(l.a, l.b) === pairKey(id, r.id));
+    if (l){ l.w++; continue; }                       // 이미 이어진 사이: 오갈수록 연결이 굵어진다
+    const o = idx.get(r.id); if (i.p === o.n || o.p === i.n) continue;
+    const k = pairKey(id, r.id), co = cur.co || (cur.co = {}), was = co[k] || 0;
+    if (was < 0) continue;                           // '제안하지 않기'로 해 둔 짝
+    co[k] = was + 1;
+    if (was < 3 && co[k] >= 3){ const a = id, b = r.id; toast(`‘${n.text || '빈 주제'}’ 와(과) ‘${o.n.text || '빈 주제'}’ 를 자주 함께 봅니다 — 이을까요?`, '잇기', () => addLink(cur.id, a, cur.id, b), 8000); }
+  }
+  recent.push({m: cur.id, id, at: +now});
+  relayout(); renderInsp(); scheduleSave(2000);
+}
+
+/* ---------- 외우기: 가리고 떠올리기 ----------
+   다시 읽는 것보다 꺼내 보는 것이 기억에 훨씬 강하게 남는다. 가운데 주제만 남기고 모두 가려 두고(자리 · 색은 그대로 — 그것이 단서),
+   떠오르는 대로 쓰면 맞는 주제가 제자리에 나타난다. 막히면 가려진 주제를 클릭해 첫 글자 힌트 → 정답. */
+const qnorm = s => String(s || '').toLowerCase().replace(/[^0-9a-z가-힣ㄱ-ㅎ]+/g, '');
+function qmatch(text, v){                            // 띄어쓰기 · 기호는 무시. 전체가 같거나, 앞부분을 절반 넘게 썼거나, '—' 등으로 나뉜 한 토막과 같으면 정답
+  const t = qnorm(text);
+  if (!t || !v) return false;
+  if (t === v || (v.length >= 2 && t.startsWith(v) && v.length * 2 >= t.length)) return true;
+  return String(text).split(/\s*[—–:·,\/()]\s*|\s+-\s+/).some(seg => { const s = qnorm(seg); return s.length >= 2 && s === v; });
+}
+function startQuiz(only, hlOnly){                   // only: '놓친 것만 다시' 할 때 가릴 주제 · hlOnly: 형광펜 칠한 주제만 가리기
+  if (!cur) return;
+  if (edit) finishEdit(true);
+  if (quiz) quizEnd(true);
+  const ids = only ? only.filter(id => idx.has(id)) : [...idx].filter(([, i]) => i.d > 0 && i.n.text.trim() && (!hlOnly || i.n.hl)).map(([id]) => id);
+  if (!ids.length) return toast(hlOnly ? '형광펜 칠한 주제가 없습니다' : '가릴 주제가 없습니다 — 먼저 가지를 만들어 주세요');
+  linking = null; pathSet = null; pathInfo = ''; showBanner();
+  select(null, {reveal: false, focus: false});
+  const open = new Set(); for (const id of ids) for (let p = idx.get(id).p; p; p = idx.get(p.id).p) open.add(p.id);
+  quiz = {open, set: new Map(ids.map(id => [id, 'mask'])), phase: 'ask', hlDone: false};
+  render(); quizBar(); fitView(); $('#qIn').value = ''; $('#qIn').focus();
+}
+/* 형광펜: 외우다 틀린 주제에 칠해 두고, 나중에 칠한 주제만 다시 외운다 */
+const hlCount = () => cur ? [...idx.values()].filter(i => i.d > 0 && i.n.hl).length : 0;
+function toggleHl(id){
+  const i = idx.get(id); if (!i || i.d === 0) return;
+  commit(() => { if (i.n.hl) delete i.n.hl; else i.n.hl = 1; }, id);
+}
+function quizHl(){                                   // 채점 결과대로: 놓친 주제 · 힌트 보고 떠올린 주제는 칠하고, 바로 떠올린 주제는 지운다
+  if (!quiz || quiz.phase !== 'done' || quiz.hlDone) return;
+  let on = 0, off = 0;
+  commit(() => {
+    for (const [id, s] of quiz.set){
+      const n = idx.get(id)?.n; if (!n) continue;
+      if (s === 'miss' || s === 'weak'){ if (!n.hl) on++; n.hl = 1; }
+      else if (s === 'ok' && n.hl){ delete n.hl; off++; }
+    }
+  });
+  quiz.hlDone = true; quizBar();
+  toast(`형광펜 — 칠함 ${on}` + (off ? ` · 외운 것 지움 ${off}` : ''), '되돌리기', () => { undo(); if (quiz){ quiz.hlDone = false; quizBar(); } });
+}
+function quizBar(){
+  const b = $('#quizbar'); b.hidden = !quiz;
+  if (!quiz) return;
+  const st = [...quiz.set.values()], c = s => st.filter(x => x === s).length, ask = quiz.phase === 'ask';
+  $('#qIn').hidden = $('#qRevealBtn').hidden = !ask;
+  $('#qRetryBtn').hidden = ask || !c('miss');
+  $('#qHlBtn').hidden = ask || quiz.hlDone || !(c('miss') + c('weak') + [...quiz.set].filter(([id, s]) => s === 'ok' && idx.get(id)?.n.hl).length);
+  $('#qEndBtn').className = ask ? '' : 'primary';
+  $('#qInfo').innerHTML = ask ? `<b>${c('ok') + c('weak')}</b> / ${st.length} 떠올림 · 가려진 주제를 클릭하면 힌트`
+    : `떠올림 <b>${c('ok')}</b> · 힌트 보고 <b>${c('weak')}</b> · 놓침 <b>${c('miss')}</b>${c('miss') && !quiz.hlDone ? ' — 알고 있던 것은 클릭해서 바꾸세요' : ''}`;
+}
+function quizAnswer(){
+  if (!quiz || quiz.phase !== 'ask') return;
+  const inp = $('#qIn'), v = qnorm(inp.value);
+  if (!v) return;
+  const hits = [...quiz.set].filter(([id, s]) => (s === 'mask' || s === 'hint') && qmatch(idx.get(id).n.text, v));
+  if (hits.length){
+    hits.forEach(([id, s]) => quiz.set.set(id, s === 'hint' ? 'weak' : 'ok'));
+    inp.value = ''; render(); ensureVisible(hits[0][0]);
+    if (![...quiz.set.values()].some(s => s === 'mask' || s === 'hint')) return quizReveal();
+  } else if ([...quiz.set].some(([id, s]) => (s === 'ok' || s === 'weak') && qmatch(idx.get(id).n.text, v))){ inp.value = ''; toast('이미 떠올린 주제입니다'); }
+  else { const b = $('#quizbar'); b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); inp.select(); }
+  quizBar();
+}
+function quizClick(id){                              // 가려진 주제: 첫 클릭은 첫 글자 힌트, 다음 클릭은 정답(놓침). 채점 뒤: 놓침 ↔ 알고 있었음
+  const s = quiz.set.get(id); if (!s) return;
+  if (quiz.phase === 'ask'){
+    if (s === 'mask') quiz.set.set(id, 'hint'); else if (s === 'hint') quiz.set.set(id, 'miss'); else return;
+    if (![...quiz.set.values()].some(x => x === 'mask' || x === 'hint')) return quizReveal();
+  } else if (quiz.hlDone) return toggleHl(id);       // 형광펜을 칠한 뒤에는 클릭으로 하나씩 칠하고 지운다
+  else if (s === 'miss') quiz.set.set(id, 'ok'); else if (s === 'ok') quiz.set.set(id, 'miss'); else return;
+  render(); quizBar(); if (quiz.phase === 'ask') $('#qIn').focus();
+}
+function quizReveal(){
+  if (!quiz) return;
+  for (const [id, s] of quiz.set) if (s === 'mask' || s === 'hint') quiz.set.set(id, 'miss');
+  quiz.phase = 'done'; render(); quizBar();
+}
+function quizEnd(silent){
+  if (!quiz) return;
+  const q = quiz; quiz = null;
+  const st = [...q.set.values()], ok = st.filter(s => s === 'ok' || s === 'weak').length, miss = st.filter(s => s === 'miss').length;
+  quizBar(); render();
+  if (silent) return renderInsp();
+  select(cur.root.id, {reveal: false});
+  if (ok + miss) toast(`떠올림 ${ok} · 놓침 ${miss}`, null, null, 5000);
+}
+function quizRetry(){
+  const ids = [...quiz.set].filter(([, s]) => s === 'miss').map(([id]) => id);
+  quizEnd(true); startQuiz(ids);
+}
+function dismissCo(k){ (cur.co || (cur.co = {}))[k] = -1; renderInsp(); scheduleSave(); }
+
+/* 주제마다: 시험 범위 · 길 표시 (범위 밖은 흐리게) */
+function decorate(){
+  if (!cur) return;
+  let dim = null;
+  if (!quiz && pathSet) dim = pathSet.nodes;
+  for (const [id, el] of els){
+    el.classList.toggle('onpath', !quiz && !!pathSet && pathSet.nodes.has(id));
+    el.style.opacity = dim && !dim.has(id) ? .22 : '';
+  }
+  for (const p of $('#links').children){
+    const a = p.dataset.a, b = p.dataset.b;
+    p.classList.toggle('onpath', !quiz && !!pathSet && pathSet.edges.has(pairKey(a, b)));
+    p.style.opacity = (quiz && p.classList.contains('xl')) || (dim && !(dim.has(a) && dim.has(b))) ? .15 : '';
+  }
+}
+
+/* 가장 짧은 길 */
+function showPath(a, b){
+  const {d, prev} = distances(a, graph());
+  if (!d.has(b)) return;
+  const nodes = [b]; while (nodes[0] !== a) nodes.unshift(prev.get(nodes[0]));
+  const edges = new Set(); for (let k = 0; k + 1 < nodes.length; k++) edges.add(pairKey(nodes[k], nodes[k + 1]));
+  pathSet = {nodes: new Set(nodes), edges};
+  pathInfo = nodes.map(id => `<b>${esc(idx.get(id).n.text || '빈 주제')}</b>`).join(' → ') + ` · ${nodes.length - 1}걸음`;
+  if (!expandTo(...nodes)) decorate();
+  showBanner(); ed.focus({preventScroll: true});
+}
+function clearPath(){ pathSet = null; pathInfo = ''; showBanner(); decorate(); ed.focus({preventScroll: true}); }
+
+/* 작업 기억: 하위 주제가 7개를 넘으면, 같은 낱말이 들어 있는 것끼리 묶자고 제안한다 */
+function suggestGroups(n){
+  const stop = new Set(['그리고', '또는', '하는', '있는', '위한', '대한', '하기', 'the', 'and', 'for', '및', '등', '수', '것', '더', '안', '못', '내', '그', '이', '저', '와', '과', '때', '중']), by = new Map();
+  for (const c of n.children){
+    const ws = new Set();
+    for (const w of (c.text || '').toLowerCase().split(/[^0-9a-z가-힣]+/)){
+      if (!w || stop.has(w) || (w.length < 2 && !/[가-힣]/.test(w))) continue;       // 한 글자 낱말은 한글만 ('혀' · '턱')
+      ws.add(w); if (w.length > 2 && /[가-힣]/.test(w)) ws.add(w.slice(0, 2));       // '교합이' · '교합을' → '교합'
+    }
+    ws.forEach(w => (by.get(w) || by.set(w, []).get(w)).push(c.id));
+  }
+  const out = [], used = new Set();
+  [...by].filter(([, ids]) => ids.length >= 2 && ids.length < n.children.length).sort((a, b) => b[1].length - a[1].length || b[0].length - a[0].length).forEach(([word, ids]) => {
+    const free = ids.filter(x => !used.has(x));
+    if (free.length >= 2 && out.length < 3){ free.forEach(x => used.add(x)); out.push({word, ids: free}); }
+  });
+  return out;
+}
+function groupKids(gi){
+  const i = idx.get(sel), g = groupSug[gi]; if (!i || !g) return;
+  const moved = i.n.children.filter(c => g.ids.includes(c.id)); if (moved.length < 2) return;
+  const nn = mk(g.word, i.d === 0 ? {side: moved[0].side === 'L' ? 'L' : 'R'} : {});
+  commit(() => {
+    const at = i.n.children.indexOf(moved[0]);
+    moved.forEach(c => { delete c.side; if (i.d === 0) c.color = null; }); nn.children = moved;
+    i.n.children = i.n.children.filter(c => !g.ids.includes(c.id));
+    i.n.children.splice(Math.min(at, i.n.children.length), 0, nn);
+  }, nn.id);
+  startEdit(nn.id, {selectAll: true});               // 묶음 이름을 바로 고칠 수 있게
+}
+
+/* 오른쪽 칸: 고른 주제의 연결 · 잇기 제안 · 묶기 제안 */
+function renderLinks(i){
+  let h = '';
+  const ls = linksOf(sel).map(l => { const e = otherEnd(l, sel); return {l, e, f: findNode(e.m, e.n)}; }).filter(x => x.f).sort((a, b) => b.l.w - a.l.w);
+  if (ls.length) h += '<div class="sec-t">연결</div>' + ls.map(x => `<div class="li" onclick="goNode('${x.e.m}','${x.e.n}')"><span class="n">${x.e.m !== cur.id ? '↗ ' + esc(x.f.m.root.text || '제목 없음') + ' › ' : ''}${esc(x.f.n.text || '빈 주제')}</span><span class="c">${x.l.w > 1 ? '오간 횟수 ' + (x.l.w - 1) : ''}</span><button onclick="event.stopPropagation();removeLink('${x.l.id}')" title="연결 끊기">×</button></div>`).join('');
+  const sug = Object.entries(cur.co || {}).filter(([k, c]) => c >= 2.5 && k.split('|').includes(sel)).map(([k, c]) => ({k, c, o: k.split('|').find(x => x !== sel)}))
+    .filter(s => idx.has(s.o) && !hasLink(cur.id, sel, cur.id, s.o)).sort((a, b) => b.c - a.c).slice(0, 3);
+  if (sug.length) h += '<div class="sec-t">자주 함께 본 주제</div>' + sug.map(s => `<div class="li" onclick="reveal('${s.o}')"><span class="n">${esc(idx.get(s.o).n.text || '빈 주제')}</span><button onclick="event.stopPropagation();addLink(cur.id,sel,cur.id,'${s.o}')">잇기</button><button onclick="event.stopPropagation();dismissCo('${s.k}')" title="제안하지 않기">×</button></div>`).join('');
+  groupSug = [];
+  if (i.n.children.length > 7){
+    groupSug = suggestGroups(i.n);
+    h += `<div class="note warn">하위 주제가 ${i.n.children.length}개입니다. 한 번에 떠올리기 쉬운 것은 4~7개 — 묶어 보세요.</div>`
+      + (groupSug.map((g, gi) => `<div class="li" onclick="groupKids(${gi})"><span class="n">‘${esc(g.word)}’ (으)로 ${g.ids.length}개 묶기</span><span class="c">이름은 바로 고칠 수 있음</span></div>`).join('')
+      || '<div class="note">같은 낱말이 든 주제를 찾지 못했습니다. 새 주제를 만들고 끌어서 묶어 주세요.</div>');
+  }
+  $('#iLinks').innerHTML = h; $('#iLinks').hidden = !h;
+}
+/* 하루 첫 실행: 오래된 '자주 함께 본' 기록은 조금씩 약하게 해서 지나간 짝은 제안에서 빠지게 한다 */
+function decayCo(){
+  const today = new Date().toDateString();
+  if (db.lastDay === today) return;
+  for (const m of db.maps) for (const k in m.co || {}) if (m.co[k] > 0){ m.co[k] *= .85; if (m.co[k] < .5) delete m.co[k]; }
+  db.lastDay = today;
+  scheduleSave();
+}
+
+/* ---------- 마우스 ---------- */
+let drag = null;
+const toWorld = e => { const r = cv.getBoundingClientRect(); return {x: (e.clientX - r.left - view.x) / view.k, y: (e.clientY - r.top - view.y) / view.k}; };
+/* ---------- 형광펜 (h) ----------
+   들고 있는 동안에는 화면 어디든 드래그한 자리에 노란 줄이 그어지고(빈 곳 포함), 지나간 주제는 형광펜 주제가 된다.
+   이미 칠한 곳(줄이나 칠한 주제)에서 시작해 그으면 지우개. 들고 있는 동안에는 화면 이동 · 확대 · 주제 끌기를 모두 막는다.
+   줄은 가장 가까운 주제에 붙여 두어, 자리가 바뀌어도 그 주제를 따라간다. 외우는 중에도 쓸 수 있다. 한 번 긋기 = 되돌리기 한 번. */
+const INK_W = 18;
+let pen = false, penDrag = null;
+function setPen(on){
+  if (on && !cur) return;
+  if (on && edit) finishEdit(true);
+  pen = !!on; penDrag = null; drag = null;
+  cv.classList.toggle('pen', pen); cv.classList.remove('panning'); $('#khPen').classList.toggle('on', pen);
+  if (quiz && quiz.phase === 'ask') $('#qIn').focus(); else if (!quiz) ed.focus({preventScroll: true}); else document.activeElement?.blur?.();
+}
+const inkOf = s => { const P = pos.get(s.a); return P ? s.p.map(([x, y]) => [P.x + x, P.y + y]) : null; };   // 붙은 주제가 접혀 안 보이면 줄도 숨김
+function drawInk(){
+  const g = $('#ink'); if (!g) return;
+  g.innerHTML = cur ? (cur.ink || []).map(s => {
+    const q = inkOf(s); if (!q || !q.length) return '';
+    const d = 'M' + q.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join('L') + (q.length === 1 ? 'l.1 0' : '');
+    return `<path d="${d}" style="stroke-width:${INK_W}"/>`;
+  }).join('') : '';
+}
+function nearestNode(w){                             // 줄을 붙일 주제: 시작점에서 가장 가까운 주제
+  let best = null, bd = 1e18;
+  for (const [id, P] of pos){
+    const dx = Math.max(P.x - w.x, 0, w.x - P.x - P.w), dy = Math.max(P.y - w.y, 0, w.y - P.y - P.h), d = dx * dx + dy * dy;
+    if (d < bd){ bd = d; best = id; }
+  }
+  return best;
+}
+function segDist(px, py, ax, ay, bx, by){
+  const vx = bx - ax, vy = by - ay, L = vx * vx + vy * vy, t = L ? Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / L)) : 0;
+  return Math.hypot(px - ax - t * vx, py - ay - t * vy);
+}
+function inkHit(w){                                  // 이 자리를 지나는 줄들
+  const r = INK_W / 2 + 6 / view.k;
+  return (cur.ink || []).filter(s => { const q = inkOf(s); if (!q) return false;
+    if (q.length === 1) return Math.hypot(w.x - q[0][0], w.y - q[0][1]) <= r;
+    for (let k = 1; k < q.length; k++) if (segDist(w.x, w.y, q[k - 1][0], q[k - 1][1], q[k][0], q[k][1]) <= r) return true;
+    return false; });
+}
+/* 자를 대고 긋기: 시작점에서 가로(또는 세로) 곧은 줄만 그어진다. 가로줄은 근처 주제의 가운데 높이(없으면 바탕 점 줄)에 맞춘다.
+   줄이 주제를 지나가면 그 주제의 글자에 형광펜이 칠해지고 줄 자체는 남기지 않는다 → 칠한 모양이 늘 가지런하다.
+   빈 곳에만 그은 줄은 곧은 막대로 남는다. */
+const GRID = 24;
+function snapStart(w){                               // 시작점을 근처 주제의 가운데 줄(가로) · 바탕 점에 맞춘다
+  let y = Math.round(w.y / GRID) * GRID, x = Math.round(w.x / GRID) * GRID, by = 20 / view.k;
+  for (const P of pos.values()){
+    const cy = P.y + P.h / 2;
+    if (Math.abs(cy - w.y) < by && w.x > P.x - 200 && w.x < P.x + P.w + 200){ by = Math.abs(cy - w.y); y = cy; }
+  }
+  return {x, y, ry: y, rx: w.x};
+}
+function rulerEnd(w){                                // 지금 마우스 자리 → 자에 맞춘 끝점 (가로 또는 세로)
+  const s = penDrag.start, dx = w.x - s.rx, dy = w.y - s.y;
+  return Math.abs(dx) >= Math.abs(dy) ? {a: {x: s.rx, y: s.y}, b: {x: w.x, y: s.y}} : {a: {x: s.x, y: s.ry}, b: {x: s.x, y: w.y}};
+}
+function rulerHits(a, b){                            // 곧은 줄이 지나가는 주제들 (가운데 주제 제외)
+  const out = [], x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
+  for (const [id, P] of pos){
+    if (idx.get(id).d === 0) continue;
+    if (P.x <= x1 && P.x + P.w >= x0 && P.y <= y1 && P.y + P.h >= y0) out.push(id);
+  }
+  return out;
+}
+/* 자 없이 자유롭게 그었던 예전 줄 정리: 주제 위를 지나간 줄은 지우고(주제는 이미 칠해져 있다), 빈 곳의 줄은 곧은 가로줄로 펴 준다 */
+function tidyInk(){
+  if (!cur || !cur.ink || cur.ink.every(s => s.r)) return;
+  const inside = ([x, y]) => [...pos.values()].some(P => x >= P.x && x <= P.x + P.w && y >= P.y && y <= P.y + P.h);
+  cur.ink = cur.ink.filter(s => {
+    if (s.r) return true;
+    const q = inkOf(s); if (!q) return true;                 // 접혀 있어 지금은 모른다 → 다음에
+    if (q.some(inside)) return false;
+    const P = pos.get(s.a), xs = q.map(v => v[0]), y = Math.round(q.reduce((a, v) => a + v[1], 0) / q.length / GRID) * GRID;
+    s.p = [[Math.min(...xs) - P.x, y - P.y], [Math.max(...xs) - P.x, y - P.y]].map(v => v.map(n => Math.round(n * 10) / 10)); s.r = 1;
+    return true;
+  });
+  drawInk(); scheduleSave();
+}
+function penErase(x, y){                             // 지우개: 지나가는 자리의 칠한 주제 · 줄을 지운다
+  const r = cv.getBoundingClientRect(), w = {x: (x - r.left - view.x) / view.k, y: (y - r.top - view.y) / view.k};
+  const el = document.elementFromPoint(x, y)?.closest('.nd'), i = el && idx.get(el.dataset.id);
+  if (i && i.d > 0 && i.n.hl){ delete i.n.hl; el.classList.remove('hl'); penDrag.changed = true; }
+  const hit = inkHit(w);
+  if (hit.length){ cur.ink = cur.ink.filter(s => !hit.includes(s)); penDrag.changed = true; drawInk(); }
+}
+function penPaint(e){                                // 칠하기: 자에 맞춘 줄을 다시 그리고, 줄이 지나는 주제만 칠한 상태로 (줄이 짧아지면 되돌린다)
+  const {a, b} = rulerEnd(toWorld(e)), hits = new Set(rulerHits(a, b)), D = penDrag;
+  for (const [id, was] of D.orig) if (!hits.has(id)){ const n = idx.get(id).n; if (was) n.hl = 1; else delete n.hl; els.get(id)?.classList.toggle('hl', !!was); D.orig.delete(id); }
+  for (const id of hits){ const n = idx.get(id).n; if (!D.orig.has(id)) D.orig.set(id, n.hl); n.hl = 1; els.get(id)?.classList.add('hl'); }
+  const P = pos.get(D.stroke.a);
+  D.stroke.p = [[a.x - P.x, a.y - P.y], [b.x - P.x, b.y - P.y]].map(q => q.map(v => Math.round(v * 10) / 10));
+  D.hits = hits; drawInk();
+}
+function penDown(e){
+  if (edit) finishEdit(true);
+  cv.setPointerCapture(e.pointerId);
+  const w = toWorld(e), el = document.elementFromPoint(e.clientX, e.clientY)?.closest('.nd'), i = el && idx.get(el.dataset.id);
+  const erase = (i && i.d > 0 && i.n.hl) || inkHit(w).length > 0;
+  penDrag = {mode: erase ? 'erase' : 'paint', changed: false, snap: snap(), sel, last: {x: e.clientX, y: e.clientY}, stroke: null, orig: new Map(), hits: new Set()};
+  if (erase) return penErase(e.clientX, e.clientY);
+  penDrag.start = snapStart(w);
+  penDrag.stroke = {id: uid(), a: nearestNode(w), p: [], r: 1};
+  (cur.ink || (cur.ink = [])).push(penDrag.stroke);
+  penPaint(e);
+}
+function penMove(e){
+  if (penDrag.mode === 'paint') return penPaint(e);
+  const L = penDrag.last, dx = e.clientX - L.x, dy = e.clientY - L.y, n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 6));   // 빠르게 문질러도 중간을 놓치지 않게
+  for (let k = 1; k <= n; k++) penErase(L.x + dx * k / n, L.y + dy * k / n);
+  penDrag.last = {x: e.clientX, y: e.clientY};
+}
+function penEnd(){
+  const p = penDrag; penDrag = null;
+  if (!p) return;
+  if (p.stroke){
+    const [[ax, ay], [bx, by]] = p.stroke.p.length === 2 ? p.stroke.p : [[0, 0], [0, 0]];
+    const tooShort = Math.hypot(bx - ax, by - ay) < 8 / view.k;
+    if (p.hits.size || tooShort) cur.ink = cur.ink.filter(s => s !== p.stroke);   // 주제를 칠했으면 줄은 남기지 않는다
+    else p.changed = true;
+    if ([...p.orig].some(([id, was]) => !was)) p.changed = true;
+  }
+  if (!p.changed) return drawInk();
+  undoS.push({s: p.snap, sel: p.sel}); if (undoS.length > 300) undoS.shift(); redoS = [];
+  cur.updated = nowISO(); render(); renderList(); renderInsp(); scheduleSave();
+}
+cv.addEventListener('pointerdown', e => {
+  if (e.target.closest('.zoombar,#emptyBox,.banner,.quizbar')) return;
+  if (pen && cur){                                   // 형광펜을 든 동안: 왼쪽 버튼은 긋기, 다른 버튼은 아무것도 하지 않는다 (화면 이동 없음)
+    e.preventDefault();
+    if (e.button === 0) penDown(e);
+    return;
+  }
+  if (e.button !== 0 && e.button !== 1) return;
+  let el = e.target.closest('.nd');
+  if (el && edit && el.dataset.id === edit.id) return;   // 고치는 중인 글 안에서는 커서를 옮긴다
+  e.preventDefault();
+  const id = el && el.dataset.id, onFold = !!e.target.closest('.fold');
+  if (edit) finishEdit(true);
+  if (quiz){                                         // 시험 중: 주제 클릭은 힌트 · 채점 바꾸기, 빈 곳은 화면 이동만
+    if (id && e.button === 0) return quizClick(id);
+    cv.setPointerCapture(e.pointerId);
+    drag = {pan: true, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false, wasRoot: true};
+    return;
+  }
+  if (onFold) return toggleFold(id);
+  if (id && idx.has(id) && e.button === 0){
+    if (linking){ const L = linking; linking = null; showBanner(); return addLink(L.m, L.n, cur.id, id); }
+    if (e.shiftKey && sel && id !== sel) return showPath(sel, id);
+  }
+  cv.setPointerCapture(e.pointerId);
+  if (id && e.button === 0 && idx.has(id)){
+    select(id, {reveal: false});
+    drag = {id, sx: e.clientX, sy: e.clientY, moved: false};
+  } else {
+    drag = {pan: true, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false};
+    ed.focus({preventScroll: true});
+  }
+});
+cv.addEventListener('pointermove', e => {
+  if (penDrag) return penMove(e);
+  if (!drag) return;
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+  drag.moved = true;
+  if (!drag.pan && drag.id === cur.root.id) drag = {pan: true, sx: drag.sx, sy: drag.sy, vx: view.x, vy: view.y, moved: true, wasRoot: true};
+  if (drag.pan){ view.x = drag.vx + dx; view.y = drag.vy + dy; applyView(); cv.classList.add('panning'); return; }
+  const el = els.get(drag.id); if (!el) return;
+  el.classList.add('dragging'); el.style.transform = `translate(${dx / view.k}px,${dy / view.k}px)`;
+  const under = document.elementFromPoint(e.clientX, e.clientY)?.closest('.nd');
+  let t = under && under.dataset.id;
+  if (t && (t === drag.id || isDesc(drag.id, t) || (t === idx.get(drag.id).p.id && idx.get(t).d > 0))) t = null;
+  if (t !== drag.tgt){ els.forEach((x, k) => x.classList.toggle('drop', k === t)); drag.tgt = t; }
+});
+cv.addEventListener('pointerup', e => {
+  if (penDrag) return penEnd();
+  const d = drag; drag = null; cv.classList.remove('panning');
+  if (!d) return;
+  if (d.pan){ if (d.moved) saveView(); else if (!d.wasRoot) select(null, {reveal: false}); return; }
+  if (!d.moved) return;
+  const w = toWorld(e);
+  if (d.tgt) moveNode(d.id, d.tgt, w.x);
+  else if (idx.get(d.id).d >= 1) dropEmpty(d.id, w.x, w.y);
+  else render();
+});
+cv.addEventListener('pointercancel', () => { if (penDrag) return penEnd(); drag = null; cv.classList.remove('panning'); render(); });
+cv.addEventListener('dblclick', e => {
+  if (pen || quiz || e.target.closest('.zoombar,#emptyBox,.fold,.banner,.quizbar')) return;
+  const el = e.target.closest('.nd');
+  if (el){ if (!(edit && edit.id === el.dataset.id)) startEdit(el.dataset.id); return; }
+  if (cur) addMainAt(toWorld(e).x);
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (pen) return;                                   // 형광펜을 든 동안에는 확대 · 축소도 막는다 (칠하던 자리가 움직이지 않게)
+  const r = cv.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY * (e.deltaMode ? .05 : .0015)), e.clientX - r.left, e.clientY - r.top);
+}, {passive: false});
+
+/* ---------- 키보드 ---------- */
+document.addEventListener('keydown', e => {
+  if (edit) return;
+  const k = e.key, ctrl = e.ctrlKey || e.metaKey, lk = k.length === 1 ? k.toLowerCase() : k;
+  if (!$('#help').hidden){ if (k === 'Escape') $('#help').hidden = true; return; }
+  // h: 형광펜 들기 · 내려놓기. 한글 자판(ㅗ)이어도 같은 키로 동작한다. Shift+H 는 글자 H 로 입력된다.
+  const isH = e.code === 'KeyH' && !e.shiftKey && !ctrl && !e.altKey;
+  if (isH && e.repeat){ e.preventDefault(); return; }   // h 를 누르고 있어도 켜졌다 꺼졌다 하지 않게 (자동 반복 무시)
+  const typingBox = e.target.matches?.('input,textarea,select,[contenteditable]') && e.target !== ed && !(e.target === $('#qIn') && !$('#qIn').value);
+  if (isH && cur && !typingBox){                     // 검색창 · 메모 칸 · 쓰고 있는 답에서는 그냥 글자 h
+    e.preventDefault(); hAt = Date.now(); return setPen(!pen);
+  }
+  if (pen && k === 'Escape'){ e.preventDefault(); return setPen(false); }
+  if (quiz){                                         // 시험 중에는 고치기 단축키를 막는다 (답은 아래 입력칸에)
+    if (k === 'Escape'){ e.preventDefault(); quizEnd(); }
+    else if (ctrl && k === '0'){ e.preventDefault(); fitView(); }
+    else if (ctrl && lk === 's'){ e.preventDefault(); push(); }
+    else if (e.target !== $('#qIn') && k.length === 1 && !ctrl && !e.altKey && quiz.phase === 'ask') $('#qIn').focus();
+    return;
+  }
+  if (ctrl && lk === 'f'){ e.preventDefault(); $('#search').focus(); $('#search').select(); return; }
+  if (ctrl && lk === 's'){ e.preventDefault(); push(); return; }
+  if (ctrl && lk === 'n'){ e.preventDefault(); newMap(); return; }
+  const t = e.target;
+  if (t !== ed && t.matches && t.matches('input,textarea,select,[contenteditable]')) return;
+  if (e.isComposing || k === 'Process' || e.keyCode === 229) return;
+  if (ctrl && !e.shiftKey && lk === 'z'){ e.preventDefault(); return undo(); }
+  if (ctrl && (lk === 'y' || (e.shiftKey && lk === 'z'))){ e.preventDefault(); return redo(); }
+  if (ctrl && k === '0'){ e.preventDefault(); return fitView(); }
+  if (ctrl && (k === '=' || k === '+')){ e.preventDefault(); return zoomCenter(1.2); }
+  if (ctrl && k === '-'){ e.preventDefault(); return zoomCenter(1 / 1.2); }
+  if (!cur) return;
+  if (k === 'Escape'){ if (linking) cancelLink(); else if (pathSet) clearPath(); else if (sel) select(null, {reveal: false}); return; }
+  if (k === 'F6'){ e.preventDefault(); return e.shiftKey ? startQuiz(null, true) : startQuiz(); }
+  if (ctrl && lk === 'l'){ e.preventDefault(); return startLink(); }
+  const nav4 = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k);
+  if (!sel){ if (nav4 || k === 'Enter' || k === 'Tab'){ e.preventDefault(); select(cur.root.id); } return; }
+  if (nav4){ e.preventDefault(); if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) moveSib(k === 'ArrowUp' ? -1 : 1); else nav(k); return; }
+  if (ctrl || e.altKey) return;
+  switch (k){
+    case 'Tab': case 'Insert': e.preventDefault(); return addChild();
+    case 'Enter': e.preventDefault(); return addSibling(e.shiftKey);
+    case 'Delete': case 'Backspace': e.preventDefault(); return delNode();
+    case 'F2': e.preventDefault(); return startEdit(sel);
+    case ' ': e.preventDefault(); return toggleFold(sel);
+    case 'Home': e.preventDefault(); return select(cur.root.id);
+  }
+});
+
+/* ---------- 오른쪽 칸: 선택한 주제 · 이 마인드맵 ---------- */
+function renderInsp(){
+  const i = sel && idx.get(sel);
+  $('#nodeCard').hidden = !i; $('#noSelCard').hidden = !!i || !cur; $('#mapCard').hidden = !cur;
+  $('#memRow').hidden = !cur;
+  $('#memHlBtn').hidden = !hlCount();
+  if (cur){
+    $('#mN').textContent = 1 + countAll(cur.root); $('#mD').textContent = depthOf(cur.root) + 1; $('#mM').textContent = countNotes(cur.root);
+    $('#mDates').textContent = `만든 날 ${fmt(cur.created)} · 고친 날 ${fmt(cur.updated)}`;
+  }
+  if (!i) return;
+  const ck = colorKey(sel);
+  $('#iDot').style.setProperty('--c', cssColor(ck));
+  $('#iHead').textContent = i.d === 0 ? '가운데 주제' : i.d === 1 ? '큰 가지' : `${i.d}단계 주제`;
+  const path = []; for (let p = i.p; p; p = idx.get(p.id).p) path.unshift(p.text || '빈 주제');
+  $('#iPath').textContent = path.length ? path.join(' › ') : '마인드맵 이름이 됩니다';
+  if (document.activeElement !== $('#iText')) $('#iText').value = i.n.text;
+  if (document.activeElement !== $('#iNote')) $('#iNote').value = i.n.note || '';
+  $('#iColorRow').hidden = i.d === 0;
+  $('#iColors').innerHTML = `<button class="sm auto${i.n.color ? '' : ' on'}" onclick="setColor(null)" title="위 가지 색을 따름">자동</button>` +
+    PAL.map(c => `<button class="sw${i.n.color === c ? ' on' : ''}" style="--c:var(--${c})" onclick="setColor('${c}')" title="이 가지와 아래 주제 색"></button>`).join('');
+  $('#iSibBtn').disabled = i.d === 0; $('#iDelBtn').disabled = i.d === 0;
+  $('#iFoldBtn').disabled = i.d === 0 || !i.n.children.length;
+  $('#iFoldBtn').textContent = i.n.collapsed ? '펼치기' : '접기';
+  $('#iHlBtn').hidden = i.d === 0; $('#iHlBtn').classList.toggle('hlb', !!i.n.hl);
+  $('#iHlBtn').textContent = i.n.hl ? '형광펜 지우기' : '형광펜 칠하기';
+  renderLinks(i);
+  memInsp(i);
+}
+
+/* ---------- 암기카드와 잇기 (나의 도서관 통합판) ----------
+   주제 글이 ? 로 끝나면(하위 주제 = 답) 또는 "질문 :: 답" 이면 암기카드 탭이 카드로 가져간다.
+   여기서는 암기카드 파일을 읽기만 해서, 카드가 있는 주제에 기억 상태를 색으로 보여 준다. */
+let MEM = new Map();
+const MEM_KO = {ok: '잘 기억하고 있음', due: '오늘 복습할 카드 있음', weak: '자주 틀리는 카드 있음', new: '아직 배우지 않음'};
+const MEM_RANK = {ok: 0, new: 1, due: 2, weak: 3};
+async function memLoad(){
+  if (!window.__EMBED || !serverOK) return;
+  try {
+    const d = await (await fetch('/cards/api/data', {cache: 'no-store'})).json(), now = Date.now(), m = new Map();
+    const t = new Date(now); t.setHours(4, 0, 0, 0);   // 암기카드의 '오늘'은 새벽 4시에 바뀐다
+    const end = (now < t.getTime() ? t.getTime() : t.getTime() + 864e5);
+    for (const c of (d && d.cards) || []){
+      if (!c.link || c.link.app !== 'mindmap' || c.link.gone || c.susp) continue;
+      const s = c.state === 'new' ? 'new' : (c.lapses >= 3 || c.state === 'relearn') ? 'weak' : c.due < end ? 'due' : 'ok';
+      const p = m.get(c.link.id) || {s: 'ok', n: 0, first: true};
+      m.set(c.link.id, {s: p.first || MEM_RANK[s] > MEM_RANK[p.s] ? s : p.s, n: p.n + 1});
+    }
+    const changed = JSON.stringify([...m]) !== JSON.stringify([...MEM]);
+    MEM = m;
+    if (changed && cur && !edit) render();
+    if (changed && sel) renderInsp();
+  } catch(e){}
+}
+function memInsp(i){
+  let el = $('#iMem');
+  if (!el){ el = document.createElement('div'); el.id = 'iMem'; el.className = 'memline'; $('#nodeCard').appendChild(el); }
+  if (!window.__EMBED){ el.hidden = true; return; }
+  el.hidden = false;
+  const mm = MEM.get(i.n.id), t = String(i.n.text || '').trim();
+  el.innerHTML = mm ? `암기카드 ${mm.n}장 · <b class="${mm.s}">${MEM_KO[mm.s]}</b>`
+    : /[?？]$/.test(t) || /\s::\s/.test(t) ? '암기카드 탭을 열면 이 주제가 카드가 됩니다'
+    : '주제를 ? 로 끝내면(하위 주제가 답) 암기카드가 됩니다';
+}
+window.__roomShown = m => {
+  try {
+    if (m && m.focus){
+      if (!db.maps.some(x => x.id === m.focus.map)) toast('마인드맵에서 그 주제를 찾을 수 없습니다 (지워졌을 수 있어요)');
+      else { if (!cur || cur.id !== m.focus.map) openMap(m.focus.map); if (idx.has(m.focus.node)) reveal(m.focus.node); else toast('그 주제가 지워졌습니다'); }
+    }
+    ed.focus({preventScroll: true});
+  } catch(e){}
+  memLoad();
+};
+window.__roomHidden = () => { if (saveT || dirty) push(); };
+/* Esc 로 책장에 돌아가도 되는가: 글 쓰는 중 · 도움말 · 형광펜 · 외우기(시험) · 잇기 · 길 표시 · 검색창 · 메모 칸이 아니면 (그때는 원래대로 그것부터 닫는다) */
+window.__roomEscBack = e => !edit && $('#help').hidden && !pen && !quiz && !linking && !pathSet
+  && !(e.target !== ed && e.target.matches && e.target.matches('input,textarea,select,[contenteditable]'));
+function setColor(c){ const i = idx.get(sel); if (i && i.n.color !== c) commit(() => i.n.color = c, sel); }
+$('#iText').addEventListener('change', e => { const i = idx.get(sel), v = e.target.value.trim(); if (i && v && v !== i.n.text) commit(() => i.n.text = v, sel); });
+$('#iNote').addEventListener('change', e => { const i = idx.get(sel), v = e.target.value.replace(/\s+$/, ''); if (i && v !== (i.n.note || '')) commit(() => i.n.note = v, sel); });
+$('#iText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); e.target.blur(); ed.focus({preventScroll: true}); } });
+
+/* ---------- 왼쪽 칸: 마인드맵 목록 ---------- */
+function renderList(){
+  const q = $('#mapq').value.trim().toLowerCase();
+  const maps = db.maps.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+  const shown = maps.filter(m => !q || (m.root.text || '').toLowerCase().includes(q));
+  $('#mlist').innerHTML = shown.map(m => `<div class="pitem${m === cur ? ' on' : ''}" onclick="openMap('${m.id}')"><div><div class="nm">${esc(m.root.text || '제목 없음')}</div><div class="meta">${fmt(m.updated)}</div></div><span class="badge">주제 ${1 + countAll(m.root)}</span></div>`).join('')
+    || `<div class="empty" style="padding:16px">${q ? '찾는 마인드맵이 없습니다' : '아직 마인드맵이 없습니다'}</div>`;
+  $('#mcount').textContent = `마인드맵 ${db.maps.length}개`;
+}
+function openMap(id, {fit = false} = {}){
+  if (edit) finishEdit(true);
+  if (cur && cur.id === id && !fit) return;
+  if (quiz) quizEnd(true);
+  cur = db.maps.find(m => m.id === id) || null;
+  db.current = cur ? cur.id : null;
+  if (cur) ensureColors();
+  undoS = []; redoS = []; sel = cur ? cur.root.id : null;
+  pathSet = null; pathInfo = ''; showBanner();       // '잇기' 중이면 그대로 둔다 (다른 마인드맵의 주제를 고를 수 있게)
+  reindex(); render(); tidyInk();
+  const lv = cur && webViewGet(cur.id);
+  if (lv && !fit){ Object.assign(view, lv); applyView(); } else fitView();
+  renderList(); select(sel, {reveal: false}); scheduleSave(1500);
+}
+function newMap(){
+  const m = {id: uid(), created: nowISO(), updated: nowISO(), root: mk('새 마인드맵'), view: null};
+  db.maps.push(m); openMap(m.id);
+  view.k = 1; view.x = cv.clientWidth / 2; view.y = cv.clientHeight / 2; applyView();
+  startEdit(m.root.id, {selectAll: true});
+  scheduleSave();
+}
+function deleteMap(id){
+  const k = db.maps.findIndex(m => m.id === id); if (k < 0) return;
+  if (quiz) quizEnd(true);
+  const m = db.maps[k];
+  db.maps.splice(k, 1);
+  if (cur === m){ cur = null; const next = db.maps.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0]; if (next) openMap(next.id); else { sel = null; reindex(); render(); renderInsp(); } }
+  renderList(); scheduleSave();
+  toast(`'${m.root.text || '제목 없음'}' 마인드맵을 지웠습니다`, '되돌리기', () => { db.maps.splice(k, 0, m); cur = null; openMap(m.id); renderList(); scheduleSave(); }, 8000);
+}
+
+/* ---------- 찾기 (모든 마인드맵) ---------- */
+let sres = [], sIdx = 0;
+function sInput(){
+  const q = $('#search').value.trim().toLowerCase(), box = $('#sres');
+  const here = cur && sel && idx.has(sel) ? distances(sel, graph(), q ? Infinity : 3.2).d : null;   // 고른 주제에서 각 주제까지의 연결 거리
+  let head = '';
+  sres = [];
+  if (!q){                                           // 빈 검색창: 고른 주제에서 연상되는 주제를 가까운 순서로 (확산 활성화)
+    if (!here){ box.hidden = true; return; }
+    for (const l of linksOf(sel)){ const e = otherEnd(l, sel), f = e.m !== cur.id && findNode(e.m, e.n); if (f) sres.push({m: f.m, n: f.n, path: []}); }
+    [...here].filter(([id, x]) => x > 0).sort((a, b) => a[1] - b[1]).slice(0, 12).forEach(([id]) => sres.push({m: cur, n: idx.get(id).n, path: pathOf(id)}));
+    if (!sres.length){ box.hidden = true; return; }
+    head = `<div class="sec-t" style="padding:4px 12px 6px">‘${esc(idx.get(sel).n.text || '빈 주제')}’ 에서 연상되는 주제</div>`;
+  } else {
+    for (const m of db.maps){
+      const walk = (n, path) => {
+        if ((n.text || '').toLowerCase().includes(q) || (n.note || '').toLowerCase().includes(q)) sres.push({m, n, path});
+        n.children.forEach(c => walk(c, [...path, n.text || '빈 주제']));
+      };
+      walk(m.root, []);
+    }
+    const rank = r => r.m === cur && here ? (here.get(r.n.id) ?? 50) : 100;      // 글자가 맞는 것 가운데 지금 고른 주제와 가까운 것부터
+    sres.sort((a, b) => rank(a) - rank(b)); sres.length = Math.min(sres.length, 40);
+  }
+  const hl = s => { const t = String(s || ''), j = q ? t.toLowerCase().indexOf(q) : -1; return j < 0 ? esc(t) : esc(t.slice(0, j)) + '<mark>' + esc(t.slice(j, j + q.length)) + '</mark>' + esc(t.slice(j + q.length)); };
+  sIdx = 0;
+  box.innerHTML = head + sres.map((r, i) => `<div class="sr${i === 0 ? ' on' : ''}" onmousedown="event.preventDefault();sGo(${i})"><div class="st">${hl(r.n.text || '빈 주제')}</div><div class="sp2">${esc(r.m.root.text)}${r.path.length > 1 ? ' › ' + esc(r.path.slice(1).join(' › ')) : ''}${!(r.n.text || '').toLowerCase().includes(q) ? ' · 메모: ' + hl((r.n.note || '').replace(/\s+/g, ' ')) : ''}</div></div>`).join('')
+    || '<div class="empty" style="padding:10px 12px">찾는 주제가 없습니다</div>';
+  box.hidden = false;
+}
+function sKey(e){
+  const box = $('#sres');
+  if (e.key === 'Escape'){ e.preventDefault(); $('#search').value = ''; box.hidden = true; ed.focus({preventScroll: true}); return; }
+  if (!sres.length || box.hidden) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault(); sIdx = (sIdx + (e.key === 'ArrowDown' ? 1 : -1) + sres.length) % sres.length;
+    box.querySelectorAll('.sr').forEach((x, i) => x.classList.toggle('on', i === sIdx));
+    box.querySelectorAll('.sr')[sIdx].scrollIntoView({block: 'nearest'});
+  } else if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); sGo(sIdx); }
+}
+function sGo(i){
+  const r = sres[i]; if (!r) return;
+  $('#sres').hidden = true; $('#search').blur();
+  if (quiz) quizEnd(true);
+  if (cur !== r.m) openMap(r.m.id);
+  let opened = false;
+  for (let p = idx.get(r.n.id)?.p; p; p = idx.get(p.id).p) if (p.collapsed){ p.collapsed = false; opened = true; }
+  if (opened){ reindex(); render(); scheduleSave(); }
+  select(r.n.id);
+}
+
+/* ---------- 저장 (교정차트와 같은 방식: 하나씩 보내고, 보내는 중 또 바뀌면 끝난 뒤 한 번 더) ---------- */
+let saveT = null, pushing = null, dirty = false, savedT = null;
+function scheduleSave(ms = 400){ clearTimeout(saveT); saveT = setTimeout(push, ms); }
+function push(){
+  clearTimeout(saveT); saveT = null;
+  if (pushing){ dirty = true; return pushing; }
+  pushing = (async () => {
+    let ok = true;
+    try {
+      do {
+        dirty = false;
+        if (serverOK){
+          const r = await fetch('api/data', {method: 'POST', body: JSON.stringify(db)});
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+        } else localStorage.setItem(KEY, JSON.stringify(db));
+      } while (dirty);
+      showSaved(true);
+    } catch(e){ ok = false; showSaved(false); }
+    pushing = null; return ok;
+  })();
+  return pushing;
+}
+function showSaved(ok){
+  const s = $('#saved');
+  s.textContent = ok ? '저장됨' : '저장 실패 — 마인드맵.pyw 가 켜져 있는지 확인';
+  s.className = ok ? 'show' : 'fail';
+  clearTimeout(savedT); if (ok) savedT = setTimeout(() => s.className = '', 1400);
+}
+window.addEventListener('beforeunload', () => { if (saveT || pushing || dirty) push(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && (saveT || dirty)) push(); });
+
+/* ---------- 기타 ---------- */
+function toast(msg, act, fn, ms = 4000){
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span>` + (act ? `<button>${esc(act)}</button>` : '');
+  if (act) t.querySelector('button').onclick = () => { t.hidden = true; fn(); };
+  t.hidden = false; clearTimeout(toast.T); toast.T = setTimeout(() => t.hidden = true, ms);
+}
+function helpOpen(){ $('#help').hidden = false; }
+/* 위쪽 단축키 안내를 클릭해도 그 단축키를 누른 것과 같게 */
+function khDo(a){
+  if (!cur) return;
+  if (a === 'pen') return setPen(!pen);
+  if (quiz) return toast('외우는 중에는 형광펜만 쓸 수 있습니다');
+  if (edit) finishEdit(true);
+  if (a === 'undo') return undo();
+  if (a === 'quiz') return startQuiz();
+  if (!sel) select(cur.root.id);
+  if (a === 'child') addChild();
+  else if (a === 'sib') addSibling();
+  else if (a === 'edit') startEdit(sel);
+  else if (a === 'fold') toggleFold(sel);
+  else if (a === 'del') delNode();
+}
+async function winQhd(){
+  if (!serverOK) return toast('마인드맵.pyw 로 실행했을 때만 쓸 수 있습니다');
+  try {
+    const r = await (await fetch('api/window', {method: 'POST', body: '{"action":"qhd"}'})).json();
+    if (!r.ok) toast(r.error || '창 크기를 바꾸지 못했습니다');
+    else setTimeout(fitView, 300);                   // 창이 바뀐 뒤 마인드맵을 새 크기에 맞춘다
+  } catch(e){ toast('창 크기를 바꾸지 못했습니다'); }
+  ed.focus({preventScroll: true});
+}
+function applyTheme(t){ document.documentElement.dataset.theme = t; $('#themeBtn').textContent = t === 'dark' ? '☀ 라이트' : '☾ 다크'; }
+function toggleTheme(){
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(t); render();
+  if (serverOK) fetch('api/theme', {method: 'POST', body: JSON.stringify({theme: t})}).catch(() => {});
+  ed.focus({preventScroll: true});
+}
+window.addEventListener('resize', () => applyView());
+
+async function boot(){
+  let theme = 'light';
+  try {
+    const c = await (await fetch('api/config')).json();
+    document.documentElement.dataset.mode = ['desk', 'doctor'].includes(c.mode) ? c.mode : 'clinic';
+    theme = c.theme === 'dark' || (c.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  } catch(e){}
+  applyTheme(theme);
+  let local = null;
+  try { local = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
+  try {
+    const r = await fetch('api/data');
+    if (r.ok){
+      const d = await r.json();
+      serverOK = true;
+      if (d && Array.isArray(d.maps) && d.maps.length) db = d;
+      else if (local && Array.isArray(local.maps) && local.maps.length) db = local;
+    }
+  } catch(e){ if (local && Array.isArray(local.maps)) db = local; }
+  if (!Array.isArray(db.maps)) db = {maps: [], current: null};
+  const first = !db.maps.length;
+  if (first) db.maps.push(sampleMap());
+  db.links = (Array.isArray(db.links) ? db.links : []).filter(l => l && findNode(l.am, l.a) && findNode(l.bm, l.b));
+  delete db.opts; delete db.lastDigest; delete db.digestSince;           // 없앤 기능(집중 모드 · 연상 빛 · 망각 표시 · 오늘의 정리)의 설정
+  for (const m of db.maps){ delete m.fixed; eachNode(m.root, dropOld); }
+  const start = db.maps.find(m => m.id === db.current) || db.maps[0];
+  openMap(start.id);
+  if (first) push();
+  decayCo();
+  memLoad();
+}
+boot();
+</script>
+</body>
+</html>
