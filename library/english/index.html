@@ -1724,7 +1724,7 @@ function micClip(t0, t1) {   // performance.now() 기준 [t0, t1] 구간의 마�
 async function immPlay() {
   if (IM.playing) return;
   stopSpeak(); IM.playing = true; immActive().forEach(x => { prefetch(x.en); if (S.imm.cfg.score && TTS) nativeFeat(x.en).catch(() => {}); });
-  if (S.imm.cfg.score || S.imm.cfg.echoBack) await immMic(true);   // 채점이나 '내 목소리 들려주기'에 마이크가 필요
+  if (immNeedMic()) await immMic(true);   // 채점이나 '내 목소리 들려주기'에 마이크가 필요
   if (!IM.playing) return;
   IM.heard = null;
   IM.sessT = setInterval(() => { if (!IM.playing) return; const d = day(); d.immSec = (d.immSec || 0) + 1;
@@ -1827,10 +1827,10 @@ function vImm() {
       <div class="row small immopts">
         <label class="tog"><input type="checkbox" ${c.showText ? 'checked' : ''} onchange="immCfg('showText',this.checked)"> 글자 보기</label>
         <label class="tog"><input type="checkbox" ${c.showKo ? 'checked' : ''} onchange="immCfg('showKo',this.checked)"> 뜻 보기</label>
-        <label class="tog" title="따라 말한 뒤 내 목소리를 들려주고, 이어서 원어민을 다시 들려줍니다"><input type="checkbox" ${c.echoBack ? 'checked' : ''} onchange="immCfg('echoBack',this.checked);if(IM.playing)immMic(S.imm.cfg.score||this.checked)"> 👂 내 목소리 들려주기</label>
-        ${c.echoBack ? `<select title="내 목소리 크기" onchange="immCfg('mineVol',+this.value)">${[[0.6, '작게'], [1, '보통'], [1.6, '크게'], [2.5, '아주 크게']].map(([v, t]) => `<option ${c.mineVol === v ? 'selected' : ''} value="${v}">🔊 ${t}</option>`).join('')}</select>` : ''}
-        <label class="tog"><input type="checkbox" ${c.score ? 'checked' : ''} onchange="immCfg('score',this.checked);if(IM.playing)immMic(this.checked||S.imm.cfg.echoBack)"> 🎯 싱크로율 채점</label>
-        ${STT ? `<label class="tog"><input type="checkbox" ${c.pron ? 'checked' : ''} ${c.score ? '' : 'disabled'} onchange="immCfg('pron',this.checked)"> 발음도</label>` : ''}
+        ${WEB_IOS ? '<span class="muted">👂 내 목소리 들려주기는 PC · 안드로이드에서 (아이폰 웹은 마이크를 켜면 읽기 소리가 막혀요)</span>' : `<label class="tog" title="따라 말한 뒤 내 목소리를 들려주고, 이어서 원어민을 다시 들려줍니다"><input type="checkbox" ${c.echoBack ? 'checked' : ''} onchange="immCfg('echoBack',this.checked);if(IM.playing)immMic(immNeedMic())"> 👂 내 목소리 들려주기</label>`}
+        ${c.echoBack && !WEB_IOS ? `<select title="내 목소리 크기" onchange="immCfg('mineVol',+this.value)">${[[0.6, '작게'], [1, '보통'], [1.6, '크게'], [2.5, '아주 크게']].map(([v, t]) => `<option ${c.mineVol === v ? 'selected' : ''} value="${v}">🔊 ${t}</option>`).join('')}</select>` : ''}
+        ${TTS ? `<label class="tog"><input type="checkbox" ${c.score ? 'checked' : ''} onchange="immCfg('score',this.checked);if(IM.playing)immMic(immNeedMic())"> 🎯 싱크로율 채점</label>` : ''}
+        ${STT && TTS ? `<label class="tog"><input type="checkbox" ${c.pron ? 'checked' : ''} ${c.score ? '' : 'disabled'} onchange="immCfg('pron',this.checked)"> 발음도</label>` : ''}
         ${TTS ? `<span class="muted">· 원어민</span><select title="따라 할 원어민 목소리 (바꾸면 한 문장 들려줌)" onchange="immVoice(this.value)">${NEURAL.map(([id, n, d]) => `<option value="${id}" ${voiceSel() === id ? 'selected' : ''}>${n} — ${d.split(' · ').slice(1).join(' · ')}</option>`).join('')}</select>` : ''}
         <span class="muted">· 문장마다</span><select onchange="immCfg('each',+this.value)">${[1, 3, 5, 10].map(n => `<option ${c.each === n ? 'selected' : ''} value="${n}">${n}번씩</option>`).join('')}</select>
         <span class="muted">· 따라 말할 틈</span><select onchange="immCfg('gap',+this.value)">${[[1, '짧게'], [1.5, '보통'], [2, '넉넉히'], [3, '아주 넉넉히']].map(([v, t]) => `<option ${c.gap === v ? 'selected' : ''} value="${v}">${t}</option>`).join('')}</select>

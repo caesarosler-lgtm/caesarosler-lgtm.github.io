@@ -349,12 +349,41 @@ function listenStart(){
   go();
 }
 function listenStop(){ const j = listen; if (!j || !j.live) return; j.live = false; try { j.r.stop(); } catch(e){ j.fin(); } setTimeout(j.fin, 3000); }
+// 몰입 반복(IM.playing) 중에는 켜지 않는다 — 녹음을 계속 켜 두는 연습이라, 휴대폰에서 음성 인식이 원어민 읽기 소리를 막았다 (2026-10-08 사용자: "몰입 반복에서 소리가 안 나")
+const imPlaying = () => { try { return !!IM.playing; } catch(e){ return false; } };
 if (SR && window.MediaRecorder){
   const MR = window.MediaRecorder;
   window.MediaRecorder = class extends MR {
-    start(...a){ try { listenStart(); } catch(e){} return super.start(...a); }
+    start(...a){ if (!imPlaying()) try { listenStart(); } catch(e){} return super.start(...a); }
     stop(...a){ try { listenStop(); } catch(e){} return super.stop(...a); }
   };
+}
+
+/* ---------- 몰입 반복의 마이크 (화면의 immPlay · 설정 칸이 부른다 — tools/build_web.py ENGLISH_PATCHES) ---------- */
+// 아이폰 · 아이패드(사파리): 마이크를 켜 두면 읽기 소리(speechSynthesis)가 막힌다
+window.WEB_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+// 싱크로율 채점은 원어민 음성 파일(TTS)이 있을 때만, 내 목소리 들려주기는 아이폰 웹이 아닐 때만 마이크를 켠다 (설정 값 자체는 바꾸지 않는다 — PC 와 함께 쓰므로)
+window.immNeedMic = () => { try { return !!((S.imm.cfg.score && TTS) || (S.imm.cfg.echoBack && !WEB_IOS)); } catch(e){ return false; } };
+
+/* ---------- 휴대폰에서 읽기 소리 (speechSynthesis) ---------- */
+// ① 아이폰은 사용자가 화면을 누른 그 순간에 한 번 소리를 내 두어야, 뒤에 (마이크를 켠 다음 · 기다린 다음) 읽는 소리도 난다 → 첫 누름에 소리 없는 한 마디
+// ② 사파리는 cancel() 바로 뒤의 speak() 를 빠뜨린다 → 멈춘 직후면 아주 잠깐 뒤에 읽는다. 멈춰 있던(paused) 읽기도 깨운다
+if (window.speechSynthesis){
+  const ss = window.speechSynthesis, speak0 = ss.speak.bind(ss), cancel0 = ss.cancel.bind(ss);
+  let cancelledAt = 0, gen = 0, unlocked = false;
+  ss.cancel = () => { cancelledAt = performance.now(); gen++; return cancel0(); };
+  ss.speak = u => {
+    try { if (ss.paused) ss.resume(); } catch(e){}
+    const since = performance.now() - cancelledAt, g = gen;
+    if (since < 80) setTimeout(() => { if (g === gen) speak0(u); }, 80 - since);   // 그사이 또 멈췄으면 읽지 않는다
+    else speak0(u);
+  };
+  const unlock = () => {
+    if (unlocked) return; unlocked = true;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speak0(u); } catch(e){}
+    removeEventListener('pointerdown', unlock, true); removeEventListener('touchend', unlock, true);
+  };
+  addEventListener('pointerdown', unlock, true); addEventListener('touchend', unlock, true);
 }
 async function stt(query){
   if (/(^|&)words=1/.test(query)) return {ok: false};   // 단어별 시각은 기기 인식에 없다
