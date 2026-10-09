@@ -88,6 +88,47 @@ if (canRenew() && (!TOKEN || TOKEN.exp - Date.now() < 300000)) renew().catch(() 
 // 휴대폰에서 앱을 내려 두었다가 다시 올리면 (화면이 다시 보일 때) 열쇠가 끝났거나 곧 끝나면 바로 새로
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && canRenew() && (!TOKEN || TOKEN.exp - Date.now() < 300000)) renew().catch(() => {}); });
 async function retryAfter401(){ TOKEN = null; store.set(TK, null); if (!canRenew()) return false; try { await renew(); return true; } catch(e){ return false; } }
+
+/* ---------- 드라이브 읽기 빠르게 (2026-10-09 사용자 "그래도 느린데" — 열 때마다 기기 파일 7개 · 3.6MB 를 전부 받고 있었다) ----------
+   · 동기화 폴더 id 를 기억한다 (매번 찾지 않게). 폴더 안에 기기 파일이 하나도 안 보이면 (지웠다 다시 만든 폴더 등) 잊고 다시 찾는다
+   · 기기 파일은 드라이브의 판 번호(version)가 같으면 이 기기에 둔 사본(Cache 저장소)을 쓴다 — 바뀐 파일만 내려받는다 */
+const FK = 'ml.fid:' + FOLDER;
+async function folderId(lookup, fresh){
+  if (!fresh){ const c = store.get(FK); if (c) return c; }
+  const id = await lookup();
+  if (id) store.set(FK, id);
+  return id;
+}
+async function devData(x){
+  const base = 'https://ml.cache/' + x.id + '/', key = base + (x.version || '');
+  let c = null;
+  try { c = await caches.open('ml-dev'); const hit = x.version && await c.match(key); if (hit) return await hit.json(); } catch(e){ c = null; }
+  const text = await (await api(`files/${x.id}?alt=media`)).text();
+  if (c && x.version) try {
+    for (const k of await c.keys()) if (k.url.startsWith(base)) await c.delete(k);
+    await c.put(key, new Response(text, {headers: {'Content-Type': 'application/json'}}));
+  } catch(e){}
+  return JSON.parse(text);
+}
+
+/* ---------- 지난번 내용을 먼저 보여 주기 (2026-10-09 사용자 "더 빨라질 방법" ① — 카카오톡처럼 열자마자 지난 화면, 최신은 뒤에서) ----------
+   load() 가 기기 파일 목록(id · 이름 · 판 번호)을 기억하고, 그 판의 사본이 모두 이 기기(Cache 저장소)에 있으면 네트워크 없이 그것으로 먼저 연다.
+   저장은 언제나 드라이브를 다시 읽고 합친 뒤에 하므로(postDataNow · save 의 load()), 먼저 보여 준 지난 내용 위에서 고쳐도 다른 기기 것을 덮지 않는다. */
+const LK = 'ml.devs:' + FOLDER;
+function rememberList(list){ store.set(LK, JSON.stringify(list.map(x => ({id: x.id, name: x.name, version: x.version})))); }
+async function quickDevs(){
+  try {
+    const list = JSON.parse(store.get(LK) || 'null');
+    if (!list?.length || !store.get(FK)) return null;
+    const c = await caches.open('ml-dev'), out = [];
+    for (const x of list){
+      const hit = await c.match('https://ml.cache/' + x.id + '/' + x.version);
+      if (!hit) return null;
+      out.push({...x, data: await hit.json()});
+    }
+    return out;
+  } catch(e){ return null; }
+}
    // 구글 로그인 — tools/web_auth.js (build_web.py 가 끼워 넣는다, 책장 웹판과 같은 코드)
 async function rememberMail(){   // 다음 로그인 때 계정 고르기를 건너뛰도록 (이 기기에만)
   if (store.get(MK)) return;
@@ -125,13 +166,21 @@ const newer = (a, b) => !b || a.t > b.t || (a.t === b.t && a.d > b.d);
 const W = {fid: null, files: {}, win: {}, clock: 0, base: {}, gen: 1, at: 0, imgDir: null, imgIds: null};
 
 async function load(){
-  if (!W.fid){
+  const lookup = async () => {
     const f = await listAll(`name = '${FOLDER}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`, 'id');
     if (!f.length) throw new Error('드라이브에 동기화 폴더가 없어요 — PC 의 설정에서 동기화를 먼저 켜 주세요');
-    W.fid = f[0].id;
-  }
-  const list = await listAll(`'${W.fid}' in parents and trashed = false and name contains 'dev_'`, 'id,name');
-  const devs = await Promise.all(list.map(async x => ({...x, data: await (await api(`files/${x.id}?alt=media`)).json()})));
+    return f[0].id;
+  };
+  if (!W.fid) W.fid = await folderId(lookup);
+  const devList = () => listAll(`'${W.fid}' in parents and trashed = false and name contains 'dev_'`, 'id,name,version');
+  let list = await devList();
+  if (!list.length){ W.fid = await folderId(lookup, true); list = await devList(); }   // 기억한 폴더가 비었으면 (지웠다 다시 만듦) 다시 찾기
+  const devs = await Promise.all(list.map(async x => ({...x, data: await devData(x)})));   // 바뀐 파일만 내려받는다
+  rememberList(list);
+  useDevs(devs);
+  W.at = Date.now();
+}
+function useDevs(devs){
   W.files = {}; W.win = {}; W.clock = 0;
   for (const x of devs){
     W.files[x.name] = x.id;
@@ -140,7 +189,6 @@ async function load(){
       if (newer(e, W.win[k])) W.win[k] = e;   // 모든 기록 (책장 · 다른 방도) — 내 파일에 함께 남긴다
     }
   }
-  W.at = Date.now();
 }
 async function writeMine(){
   const recs = {};
@@ -504,6 +552,17 @@ async function start(interactive){
     else if (!roomResume()) refresh();   // 로그인이 끊겨 못 한 저장이 있으면 방 몫이 이어서, 아니면 다른 기기 것 받기
   } catch(e){ gate(e.message === 'login' || e.message === 'popup_closed' ? '' : e.message); }
 }
-addEventListener('DOMContentLoaded', () => { if (TOKEN || canRenew()) start(false); else gate(''); });   // 봉투가 있으면 누르지 않고 바로
+addEventListener('DOMContentLoaded', async () => {
+  if (!(TOKEN || canRenew())) return gate('');
+  const devs = await quickDevs();
+  if (!devs) return start(false);   // 처음 · 사본이 없으면 드라이브에서 (봉투가 있으면 누르지 않고 바로)
+  W.fid = store.get(FK); useDevs(devs); W.at = 1;   // 지난번 내용으로 먼저 연다 (W.at 을 오래된 것으로 — 뒤에서 못 받았으면 30초 타이머가 다시)
+  first = false; readyRes();
+  try {   // 최신은 뒤에서 — 바뀐 게 있으면 화면이 조용히 바뀐다. 화면이 아직 준비 전이면 (refresh 가 그냥 돌아옴 → W.at 그대로) 잠깐 뒤 다시
+    await token(false); rememberMail();
+    for (let i = 0; i < 6 && W.at === 1; i++){ await new Promise(r => setTimeout(r, i ? 1500 : 300)); await refresh(); }
+  }
+  catch(e){ if (!TOKEN && !canRenew()) gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); }
+});
 window.WEB = {img: typeof img === 'function' ? img : null, voice: typeof voice === 'function' ? voice : null, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
 })();
