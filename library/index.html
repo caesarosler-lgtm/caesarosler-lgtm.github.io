@@ -478,6 +478,7 @@ async function start(interactive){
   } catch(e){ $('gatemsg').textContent = ['popup_closed', 'login'].includes(e.message) ? '' : e.message; $('gate').classList.remove('hidden'); $('app').classList.add('hidden'); }
 }
 $('signin').onclick = () => start(true);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {scope: './'}).catch(() => {});   // 웹판을 휴대폰에 저장 (tools/web_sw.js — 빌드가 web/sw.js 로)
 window.addEventListener('load', async () => {
   if (!(TOKEN || canRenew())) return;
   const devs = await quickDevs();

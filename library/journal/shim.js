@@ -748,5 +748,6 @@ addEventListener('DOMContentLoaded', async () => {
   }
   catch(e){ if (!TOKEN && !canRenew()) gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); }
 });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js', {scope: '../'}).catch(() => {});   // 웹판을 휴대폰에 저장 (tools/web_sw.js)
 window.WEB = {img: typeof img === 'function' ? img : null, voice: typeof voice === 'function' ? voice : null, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
 })();
