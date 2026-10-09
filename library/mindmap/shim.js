@@ -22,33 +22,67 @@ const ME = ls.get('ml.dev', null) || (() => { const v = 'w' + crypto.getRandomVa
 const MYNAME = (() => { const u = navigator.userAgent; const k = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : '브라우저'; return '웹 · ' + k; })();
 const nowS = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 19); };
 
-/* ---------- 구글 로그인 (책장 웹판과 같은 열쇠 자리) ---------- */
-// 열쇠(토큰)는 구글이 1시간짜리만 준다 (서버 없는 웹앱의 규칙 — 오래 가는 열쇠는 서버가 있어야 받는다). 그래서 (2026-10-08 사용자 요청 "1시간마다 풀리지 않게"):
-//  · 열쇠를 이 기기에 둔다 (localStorage — 앱을 닫았다 열어도 그 시간 안이면 다시 묻지 않는다. 책장 · 저널이 함께 쓴다)
-//  · 끝나기 10분 전부터는 화면을 누르는 순간 조용히 새 열쇠를 받는다 (누름 = 브라우저가 로그인 창을 막지 않는 때). 계정은 기억해 둔 것으로 (hint)
-const TK = 'ml.tok', MK = 'ml.mail';
+/* ---------- 구글 로그인 (웹판 모든 방 · 책장이 같은 코드 — tools/web_auth.js, build_web.py 가 끼워 넣는다) ----------
+   구글은 서버 없는 웹앱에 1시간짜리 열쇠(access token)만 준다. 그래서 두 겹으로:
+   ① 오래 가는 열쇠 (2026-10-09 사용자 요청 "1시간 넘게 쉬었다 열 때 한 번 누르기까지 없애줘"):
+      처음 한 번 '코드' 방식으로 로그인 → 내 작은 서버(tools/auth_worker — 클라우드플레어 워커)가 구글에서 오래 가는 열쇠(refresh token)를 받아
+      서버만 아는 비밀로 잠근 봉투(blob)로 돌려준다 → 이 기기에 봉투만 둔다 ('ml.rt'). 열쇠가 끝나면 봉투를 서버에 보내 새 1시간 열쇠를 조용히 받는다
+      (누르지 않아도 — 팝업이 아니라 그냥 요청이라 브라우저가 막지 않는다). 클라이언트 비밀 · 봉투 비밀은 서버에만, 열쇠 범위는 지금과 같은 drive.file.
+   ② 서버를 못 쓰면 예전 방식: 1시간 열쇠를 기기에 두고, 끝나기 10분 전부터 화면을 누르는 순간 조용히 새로 받는다.
+   끊으려면: 구글 계정 → 보안 → 내 계정에 액세스할 수 있는 앱 → 'mylibrary' 액세스 삭제 (모든 기기의 봉투가 쓸모없어진다). */
+const AUTH_URL = "https://mylibrary-auth.caesarosler.workers.dev";   // 빈 값이면 ② 만
+const TK = 'ml.tok', MK = 'ml.mail', RK = 'ml.rt';
 const store = {get: k => { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch(e){ return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} }};
-let TOKEN = null, tokenClient = null, tokenWait = null;
+let TOKEN = null, tokenClient = null, codeClient = null, tokenWait = null, renewing = null;
 try { const s = JSON.parse(store.get(TK) || 'null'); if (s && s.exp > Date.now() + 60000) TOKEN = s; } catch(e){}
+if (location.hostname === 'localhost' && /[?&]expire=1/.test(location.search)){ TOKEN = null; store.set(TK, null); }   // 시험: 1시간 열쇠가 끝난 척 → 봉투만으로 열리는지 (이 PC 의 시험 주소에서만)
+function keep(access, sec){ TOKEN = {v: access, exp: Date.now() + (sec - 60) * 1000}; store.set(TK, JSON.stringify(TOKEN)); return TOKEN.v; }
+const canRenew = () => !!(AUTH_URL && store.get(RK));
+async function post(path, body){
+  const r = await fetch(AUTH_URL + path, {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(body)});   // text/plain: 미리 묻는 요청(preflight) 없이
+  return r.json().catch(() => ({error: 'bad_response'}));
+}
+function renew(){   // 봉투로 새 1시간 열쇠 — 누르지 않아도 된다
+  if (!canRenew()) return Promise.reject(new Error('login'));
+  return renewing ||= post('/refresh', {blob: store.get(RK)}).then(j => {
+    if (j.access_token) return keep(j.access_token, j.expires_in);
+    if (j.error === 'invalid_grant' || j.error === 'bad_blob') store.set(RK, null);   // 액세스를 끊었거나 봉투가 상함 → 다음엔 새로 로그인
+    throw new Error('login');
+  }, () => { throw new Error('login'); }).finally(() => { renewing = null; });
+}
 function initGis(){
   if (tokenClient || !window.google?.accounts?.oauth2) return !!tokenClient;
   tokenClient = google.accounts.oauth2.initTokenClient({client_id: CLIENT_ID, scope: SCOPE, hint: store.get(MK) || undefined, callback: r => {
     const w = tokenWait; tokenWait = null;
     if (r.error){ w?.rej(new Error(r.error)); return; }
-    TOKEN = {v: r.access_token, exp: Date.now() + (r.expires_in - 60) * 1000};
-    store.set(TK, JSON.stringify(TOKEN));
-    w?.res(TOKEN.v);
+    w?.res(keep(r.access_token, r.expires_in));
   }, error_callback: e => { const w = tokenWait; tokenWait = null; w?.rej(new Error(e?.type === 'popup_closed' ? 'popup_closed' : 'login')); }});
+  if (AUTH_URL) codeClient = google.accounts.oauth2.initCodeClient({client_id: CLIENT_ID, scope: SCOPE, ux_mode: 'popup', select_account: false, login_hint: store.get(MK) || undefined,
+    callback: async r => {
+      const w = tokenWait; tokenWait = null;
+      if (r.error){ w?.rej(new Error(r.error)); return; }
+      const j = await post('/exchange', {code: r.code}).catch(() => ({}));
+      if (!j.access_token){ w?.rej(new Error('로그인하지 못했어요 — 다시 눌러 주세요')); return; }
+      if (j.blob) store.set(RK, j.blob);
+      else if (j.need_consent && typeof toast === 'function') toast('로그인 유지를 켜지 못했어요 — 구글 계정 › 보안 › 액세스 권한이 있는 앱에서 mylibrary 를 한 번 지운 뒤 다시 로그인해 주세요');
+      w?.res(keep(j.access_token, j.expires_in));
+    }, error_callback: e => { const w = tokenWait; tokenWait = null; w?.rej(new Error(e?.type === 'popup_closed' ? 'popup_closed' : 'login')); }});
   return true;
 }
-const askToken = () => new Promise((res, rej) => { tokenWait = {res, rej}; tokenClient.requestAccessToken({prompt: ''}); });
+// 처음 로그인: 서버가 있으면 코드 방식(동의 화면을 한 번 — 그래야 구글이 오래 가는 열쇠를 준다), 없으면 예전 방식
+const askToken = () => new Promise((res, rej) => { tokenWait = {res, rej}; codeClient ? codeClient.requestCode() : tokenClient.requestAccessToken({prompt: ''}); });
 function token(interactive){
   if (TOKEN && TOKEN.exp > Date.now()) return Promise.resolve(TOKEN.v);
+  if (canRenew()) return renew().catch(e => interactive && initGis() ? askToken() : Promise.reject(e));
   if (!interactive) return Promise.reject(new Error('login'));
   if (!initGis()) return Promise.reject(new Error('구글 로그인을 불러오지 못했어요 — 잠시 뒤 다시 눌러 주세요'));
   return askToken();
 }
-addEventListener('pointerdown', () => { if (TOKEN && TOKEN.exp - Date.now() < 600000 && !tokenWait && initGis()) askToken().catch(() => {}); }, true);
+// 끝나기 전에 미리: 봉투가 있으면 1분마다 보고 5분 남으면 조용히, 없으면 예전처럼 누르는 순간에
+setInterval(() => { if (TOKEN && TOKEN.exp - Date.now() < 300000 && canRenew()) renew().catch(() => {}); }, 60000);
+addEventListener('pointerdown', () => { if (!canRenew() && TOKEN && TOKEN.exp - Date.now() < 600000 && !tokenWait && initGis()) tokenClient.requestAccessToken({prompt: ''}); }, true);
+async function retryAfter401(){ TOKEN = null; store.set(TK, null); if (!canRenew()) return false; try { await renew(); return true; } catch(e){ return false; } }
+   // 구글 로그인 — tools/web_auth.js (build_web.py 가 끼워 넣는다, 책장 웹판과 같은 코드)
 async function rememberMail(){   // 다음 로그인 때 계정 고르기를 건너뛰도록 (이 기기에만)
   if (store.get(MK)) return;
   try { const j = await (await api('about?fields=user(emailAddress)')).json(); if (j.user?.emailAddress) store.set(MK, j.user.emailAddress); } catch(e){}
@@ -57,7 +91,7 @@ async function api(path, opt = {}){
   let t;
   try { t = await token(false); } catch(e){ gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
   const r = await origFetch(path.startsWith('http') ? path : 'https://www.googleapis.com/drive/v3/' + path, {...opt, headers: {...(opt.headers || {}), Authorization: 'Bearer ' + t}});
-  if (r.status === 401){ TOKEN = null; store.set(TK, null); gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
+  if (r.status === 401){ if (!opt._again && await retryAfter401()) return api(path, {...opt, _again: 1}); gate('로그인 시간이 지났어요 — 다시 열면 쓰던 것을 이어서 저장합니다'); throw new Error('다시 로그인해 주세요'); }
   if (!r.ok) throw new Error('드라이브 오류 ' + r.status);
   return r;
 }
@@ -478,6 +512,6 @@ async function start(interactive){
     else if (!roomResume()) refresh();   // 로그인이 끊겨 못 한 저장이 있으면 방 몫이 이어서, 아니면 다른 기기 것 받기
   } catch(e){ gate(e.message === 'login' || e.message === 'popup_closed' ? '' : e.message); }
 }
-addEventListener('DOMContentLoaded', () => { if (TOKEN) start(false); else gate(''); });
+addEventListener('DOMContentLoaded', () => { if (TOKEN || canRenew()) start(false); else gate(''); });   // 봉투가 있으면 누르지 않고 바로
 window.WEB = {img: typeof img === 'function' ? img : null, voice: typeof voice === 'function' ? voice : null, refresh};   // refresh: 다른 기기에서 바뀐 것을 지금 받기 (시험 · 화면에서)
 })();
