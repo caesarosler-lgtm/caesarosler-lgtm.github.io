@@ -725,8 +725,8 @@ const checksOf = s => ((db.playbooks[s] || {}).checks || '').split('\n').map(x =
 const focusFor = d => (db.weeks[addDays(monday(d), -7)] || {}).focus || '';   // 그 주의 과제 = 지난주 주간 복기에서 정한 것
 
 /* ---------- 화면 상태 ---------- */
-let view = 'home', sel = null, tMode = 'book', draft = null, isNew = false, focusOn = false;
-let dayD = today(), dayMode = 'day', calM = today().slice(0, 7), stRange = '3m', stTab = 'proc', lf = {q: '', st: 'all', setup: ''}, lpage = 0, tSub = 'done';
+let view = 'trades', sel = null, tMode = 'book', draft = null, isNew = false, focusOn = false;
+let dayD = today(), dayMode = 'day', calM = today().slice(0, 7), stRange = '3m', stTab = 'proc', lf = {q: '', st: 'all', setup: ''}, lpage = 0, tSub = 'stock';   // 켜면 첫 화면 = 매매 기록 › 종목 차트 (2026-10-10 사용자 요청)
 let pbSel = 0, pbI = 0, qz = {id: null, ans: null};
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
@@ -1539,7 +1539,7 @@ function newTrade(date){
   draft = {id: uid(), no: db.seq + 1, name: '', code: '', market: 'KOSPI', setup: '', tf: '스윙', tags: [], created: d,
     plan: {entry: '', target: '', stop: '', qty: '', why: '', catalyst: '', scenario: '', checks: {}, sc: {}, conf: 3, emo: ''}, fills: [], revs: [], lo: '', hi: '',
     review: {grade: '', follow: 0, emo: '', mistakes: [], good: '', bad: '', lesson: '', next: ''}, images: [], memo: ''};
-  isNew = true; view = 'trades'; tSub = 'done'; sel = draft.id; tMode = 'edit'; focusOn = false; render();
+  isNew = true; view = 'trades'; if (tSub === 'skip') tSub = 'done'; sel = draft.id; tMode = 'edit'; focusOn = false; render();
   setTimeout(() => $('e_name')?.focus(), 30);
 }
 function editTrade(){ const t = tradeById(sel); if (!t) return; draft = structuredClone(t); isNew = false; tMode = 'edit'; render(); }
