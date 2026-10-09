@@ -195,6 +195,12 @@ function token(interactive){
 // 끝나기 전에 미리: 봉투가 있으면 1분마다 보고 5분 남으면 조용히, 없으면 예전처럼 누르는 순간에
 setInterval(() => { if (TOKEN && TOKEN.exp - Date.now() < 300000 && canRenew()) renew().catch(() => {}); }, 60000);
 addEventListener('pointerdown', () => { if (!canRenew() && TOKEN && TOKEN.exp - Date.now() < 600000 && !tokenWait && initGis()) tokenClient.requestAccessToken({prompt: ''}); }, true);
+// 빨리 열리게 (2026-10-09 사용자 "예전보다 처음에 좀 느린 것 같아" — 서버 왕복 0.2~0.3초 + 구글 0.1~0.7초):
+// 페이지가 다 그려지기를 기다리지 않고, 이 코드가 읽히는 순간 새 열쇠를 받으러 간다 (화면 그리기 · 다른 파일 받기와 동시에).
+// 나중에 화면이 token() 을 부르면 이미 가고 있는 그 요청(renewing)을 함께 기다린다. 곧 끝날 열쇠는 지금 것으로 열고 뒤에서 미리 바꾼다.
+if (canRenew() && (!TOKEN || TOKEN.exp - Date.now() < 300000)) renew().catch(() => {});
+// 휴대폰에서 앱을 내려 두었다가 다시 올리면 (화면이 다시 보일 때) 열쇠가 끝났거나 곧 끝나면 바로 새로
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && canRenew() && (!TOKEN || TOKEN.exp - Date.now() < 300000)) renew().catch(() => {}); });
 async function retryAfter401(){ TOKEN = null; store.set(TK, null); if (!canRenew()) return false; try { await renew(); return true; } catch(e){ return false; } }
 /*__AUTH_END__*/
 async function rememberMail(){   // 다음 로그인 때 계정 고르기를 건너뛰도록 (이 기기에만)
