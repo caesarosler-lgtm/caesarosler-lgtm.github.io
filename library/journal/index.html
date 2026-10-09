@@ -360,6 +360,29 @@ html[data-theme=dark] .kc{box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(2
 
 /* 목록 */
 .lbar{display:flex;gap:var(--s3);align-items:center;margin-bottom:var(--s4)}
+/* 종목 차트 (환자 목록 → 진료 기록 → 판단 기록) */
+.skwrap{flex:1;min-height:0;display:grid;grid-template-columns:420px minmax(0,1fr) 680px;gap:var(--s5)}
+.skwrap>.card{min-height:0;overflow:hidden}
+.pr .dt.need{background:var(--warn)}
+.tlbox{flex:1;min-height:0;overflow:auto;margin:0 -6px;padding:0 6px}
+.tlday{font-size:var(--t-1);color:var(--sub);font-weight:600;margin:var(--s3) 0 var(--s2)}
+.tlday:first-child{margin-top:0}
+.tl{border:1px solid var(--line);border-radius:var(--r3);padding:10px 14px;margin-bottom:var(--s2);cursor:pointer;transition:background var(--d2) var(--ease)}
+.tl:hover{background:var(--hover)}
+.tl.on{border-color:var(--accent);background:var(--accent-weak)}
+.tl.needrev{box-shadow:inset 3px 0 0 var(--warn)}
+.tlh{display:flex;align-items:center;gap:10px;font-size:var(--t-1);white-space:nowrap;overflow:hidden}
+.tlf{display:grid;grid-template-columns:auto auto 1fr;gap:2px 14px;margin:6px 0 0 32px;font-size:var(--t-2);color:var(--sub)}
+.skbody{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:var(--s3);padding-right:4px}
+.sksec{font-weight:600;font-size:var(--t0);margin-top:var(--s2)}
+.sksec:first-child{margin-top:0}
+.sksec small{font-weight:400;color:var(--sub);font-size:var(--t-1);margin-left:8px}
+.skimgs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.skimgs figure{margin:0;min-width:0}
+.skimgs img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r2);border:1px solid var(--line);cursor:pointer;display:block}
+.skimgs figcaption{font-size:var(--t-2);color:var(--sub);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skimgs .add{display:grid;place-items:center;aspect-ratio:16/10;border:1px dashed var(--line);border-radius:var(--r2);color:var(--sub);cursor:pointer;font-size:var(--t-1)}
+.skimgs .add:hover{background:var(--hover)}
 .lbar select{width:auto}
 .ltab td{height:50px}
 .lfoot{display:flex;gap:var(--s4);align-items:center;justify-content:center;padding-top:var(--s3)}
@@ -727,10 +750,11 @@ function render(){
   $('nav').innerHTML = nb.slice(0, NAV_SPLIT).join(''); $('nav2').innerHTML = nb.slice(NAV_SPLIT).join('');
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
   $('main').innerHTML = view === 'home' ? homeV() : view === 'day' ? (dayMode === 'week' ? weekV() : dayV())
-    : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : listV())
+    : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : listV())
     : view === 'tt' ? ttV() : view === 'appt' ? apptV() : view === 'cal' ? calV() : view === 'stats' ? statsV() : view === 'play' ? playV() : view === 'quiz' ? quizV() : setV();
   if (isBook()) setupBook();
   if (view === 'trades' && sel && tMode === 'book') document.querySelector('.pr.on')?.scrollIntoView({block: 'nearest'});
+  if (view === 'trades' && !sel && tSub === 'stock') document.querySelectorAll('#skList .pr.on, #skTl .tl.on').forEach(el => el.scrollIntoView({block: 'nearest'}));
   $('tip').hidden = true;
 }
 
@@ -1155,7 +1179,7 @@ function listItems(){
     .sort((a, b) => ((b.c.close || b.c.fills.at(-1)?.date || b.t.created || '')).localeCompare(a.c.close || a.c.fills.at(-1)?.date || a.t.created || '') || b.t.no - a.t.no);
 }
 const ROWS = () => Math.max(5, Math.floor((STAGE.h - 60 - 48 - 56 - 40 - 60) / 51));
-const subSeg = () => `<div class="seg"><button class="${tSub === 'done' ? 'on' : ''}" onclick="tSub='done';render()">한 매매</button><button class="${tSub === 'skip' ? 'on' : ''}" onclick="tSub='skip';render()">안 한 매매 <span class="muted">${db.skips.length}</span></button></div>`;
+const subSeg = () => `<div class="seg"><button class="${tSub === 'done' ? 'on' : ''}" onclick="tSub='done';render()">한 매매</button><button class="${tSub === 'stock' ? 'on' : ''}" onclick="tSub='stock';render()">종목 차트</button><button class="${tSub === 'skip' ? 'on' : ''}" onclick="tSub='skip';render()">안 한 매매 <span class="muted">${db.skips.length}</span></button></div>`;
 function listV(){
   const all = listItems(), per = ROWS(), pages = Math.max(1, Math.ceil(all.length / per)); lpage = clip(lpage, 0, pages - 1);
   const rows = all.slice(lpage * per, lpage * per + per), cl = all.filter(x => x.c.status === 'closed'), k = kpis(cl), pr = proc(cl);
@@ -1164,7 +1188,7 @@ function listV(){
       <select onchange="lf.setup=this.value;lpage=0;render()"><option value="">모든 전략</option>${db.setups.map(s => `<option ${lf.setup === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       ${lf.q ? `<span class="badge open">검색: ${esc(lf.q)} <a style="cursor:pointer" onclick="onSearch('');$('q').value=''">✕</a></span>` : ''}
       <span class="sp"></span><span class="muted" style="font-size:var(--t-1)">청산 ${k.n}건 · A·B 결정 ${pct0(pr.ab)} · 승률 ${k.n ? k.win.toFixed(0) : 0}% · 합계 <b class="${cls(k.total)}">${fw(k.total)}</b></span>
-      <button onclick="kwImportOpen()" title="키움증권에서 체결 내역을 가져와 매매 기록으로 만듭니다">⇩ 키움 체결 가져오기</button><button onclick="impOpen()" title="증권사에서 내려받은 체결 내역 파일(xlsx · xls · csv)을 매매 기록으로">⇪ 체결 파일</button><button onclick="go('set');setTimeout(()=>$('csvTxt')?.focus(),50)">⇪ CSV</button><button class="primary" onclick="newTrade()">＋ 새 매매<kbd>N</kbd></button></div>
+      <button onclick="kwToday()" title="오늘 체결을 키움에서 바로 가져옵니다 — 이미 있는 체결은 건너뜁니다">⇩ 오늘 체결 가져오기</button><button onclick="kwImportOpen()" title="기간을 골라 키움증권에서 체결 내역을 가져옵니다">⇩ 키움 기간 선택</button><button onclick="impOpen()" title="증권사에서 내려받은 체결 내역 파일(xlsx · xls · csv)을 매매 기록으로">⇪ 체결 파일</button><button onclick="go('set');setTimeout(()=>$('csvTxt')?.focus(),50)">⇪ CSV</button><button class="primary" onclick="newTrade()">＋ 새 매매<kbd>N</kbd></button></div>
     <div class="card" style="flex:1;padding:8px 16px"><table class="ltab"><thead><tr><th>No.</th><th>결정</th><th>상태</th><th>종목</th><th>시장</th><th>전략</th><th>진입일</th><th>청산일</th><th class="num">보유</th><th class="num">평균 매수가</th><th class="num">평균 매도가</th>
       <th class="num">수익률</th><th class="num">R</th><th class="num">${RES()}</th><th>계획</th><th>실수</th><th>복기</th></tr></thead><tbody>
       ${rows.map(({t, c}) => `<tr class="click ${needReview(t, c) ? 'needrev' : ''}" onclick="rowOpen(event,'${t.id}')"><td class="muted">${t.no}</td><td>${c.status === 'closed' ? grB(t.review.grade) : ''}</td><td><span class="badge ${c.status}">${stName[c.status]}</span></td><td><b>${esc(t.name)}</b> <span class="muted" style="font-size:var(--t-2)">${esc(t.code)}</span>${t.sample ? ' <span class="badge">샘플</span>' : ''}</td>
@@ -1211,6 +1235,106 @@ function skipSave(id){
   closeModal(); save(); render();
 }
 function skipDel(id){ if (!confirm('이 기록을 지울까요?')) return; db.skips = db.skips.filter(s => s.id !== id); save(); render(); }
+
+/* =====================================================================
+   종목 차트 — 치과 전자차트의 환자 목록처럼 (2026-10-10, PYJ Trading Chart 계획 1단계)
+   왼쪽 = 종목(환자) 목록 · 가운데 = 그 종목의 매매 타임라인(진료 기록) · 오른쪽 = 고른 매매의 판단 기록 · 차트 캡처.
+   새 칸은 없다 — 이미 있는 매매 기록(review 의 판단 기록 · images)을 그대로 읽고 쓴다. 종목은 코드로(없으면 이름으로) 묶는다.
+   ===================================================================== */
+let skKey = null, skTid = null, skQ = '', SKL = [];
+const stockKey = t => (t.code || '').trim() || (t.name || '').trim();
+const tAt = x => x.c.close || x.c.fills.at(-1)?.date || x.t.created || '';
+function stockGroups(){
+  const m = new Map();
+  db.trades.forEach(t => {
+    const k = stockKey(t); if (!k) return;
+    let g = m.get(k); if (!g) m.set(k, g = {key: k, L: []});
+    g.L.push({t, c: calc(t)});
+  });
+  return [...m.values()].map(g => {
+    g.L.sort((a, b) => tAt(b).localeCompare(tAt(a)) || b.t.no - a.t.no);
+    const top = g.L[0].t, cl = g.L.filter(x => x.c.status === 'closed');
+    Object.assign(g, {name: top.name || '', code: top.code || '', market: top.market || '', last: tAt(g.L[0]), n: g.L.length, closed: cl.length,
+      wins: cl.filter(x => x.c.realized > 0).length, sum: sum(cl.map(x => uv(x.c))), need: g.L.filter(x => needReview(x.t, x.c)).length, open: g.L.some(x => x.c.status === 'open')});
+    return g;
+  }).sort((a, b) => b.last.localeCompare(a.last) || a.name.localeCompare(b.name, 'ko'));
+}
+function skCur(){
+  const g = SKL.find(x => x.key === skKey) || SKL[0]; skKey = g ? g.key : null;
+  const x = g && (g.L.find(y => y.t.id === skTid) || g.L[0]); skTid = x ? x.t.id : null;
+  return {g, x};
+}
+function stockV(){
+  SKL = stockGroups(); const {g, x} = skCur();
+  return `<div class="lbar">${subSeg()}<span class="muted" style="font-size:var(--t-1)">종목마다 쌓인 매매를 환자 차트처럼 봅니다 — 매매를 두 번 누르면 종이 기록부</span><span class="sp"></span>
+      <button onclick="kwToday()" title="오늘 체결을 키움에서 바로 가져옵니다 — 이미 있는 체결은 건너뜁니다">⇩ 오늘 체결 가져오기</button><button onclick="impOpen()" title="증권사에서 내려받은 체결 내역 파일(xlsx · xls · csv)을 매매 기록으로">⇪ 체결 파일</button><button class="primary" onclick="newTrade()">＋ 새 매매<kbd>N</kbd></button></div>
+    <div class="skwrap">
+      <div class="card"><h3>종목 <small>${SKL.length}개 · ← → 이동</small></h3>
+        <input id="skq" placeholder="종목명 · 코드로 찾기" value="${esc(skQ)}" autocomplete="off" oninput="skQ=this.value;$('skList').innerHTML=skListHtml()" style="margin-bottom:var(--s2)">
+        <div class="plist" id="skList">${skListHtml()}</div></div>
+      <div class="card" id="skTl">${g ? skTimeline(g) : '<div class="empty">매매를 기록하거나 체결을 가져오면 종목마다 여기에 쌓입니다.</div>'}</div>
+      <div class="card" id="skSide">${x ? skSide(x.t, x.c) : ''}</div></div>`;
+}
+function skListHtml(){
+  const q = skQ.trim().toLowerCase(), L = SKL.filter(g => !q || g.name.toLowerCase().includes(q) || g.code.includes(q));
+  return L.map(g => `<div class="pr ${g.key === skKey ? 'on' : ''}" data-k="${SKL.indexOf(g)}" onclick="skPick(${SKL.indexOf(g)})"><span class="dt ${g.need ? 'need' : g.open ? 'open' : ''}"></span>
+      <span><b>${esc(g.name)}</b> <span class="muted">${esc(g.code)}</span><small>${g.n}건${g.closed ? ` · 승 ${g.wins} / ${g.closed}` : ''} · ${dShort(g.last)}${g.need ? ` · <span class="needn">복기 ${g.need}</span>` : ''}</small></span>
+      <span class="${cls(g.sum)}" style="font-weight:700">${g.closed ? fw(g.sum) : ''}</span></div>`).join('')
+    || `<div class="empty">${q ? '찾는 종목이 없습니다' : '아직 매매 기록이 없습니다'}</div>`;
+}
+function skTimeline(g){
+  const k = kpis(g.L.filter(x => x.c.status === 'closed')); let lastDay = null;
+  const rows = g.L.map(({t, c}) => {
+    const day = c.open || t.created || '', head = day !== lastDay ? `<div class="tlday">${dFull(day)}</div>` : ''; lastDay = day;
+    const fs = c.fills, ex = c.status === 'closed' ? fs.at(-1) : null, need = needReview(t, c);
+    const when = c.entryTime ? c.entryTime + (ex && ex.time ? ' → ' + (ex.date !== day ? dShort(ex.date) + ' ' : '') + ex.time : '') : '';
+    return head + `<div class="tl ${t.id === skTid ? 'on' : ''} ${need ? 'needrev' : ''}" data-id="${t.id}" onclick="skSel('${t.id}',event)">
+      <div class="tlh">${c.status === 'closed' ? grB(t.review.grade) : `<span class="badge ${c.status}">${stName[c.status]}</span>`}<b>No. ${t.no}</b>${when ? `<span>${when}</span>` : ''}${c.open && c.status === 'closed' ? `<span class="muted">${holdTxt(c)}</span>` : ''}${t.setup ? `<span class="muted">· ${esc(t.setup)}</span>` : ''}${t.sample ? '<span class="badge">샘플</span>' : ''}${need ? '<span class="badge need">복기 필요</span>' : ''}
+        <span class="sp"></span><b class="${cls(c.realized)}">${c.sellQty ? tv(c) : ''}</b></div>
+      ${fs.length ? `<div class="tlf">${fs.slice(0, 6).map(f => `<span>${f.date !== day ? dShort(f.date) + ' ' : ''}${esc(f.time || '')}</span><span class="${f.side === 'B' ? 'side-b' : 'side-s'}">${f.side === 'B' ? '매수' : '매도'}</span><span>${fmt(f.price)} × ${fmt(f.qty)}주</span>`).join('')}${fs.length > 6 ? `<span></span><span></span><span class="muted">외 ${fs.length - 6}건</span>` : ''}</div>` : ''}</div>`;
+  }).join('');
+  return `<h3>${esc(g.name)} <small>${esc(g.code)}${g.market ? ' · ' + esc(g.market) : ''}</small><span class="sp"></span>
+      <small>매매 ${g.n}건${k.n ? ` · 청산 ${k.n} · 승률 ${k.win.toFixed(0)}% · 합계 <b class="${cls(k.total)}">${fw(k.total)}</b>` : ''}</small></h3>
+    <div class="tlbox">${rows}</div>`;
+}
+function skSide(t, c){
+  const r = t.review, im = t.images || [];
+  return `<h3>No. ${t.no} ${esc(t.name)} <small>${dShort(c.open || t.created)}${t.setup ? ' · ' + esc(t.setup) : ''}</small><span class="sp"></span>
+      <button class="sm" onclick="openTrade('${t.id}')" title="종이 기록부로 보기 (Enter)">종이 기록부</button><button class="sm primary" onclick="openTrade('${t.id}');editTrade()">✏ 기록 · 복기 쓰기</button></h3>
+    <div class="skbody">
+      <div class="sksec">판단 기록<small>쓰는 대로 저장됩니다</small></div>
+      ${REVIEW_Q.map(([k, l, ph], i) => fld(`${i + 1}. ${l}`, `<textarea rows="2" placeholder="${esc(ph)}" oninput="skSet('${k}',this.value)">${esc(r[k] || '')}</textarea>`)).join('')}
+      <div class="fld"><span>5. 다시 돌아가도 같은 매매를 할 것인가</span><div class="chips">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="chip ${r.again === v ? 'on' : ''}" data-v="${v}" onclick="skAgain('${v}',this)">${l}</span>`).join('')}</div></div>
+      ${fld('그 이유', `<textarea rows="2" placeholder="무엇이 맞았나 · 무엇이 달라야 했나" oninput="skSet('againWhy',this.value)">${esc(r.againWhy || '')}</textarea>`)}
+      <div class="sksec">차트 캡처<small>Ctrl+V 로 붙여 넣기 · 그림 파일 끌어다 놓기</small></div>
+      <div class="skimgs">${im.map((x, i) => `<figure><img src="${imgSrc(x)}" onclick="showImg(${i})" alt=""><figcaption>${esc(IMG_KIND[x.kind] || '')}${x.cap ? ' · ' + esc(x.cap) : ''}</figcaption></figure>`).join('')}<div class="add" onclick="$('imgIn').click()">＋ 그림 고르기</div></div>
+    </div>`;
+}
+// 다시 그리지 않고 고친 칸만 바꾼다 (목록 · 타임라인의 스크롤 자리를 지키려고)
+function skPick(i){
+  const g = SKL[i]; if (!g || g.key === skKey) return; skKey = g.key; skTid = null; const {x} = skCur();
+  document.querySelectorAll('#skList .pr').forEach(el => el.classList.toggle('on', +el.dataset.k === i));
+  document.querySelector('#skList .pr.on')?.scrollIntoView({block: 'nearest'});
+  $('skTl').innerHTML = skTimeline(g); $('skSide').innerHTML = x ? skSide(x.t, x.c) : '';
+}
+function skSel(id, e){
+  if (e && e.detail > 1){ openTrade(id); return; }   // 두 번 누르기 = 종이 기록부
+  if (id === skTid) return; skTid = id; const {x} = skCur();
+  document.querySelectorAll('#skTl .tl').forEach(el => el.classList.toggle('on', el.dataset.id === id));
+  document.querySelector('#skTl .tl.on')?.scrollIntoView({block: 'nearest'});
+  $('skSide').innerHTML = x ? skSide(x.t, x.c) : '';
+}
+function skStep(d, what){
+  const gi = SKL.findIndex(g => g.key === skKey); if (gi < 0) return;
+  if (what === 'stock') return skPick(clip(gi + d, 0, SKL.length - 1));
+  const L = SKL[gi].L, i = L.findIndex(x => x.t.id === skTid), n = L[clip(i + d, 0, L.length - 1)];
+  if (n) skSel(n.t.id);
+}
+function skSet(k, v){ const t = tradeById(skTid); if (!t) return; t.review[k] = v; t.updated = new Date().toISOString(); save(); }
+function skAgain(v, el){
+  const t = tradeById(skTid); if (!t) return; t.review.again = t.review.again === v ? '' : v; t.updated = new Date().toISOString(); save();
+  el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.v === t.review.again));
+}
 
 /* =====================================================================
    4. 매매 기록부 (종이) — 계획서 → 체결 내역 → 차트 캡처 → 복기 → (메모)
@@ -1337,7 +1461,6 @@ function tradeBookV(){
         ${HOST && HOST.N > 1 ? `<button onclick="HOST.openIn(window,'${t.id}')" title="이 매매를 반대쪽 화면에 열기">▶ 옆 화면에</button>` : ''}
         <button onclick="aiOpen('trade')" title="이 매매의 기록을 Claude 에게 보내 복기 질문을 받습니다 (누를 때만 전송)">🤖 AI 복기${t.ai?.msgs?.length ? ' ●' : ''}<kbd>I</kbd></button>
         <button onclick="kwChartFetch('${t.id}')" title="키움에서 일봉(당일 · 단기 매매는 5분봉도)을 받아 내 매수 · 매도 자리를 표시하고, 보유 중 최저 · 최고가를 채웁니다">📈 타점 차트${t.chart ? ' ●' : ''}</button>
-        <button onclick="kwOrderOpen('${t.id}')" title="계획서의 가격 · 수량으로 주문 내용을 채워 줍니다. 확인을 눌러야 주문됩니다">주문</button>
         <button onclick="$('imgIn').click()" title="Ctrl+V 로 붙여 넣어도 됩니다">📷 캡처</button><button onclick="focusToggle()">⛶ 집중<kbd>F</kbd></button><button class="primary" onclick="editTrade()">✏ 기록 · 복기 쓰기<kbd>E</kbd></button><button class="danger" onclick="delTrade()" title="삭제">🗑</button></div>
       <div class="bkdesk" id="desk" onwheel="bkWheel(event)"><div class="spread" id="spread"></div></div>
       <div class="bkfoot"><button onclick="bookFlip(-1)" id="bkPrev">◀ 이전 장</button><span id="bkInfo" style="min-width:120px;text-align:center;font-weight:700"></span><button onclick="bookFlip(1)" id="bkNext">다음 장 ▶</button>
@@ -1364,10 +1487,11 @@ function delTrade(){
 }
 
 /* ---------- 차트 캡처 (붙여 넣기 · 끌어 놓기 · 파일) ---------- */
+const curTrade = () => tradeObj() || (view === 'trades' && tSub === 'stock' && !sel && skTid ? tradeById(skTid) : null);   // 그림을 붙일 매매 (종이 기록부 · 쓰기 · 종목 차트)
 const imgSrc = im => im.file ? WEB.img(im.file) : im.data || '';
 const readURL = f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
 async function addImage(file){
-  const t = tradeObj(); if (!t || !file || !file.type.startsWith('image/')) return;
+  const t = curTrade(); if (!t || !file || !file.type.startsWith('image/')) return;
   const data = await readURL(file); let im = null;
   if (serverOK){
     try { const r = await (await fetch('api/image/upload', {method: 'POST', body: JSON.stringify({tid: t.id, data})})).json(); if (!r.ok) return toast('⚠ ' + r.error); im = {file: r.file}; }
@@ -1376,19 +1500,19 @@ async function addImage(file){
   t.images.push({...im, cap: '', at: today(), kind: t.images.some(x => x.kind === 'entry') ? 'exit' : 'entry'});
   if (t !== draft) save();
   render(); toast('차트 캡처를 붙였습니다 — 그림을 눌러 구분(진입/청산)과 설명을 적을 수 있습니다');
-  if (tMode === 'book'){ const ps = tradePages(t), j = ps.findIndex(p => p.label.startsWith('차트')); bookGo(Math.floor((j + Math.floor((t.images.length - 1) / 2)) / 2)); }
+  if (tMode === 'book' && sel){ const ps = tradePages(t), j = ps.findIndex(p => p.label.startsWith('차트')); bookGo(Math.floor((j + Math.floor((t.images.length - 1) / 2)) / 2)); }
 }
 document.addEventListener('paste', e => {
-  if (view !== 'trades' || !sel || $('modal')) return;
+  if (view !== 'trades' || !curTrade() || $('modal')) return;
   const files = [...e.clipboardData.items].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile());
   if (!files.length) return;
   e.preventDefault(); files.forEach(addImage);
 });
-document.addEventListener('dragover', e => { if (view === 'trades' && sel){ e.preventDefault(); document.querySelector('.drop')?.classList.add('over'); } });
+document.addEventListener('dragover', e => { if (view === 'trades' && curTrade()){ e.preventDefault(); document.querySelector('.drop')?.classList.add('over'); } });
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.querySelector('.drop')?.classList.remove('over'); });
-document.addEventListener('drop', e => { if (view === 'trades' && sel){ e.preventDefault(); [...e.dataTransfer.files].forEach(addImage); } });
+document.addEventListener('drop', e => { if (view === 'trades' && curTrade()){ e.preventDefault(); [...e.dataTransfer.files].forEach(addImage); } });
 function showImg(i, tid){
-  const t = tid ? tradeById(tid) : tradeObj(), im = t?.images[i]; if (!im) return;
+  const t = tid ? tradeById(tid) : curTrade(), im = t?.images[i]; if (!im) return;
   const ro = !!tid;   // 플레이북 · 훈련에서 열면 보기만
   modal(`<div class="row"><b style="font-size:var(--t1)">${esc(t.name)} · 차트 캡처 ${i + 1} / ${t.images.length}</b><span class="sp"></span>
       <button onclick="showImg(${i - 1}${ro ? `,'${t.id}'` : ''})" ${i ? '' : 'disabled'}>◀</button><button onclick="showImg(${i + 1}${ro ? `,'${t.id}'` : ''})" ${i < t.images.length - 1 ? '' : 'disabled'}>▶</button><button onclick="closeModal()">닫기 Esc</button></div>
@@ -1398,9 +1522,9 @@ function showImg(i, tid){
       <button class="primary" onclick="capSave(${i});closeModal()">저장</button><button class="danger" onclick="imgDel(${i})">그림 삭제</button></div>`}`, 'img');
   if (!ro) setTimeout(() => $('capIn')?.focus(), 30);
 }
-function capSave(i){ const t = tradeObj(); t.images[i].cap = $('capIn').value.trim(); t.images[i].kind = $('kindIn').value; if (t !== draft) save(); render(); }
+function capSave(i){ const t = curTrade(); t.images[i].cap = $('capIn').value.trim(); t.images[i].kind = $('kindIn').value; if (t !== draft) save(); render(); }
 function imgDel(i){
-  const t = tradeObj(), im = t.images[i]; if (!confirm('이 그림을 삭제할까요? (파일은 _삭제됨 폴더로 옮겨 보관)')) return;
+  const t = curTrade(), im = t.images[i]; if (!confirm('이 그림을 삭제할까요? (파일은 _삭제됨 폴더로 옮겨 보관)')) return;
   if (im.file) fetch('api/image/delete', {method: 'POST', body: JSON.stringify({file: im.file})}).catch(() => {});
   t.images.splice(i, 1); if (t !== draft) save(); closeModal(); render();
 }
@@ -1966,7 +2090,7 @@ function setV(){
       <h3 style="margin-top:12px">단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div>
     </div>
     <div class="card"><h3>키움증권 연결 (REST API)</h3>
-      <div class="note">체결 내역 자동 가져오기 · 타점 차트 · 조건검색 · 주문. ${!KWS ? '' : `지금 서버: <b style="color:var(--${KWS.mode === 'real' ? 'danger' : 'ok'})">${KWS.mode === 'real' ? '실전' : '모의투자'}</b> · 앱키 ${KWS.keys[KWS.mode] ? '<b>저장됨</b>' : '<b>없음</b>'} · 주문 기능 <b>${KWS[KWS.mode === 'real' ? 'ordersReal' : 'ordersMock'] ? '켜짐' : '꺼짐'}</b>`}</div>
+      <div class="note">체결 내역 자동 가져오기 · 타점 차트 · 조건검색 (조회 전용). ${!KWS ? '' : `지금 서버: <b style="color:var(--${KWS.mode === 'real' ? 'danger' : 'ok'})">${KWS.mode === 'real' ? '실전' : '모의투자'}</b> · 앱키 ${KWS.keys[KWS.mode] ? '<b>저장됨</b>' : '<b>없음</b>'}`}</div>
       <div class="row"><button class="primary" onclick="kwOpen()">키움 설정 열기</button><button onclick="kwImportOpen()">⇩ 체결 가져오기</button><button onclick="kwChartAll()" title="차트가 없는 청산 매매의 타점 차트를 차례로 받습니다 (1건에 1~2초)">📈 타점 차트 모두 받기</button></div>
       <h3 style="margin-top:12px">증권사 체결 파일 (xlsx · xls · csv)</h3>
       <div class="note">증권사 HTS · MTS 에서 내려받은 체결 내역 파일을 그대로 올립니다. 처음 보는 형식이면 열을 한 번 맞추고, 그 설정은 증권사별로 저장돼 다음부터 저절로 맞춰집니다. 계좌번호는 저장하지 않습니다.</div>
@@ -2293,9 +2417,9 @@ function clearSample(){
 }
 
 /* =====================================================================
-   키움증권 REST API — 체결 내역 가져오기 · 타점 차트와 분석 · 조건검색 · 주문
+   키움증권 REST API — 조회 전용: 체결 내역 가져오기 · 타점 차트와 분석 · 조건검색
    호출은 실행기(나의도서관.pyw)가 한다. 앱키는 윈도우 자격 증명 관리자에만. 모의투자와 실전은 키가 서로 다르다.
-   주문: 이 프로그램은 스스로 주문하지 않는다. 계획서의 숫자로 주문 내용을 채워 주고, 사람이 확인을 눌러야 보낸다.
+   주문 기능은 2026-10-10 사용자 결정으로 뺐다 (PYJ Trading Chart 계획 — '주문 기능은 절대 만들지 말 것'). 다시 넣지 말 것.
    ===================================================================== */
 let KWS = null;
 async function kwStatus(){ try { KWS = await (await fetch('api/kw/status')).json(); } catch(e){ KWS = null; } }
@@ -2306,25 +2430,17 @@ const kwReady = async () => { if (!serverOK || window.WEB){ toast('키움 연결
   if (!KWS.keys[KWS.mode]){ kwOpen(); toast(`키움 ${kwModeName(KWS.mode)} 앱키를 먼저 입력해 주세요`); return false; } return true; };
 async function kwOpen(){
   if (!serverOK){ toast('키움 연결은 프로그램 창(나의도서관.pyw)에서 쓸 수 있어요'); return; }
-  await kwStatus(); const k = KWS; if (!k) return; const m = k.mode, on = k[m === 'real' ? 'ordersReal' : 'ordersMock'];
+  await kwStatus(); const k = KWS; if (!k) return; const m = k.mode;
   modal(`<div class="row" style="flex-wrap:nowrap"><h3 style="flex:1">키움증권 연결 (REST API)</h3><div class="seg"><button class="${m === 'mock' ? 'on' : ''}" onclick="kwSet({mode:'mock'})">모의투자</button><button class="${m === 'real' ? 'on' : ''}" onclick="kwSet({mode:'real'})">실전</button></div></div>
     <div class="note">키움 REST API 홈페이지(openapi.kiwoom.com)에서 API 사용을 신청하고 <b>앱키 · 시크릿키</b>를 발급받아 넣습니다. <b>모의투자와 실전은 키가 서로 다릅니다.</b> 접속할 PC 의 IP 등록이 필요할 수 있습니다.<br>
       키는 윈도우 자격 증명 관리자에만 저장됩니다. 먼저 <b>모의투자</b>로 충분히 써 본 뒤 실전으로 바꾸기를 권합니다.</div>
     <h3 style="font-size:var(--t0)">${kwModeName(m)} 키 ${k.keys[m] ? '<b style="color:var(--ok)">저장됨</b>' : '<span class="muted" style="font-weight:400">아직 없음</span>'}</h3>
     <div class="grid2">${fld('앱키 (App Key)', `<input id="kw_ak" type="password" autocomplete="off" placeholder="${k.keys[m] ? '(저장된 값 사용 — 바꿀 때만 입력)' : ''}">`)}${fld('시크릿키 (Secret Key)', `<input id="kw_sk" type="password" autocomplete="off" placeholder="${k.keys[m] ? '(저장된 값 사용)' : ''}">`)}</div>
     <div class="row"><button class="primary" onclick="kwKeySave()">키 저장</button><button onclick="kwTest()" ${k.keys[m] ? '' : 'disabled'}>연결 시험</button><span class="sp"></span>${k.keys[m] ? `<button class="danger sm" onclick="kwKeyForget()">${kwModeName(m)} 키 지우기</button>` : ''}</div>
-    <h3 style="font-size:var(--t0);margin-top:6px">주문 기능 <span class="muted" style="font-weight:400;font-size:var(--t-1)">— 기본은 꺼짐. 조회(체결 · 차트 · 조건검색)는 꺼져 있어도 됩니다</span></h3>
-    <div class="note">이 프로그램은 <b>스스로 주문하지 않습니다.</b> 종이 기록부의 [주문]에서 계획서의 숫자로 내용을 채워 주고, 직접 확인을 눌러야 주문이 나갑니다. 실전 주문은 종목명을 한 번 더 입력해야 합니다.<br>
-      프로그램의 오류나 잘못 누른 주문도 실제 체결로 이어질 수 있습니다. 실전 주문 기능은 그 위험을 감수할 때만 켜세요.</div>
-    <div class="row"><label class="chip"><input type="checkbox" ${k.ordersMock ? 'checked' : ''} onchange="kwSet({ordersMock:this.checked})">모의투자 주문 켜기</label>
-      <label class="chip m"><input type="checkbox" ${k.ordersReal ? 'checked' : ''} onchange="kwRealToggle(this)">실전 주문 켜기</label>
-      <span class="muted" style="font-size:var(--t-1)">1회 주문 한도</span><input type="number" step="100000" value="${k.maxOrder}" style="width:150px" onchange="kwSet({maxOrder:this.value})"><span class="muted" style="font-size:var(--t-1)">원 — 넘으면 거절</span></div>
-    <div class="rrline">지금: <b>${kwModeName(m)}</b> 서버 · 키 ${k.keys[m] ? '있음' : '없음'} · 주문 ${on ? '<b style="color:var(--danger)">켜짐</b>' : '꺼짐'}${k.ws ? '' : ' · <b style="color:var(--danger)">조건검색에 필요한 구성 요소(websockets)가 없습니다 — 설치.bat 실행</b>'}<br>
-      보낸 주문 요청은 data/kiwoom_orders.jsonl 에 기록됩니다.</div>
+    <div class="rrline">지금: <b>${kwModeName(m)}</b> 서버 · 키 ${k.keys[m] ? '있음' : '없음'} · <b>조회 전용</b> (체결 · 차트 · 조건검색 — 주문 기능은 없습니다)${k.ws ? '' : ' · <b style="color:var(--danger)">조건검색에 필요한 구성 요소(websockets)가 없습니다 — 설치.bat 실행</b>'}</div>
     <div class="bt"><button onclick="closeModal()">닫기</button></div>`, 'wide');
 }
 async function kwSet(o){ const r = await kwApi('config', o); if (!r.ok){ toast('⚠ ' + r.error); } await kwOpen(); if (view === 'set') render(); }
-function kwRealToggle(el){ if (el.checked && !confirm('실전 주문 기능을 켭니다.\n\n이 프로그램에서 누른 주문이 실제 계좌에서 체결됩니다. 모의투자로 충분히 써 보셨나요?')){ el.checked = false; return; } kwSet({ordersReal: el.checked}); }
 async function kwKeySave(){ const r = await kwApi('config', {keyMode: KWS.mode, appkey: $('kw_ak').value, secret: $('kw_sk').value}); if (!r.ok){ toast('⚠ ' + r.error); return; } await kwOpen(); toast('키를 저장했습니다 — [연결 시험]으로 확인하세요'); if (view === 'set') render(); }
 async function kwKeyForget(){ if (!confirm(`${kwModeName(KWS.mode)} 키를 지울까요?`)) return; await kwApi('config', {keyMode: KWS.mode, forget: true}); await kwOpen(); if (view === 'set') render(); }
 async function kwTest(){ toast('키움에 연결하는 중…'); const r = await kwApi('test'); toast(r.ok ? `연결됨 — 키움 ${kwModeName(KWS.mode)} 서버` : '⚠ ' + r.error); }
@@ -2344,16 +2460,27 @@ async function kwImportLoad(){
   $('kw_pv').textContent = '키움에서 받는 중…'; $('kw_go').disabled = true;
   const r = await kwApi('fills', {from: $('kw_from').value, to: $('kw_to').value}); if (!$('kw_pv')) return;
   if (!r.ok){ $('kw_pv').innerHTML = `<b style="color:var(--danger)">${esc(r.error)}</b>`; return; }
-  const known = [...KNOWN, ...Object.entries(db.names).map(([c, x]) => [c, x.name, x.market])];
-  kwFills = r.fills.map(f => ({...f, fee: f.fk ? f.fee : '', tax: f.fk && f.side === 'S' ? f.tax : '', market: (known.find(x => x[0] === f.code) || [])[2] || 'KOSPI'})).sort(byDT);
+  kwFills = kwPrep(r.fills);
   const plan = csvPlan(kwFills, true), nk = kwFills.filter(f => f.fk).length; $('kw_go').disabled = !(plan.add || plan.upd);
   $('kw_pv').innerHTML = `받은 체결 <b>${kwFills.length}건</b> · 새로 넣을 체결 <b>${plan.add}건</b> · 이미 있어 건너뜀 ${plan.dup}건 · 새 매매 <b>${plan.newT}건</b>${plan.upd ? ` · 이미 있는 체결에 키움 수수료 · 세금 채움 <b>${plan.upd}건</b>` : ''}<br>
     수수료 · 세금: 키움의 실제 값 <b>${nk}건</b>${nk < kwFills.length ? ` · 나머지 ${kwFills.length - nk}건은 설정의 비율로 계산` : ''}${r.note ? `<br><span style="color:var(--warn)">${esc(r.note)}</span>` : ''}
     <div style="max-height:400px;overflow:auto;margin-top:8px"><table><thead><tr><th>일시</th><th>종목</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">수수료</th><th class="num">세금</th></tr></thead><tbody>${kwFills.map(f => `<tr><td>${f.date} ${esc(f.time)}</td><td><b>${esc(f.name)}</b> <span class="muted">${f.code}</span></td><td class="${f.side === 'B' ? 'up' : 'dn'}">${f.side === 'B' ? '매수' : '매도'}</td><td class="num">${fmt(f.qty)}주</td><td class="num">${fmt(f.price)}</td>
       <td class="num">${f.fk ? fmt(f.fee) : '<span class="muted">계산</span>'}</td><td class="num">${f.side !== 'S' ? '' : f.fk ? fmt(f.tax) : '<span class="muted">계산</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">이 기간에 체결이 없습니다</td></tr>'}</tbody></table></div>`;
 }
-function kwImportGo(){
-  if (!kwFills) return; const r = csvPlan(kwFills, false, '키움'); kwFills = null; save(); fillNameList(); closeModal(); lf.st = 'all'; tSub = 'done'; sel = null; view = 'trades'; render();
+const kwPrep = fills => { const known = [...KNOWN, ...Object.entries(db.names).map(([c, x]) => [c, x.name, x.market])];
+  return fills.map(f => ({...f, fee: f.fk ? f.fee : '', tax: f.fk && f.side === 'S' ? f.tax : '', market: (known.find(x => x[0] === f.code) || [])[2] || 'KOSPI'})).sort(byDT); };
+/* [⇩ 오늘 체결 가져오기] — 장 마감 뒤 버튼 하나로. 이미 있는 체결은 건너뛰므로 여러 번 눌러도 된다. 보던 화면(목록 · 종목 차트)은 그대로. */
+async function kwToday(){
+  if (!await kwReady()) return; const d = today(); toast('키움에서 오늘 체결을 받는 중…');
+  const r = await kwApi('fills', {from: d, to: d}); if (!r.ok){ toast('⚠ ' + r.error); return; }
+  kwFills = kwPrep(r.fills);
+  if (!kwFills.length){ kwFills = null; toast('오늘 체결이 없습니다'); return; }
+  const p = csvPlan(kwFills, true); if (!p.add && !p.upd){ kwFills = null; toast(`오늘 체결 ${r.fills.length}건은 이미 모두 들어 있습니다`); return; }
+  kwImportGo(true); if (r.note) setTimeout(() => toast(r.note), 3500);
+}
+function kwImportGo(stay){
+  if (!kwFills) return; const r = csvPlan(kwFills, false, '키움'); kwFills = null; save(); fillNameList(); closeModal();
+  if (!(stay && view === 'trades' && !sel)){ lf.st = 'all'; tSub = 'done'; sel = null; view = 'trades'; } render();
   toast(r.add ? `체결 ${r.add}건을 가져왔습니다 (새 매매 ${r.newT}건${r.upd ? ` · 수수료 · 세금 채움 ${r.upd}건` : ''}) — 전략 · 계획 · 복기를 채우고, [타점 차트]를 받아 보세요` : `이미 있는 체결 ${r.upd}건에 키움의 수수료 · 세금을 채웠습니다`);
 }
 
@@ -2470,84 +2597,6 @@ function kwCondAdd(where){
   save(); fillNameList(); closeModal(); dayD = date; if (where === 'appt'){ apMode = 'day'; go('appt'); } else { dayMode = 'day'; go('day'); }
   toast(`${pick.length}종목을 ${where === 'appt' ? '예약의 ‘시각 미정’ 매수 계획' : '장전 계획의 관심 종목'}에 넣었습니다 — 종목마다 진입 조건과 손절가를 정하세요`);
 }
-
-/* ---------- 주문: 계획서의 숫자로 채워 주고, 사람이 확인해야 보낸다 ---------- */
-let ko = null;
-async function kwOrderOpen(id){
-  const t = tradeById(id); if (!t) return; if (!await kwReady()) return;
-  if (!/^\d{6}$/.test(t.code || '')){ toast('종목코드(6자리)가 있어야 주문할 수 있습니다 — [쓰기]에서 입력하세요'); return; }
-  const on = KWS[KWS.mode === 'real' ? 'ordersReal' : 'ordersMock'];
-  if (!on){ kwOpen(); toast(`${kwModeName(KWS.mode)} 주문 기능이 꺼져 있습니다 — 아래에서 켤 수 있습니다`); return; }
-  const c = calc(t), p = t.plan, hold = c.qty > 0;
-  ko = {id, mode: KWS.mode, side: hold ? 'S' : 'B', type: 'limit', qty: hold ? c.qty : n0(p.qty), price: hold ? n0(p.target) : n0(p.entry), stop: n0(p.stop), step: 1, open: null, busy: false};
-  kwOrderDraw(); kwOrderOpenList();
-}
-async function kwOrderOpenList(){ const t = tradeById(ko.id), r = await kwApi('open', {code: t.code}); if (!ko) return; ko.open = r.ok ? r.orders : []; ko.openErr = r.ok ? '' : r.error; if ($('modal') && ko.step === 1) kwOrderDraw(); }
-function kwOrderWarn(t, c){   // 계획과 어긋나는 점
-  const p = t.plan, w = [], e = n0(t.seal?.entry) || n0(p.entry), st = c.stop || n0(p.stop), cap = n0(db.settings.capital), px = ko.type === 'market' ? 0 : ko.price;
-  if (ko.side === 'B'){
-    if (!e) w.push('계획서에 진입 계획가가 없습니다 — 계획 없이 들어가는 주문입니다.');
-    if (!st) w.push('계획서에 손절가가 없습니다.');
-    if (e && px && Math.abs(px / e - 1) > 0.01) w.push(`주문가가 진입 계획가(${fmt(e)})와 ${pc((px / e - 1) * 100, 1)} 다릅니다.`);
-    if (n0(p.qty) && ko.qty + c.qty > n0(p.qty)) w.push(`계획 수량(${fmt(p.qty)}주)을 넘습니다 (보유 ${fmt(c.qty)} + 주문 ${fmt(ko.qty)}).`);
-    if (c.qty > 0 && px && px < c.avg) w.push('평균단가보다 낮은 가격의 추가 매수입니다 — 계획된 분할 매수인가요, 물타기인가요?');
-    if (st && px && px > st && cap && (px - st) * (ko.qty + c.qty) / cap * 100 > n0(db.settings.riskPct) * 1.05) w.push(`손절 시 손실이 계좌의 ${((px - st) * (ko.qty + c.qty) / cap * 100).toFixed(2)}% 가 됩니다 (기준 ${db.settings.riskPct}%).`);
-    if (ko.type === 'market') w.push('시장가 주문입니다 — 체결 가격을 정할 수 없습니다.');
-  } else {
-    if (ko.qty > c.qty) w.push(`보유 수량(${fmt(c.qty)}주)보다 많이 팝니다.`);
-    if (ko.type === 'stop' && st && ko.stop < st) w.push(`스톱 가격이 처음 정한 손절가(${fmt(st)})보다 낮습니다 — 손절가를 내리는 주문입니다.`);
-  }
-  return w;
-}
-function kwOrderDraw(){
-  const t = tradeById(ko.id), c = calc(t), real = ko.mode === 'real', amt_ = (ko.type === 'market' ? kwRef(t, c) : ko.price) * ko.qty, warns = kwOrderWarn(t, c);
-  const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button class="${ko[k] === v ? 'on' : ''}" onclick="ko.${k}='${v}';kwOrderDraw()">${l}</button>`).join('')}</div>`;
-  const head = `<div class="row" style="flex-wrap:nowrap"><h3 style="flex:1">주문 — ${esc(t.name)} <span class="muted" style="font-weight:400">${t.code}</span></h3>${kwBadge()}</div>`;
-  if (ko.step === 2){
-    modal(`${head}<div class="note" style="font-size:var(--t0)">아래 내용으로 <b>${kwModeName(ko.mode)}</b> 서버에 주문을 보냅니다.</div>
-      <div class="kv" style="font-size:var(--t1)"><span>구분</span><b class="${ko.side === 'B' ? 'up' : 'dn'}">${ko.side === 'B' ? '매수' : '매도'}</b><span>종류</span><b>${{limit: '지정가', market: '시장가', stop: '스톱지정가'}[ko.type]}</b>
-        <span>수량</span><b>${fmt(ko.qty)}주</b><span>가격</span><b>${ko.type === 'market' ? '시장가' : fmt(ko.price) + '원'}${ko.type === 'stop' ? ` <span class="muted" style="font-weight:400">(${fmt(ko.stop)}원에 닿으면 주문)</span>` : ''}</b>
-        <span>금액</span><b>${ko.type === 'market' ? '약 ' : ''}${fmt(amt_)}원</b></div>
-      ${warns.map(w => `<div class="note" style="color:var(--warn)">⚑ ${esc(w)}</div>`).join('')}
-      ${real ? `<div class="note" style="color:var(--danger)"><b>실전 주문입니다. 실제 계좌에서 체결됩니다.</b> 확인을 위해 종목명 <b>${esc(t.name)}</b> 을(를) 입력하세요.</div><input id="ko_name" autocomplete="off" placeholder="${esc(t.name)}" oninput="$('ko_send').disabled=this.value.trim()!==${JSON.stringify(t.name).replace(/"/g, '&quot;')}">` : ''}
-      <div class="bt"><button onclick="ko.step=1;kwOrderDraw()">◀ 고치기</button><button class="primary" id="ko_send" style="${real ? 'background:var(--danger)' : ''}" onclick="kwOrderSend()" ${real || ko.busy ? 'disabled' : ''}>${ko.busy ? '보내는 중…' : (real ? '실전 ' : '모의 ') + '주문 보내기'}</button></div>`);
-    return;
-  }
-  modal(`${head}
-    <div class="rrline">보유 <b>${fmt(c.qty)}주</b>${c.qty ? ` (평균 ${fmt(c.avg)})` : ''} · 계획: 진입 ${n0(t.plan.entry) ? fmt(t.plan.entry) : '–'} · 목표 ${n0(t.plan.target) ? fmt(t.plan.target) : '–'} · 손절 ${n0(t.plan.stop) ? fmt(t.plan.stop) : '<b style="color:var(--danger)">없음</b>'} · 수량 ${n0(t.plan.qty) ? fmt(t.plan.qty) + '주' : '–'}</div>
-    <div class="row">${seg('side', [['B', '매수'], ['S', '매도']])}${seg('type', [['limit', '지정가'], ['market', '시장가'], ['stop', '스톱지정가']])}
-      ${c.qty > 0 && c.stop ? `<button class="sm" onclick="Object.assign(ko,{side:'S',type:'stop',qty:${c.qty},stop:${c.stop},price:${c.stop}});kwOrderDraw()" title="보유 수량 전부를, 처음 정한 손절가에 닿으면 그 가격에 파는 주문">손절 주문으로 채우기</button>` : ''}</div>
-    <div class="grid2">${fld('수량 (주)', `<input type="number" step="1" min="1" value="${ko.qty || ''}" oninput="ko.qty=Math.floor(n0(this.value));kwOrderSum()">`)}
-      ${ko.type === 'market' ? fld('가격', '<input value="시장가" disabled>') : fld(ko.type === 'stop' ? '주문 가격 (닿은 뒤 낼 지정가)' : '가격 (원)', `<input type="number" step="any" value="${ko.price || ''}" oninput="ko.price=n0(this.value);kwOrderSum()">`)}
-      ${ko.type === 'stop' ? fld('스톱 가격 — 이 가격에 닿으면 주문이 나갑니다', `<input type="number" step="any" value="${ko.stop || ''}" oninput="ko.stop=n0(this.value);kwOrderSum()">`, true) : ''}</div>
-    <div id="ko_sum"></div>
-    <h3 style="font-size:var(--t0)">이 종목의 미체결 주문</h3>
-    <div style="max-height:200px;overflow:auto">${ko.open == null ? '<div class="empty">불러오는 중…</div>' : ko.openErr ? `<div class="empty" style="color:var(--danger)">${esc(ko.openErr)}</div>` : ko.open.length ? `<table><tbody>${ko.open.map(o => `<tr><td>${esc(o.time)}</td><td class="${o.side === 'B' ? 'up' : 'dn'}"><b>${esc(o.kind)}</b></td><td class="num">${fmt(o.left)} / ${fmt(o.qty)}주</td><td class="num">${fmt(o.price)}${o.stop ? ` <span class="muted">스톱 ${fmt(o.stop)}</span>` : ''}</td><td style="text-align:right"><button class="sm danger" onclick="kwOrderCancel('${esc(o.ord_no)}')">취소</button></td></tr>`).join('')}</tbody></table>` : '<div class="empty">미체결 주문이 없습니다</div>'}</div>
-    <div class="bt"><button onclick="closeModal()">닫기</button><button class="primary" id="ko_next" onclick="kwOrderNext()">주문 내용 확인 ▶</button></div>`);
-  kwOrderSum();
-}
-const kwRef = (t, c) => n0(t.plan.entry) || n0(c.fills.at(-1)?.price) || c.avg || 0;   // 시장가일 때 금액을 어림하는 기준 가격
-function kwOrderSum(){
-  const el = $('ko_sum'); if (!el) return; const t = tradeById(ko.id), c = calc(t), px = ko.type === 'market' ? kwRef(t, c) : ko.price, a = px * ko.qty, cap = n0(db.settings.capital), w = kwOrderWarn(t, c);
-  el.innerHTML = `<div class="rrline">주문 금액 ${ko.type === 'market' ? '약 ' : ''}<b>${fmt(a)}원</b>${cap ? ` (계좌의 ${(a / cap * 100).toFixed(1)}%)` : ''} · 1회 한도 ${fmt(KWS.maxOrder)}원${a > KWS.maxOrder ? ' <b style="color:var(--danger)">— 한도를 넘습니다</b>' : ''}</div>${w.map(x => `<div class="note" style="color:var(--warn)">⚑ ${esc(x)}</div>`).join('')}`;
-}
-function kwOrderNext(){
-  if (!(ko.qty > 0)){ toast('수량을 적어 주세요'); return; } if (ko.type !== 'market' && !(ko.price > 0)){ toast('가격을 적어 주세요'); return; } if (ko.type === 'stop' && !(ko.stop > 0)){ toast('스톱 가격을 적어 주세요'); return; }
-  ko.step = 2; kwOrderDraw(); setTimeout(() => $('ko_name')?.focus(), 30);
-}
-async function kwOrderSend(){
-  if (ko.busy) return; const t = tradeById(ko.id), c = calc(t); ko.busy = true; $('ko_send').disabled = true; $('ko_send').textContent = '보내는 중…';
-  const r = await kwApi('order', {mode: ko.mode, tid: t.id, side: ko.side, code: t.code, qty: ko.qty, type: ko.type, price: ko.price, stop: ko.stop, ref: kwRef(t, c)});
-  ko.busy = false;
-  if (!r.ok){ ko.step = 1; kwOrderDraw(); toast('⚠ 주문이 나가지 않았습니다: ' + r.error); return; }
-  (t.orders = t.orders || []).push({at: nowL(), mode: ko.mode, side: ko.side, type: ko.type, qty: ko.qty, price: ko.type === 'market' ? 0 : ko.price, stop: ko.type === 'stop' ? ko.stop : 0, ord_no: r.ord_no}); save();
-  ko.step = 1; ko.open = null; kwOrderDraw(); kwOrderOpenList(); toast(`주문을 보냈습니다 (${kwModeName(r.mode)} · 주문번호 ${r.ord_no}) — 체결되면 [키움 체결 가져오기]로 기록에 넣으세요`);
-}
-async function kwOrderCancel(no){
-  if (!confirm(`주문 ${no} 의 남은 수량을 모두 취소할까요?`)) return; const t = tradeById(ko.id), r = await kwApi('cancel', {ord_no: no, code: t.code});
-  toast(r.ok ? '취소 주문을 보냈습니다' : '⚠ ' + r.error); ko.open = null; kwOrderDraw(); kwOrderOpenList();
-}
-
 
 /* =====================================================================
    AI 복기 (Claude) — 버튼을 누를 때만, 그 매매(또는 그 주)의 기록만 보낸다. 종목 추천이 아니라 '정직한 복기 상대'.
@@ -2766,7 +2815,7 @@ document.addEventListener('mousemove', e => {
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
 const KEYS = [['1 ~ 0', '화면 이동 (홈 · 매매일지 · 매매 기록 · 매매기록2 · 예약 · 달력 · 통계 · 플레이북 · 훈련 · 설정)'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
-  ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '매매 기록 쓰기 (계획 · 체결 · 복기)'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'],
+  ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '매매 기록 쓰기 (계획 · 체결 · 복기)'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
   ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매기록2/예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
@@ -2829,6 +2878,11 @@ document.addEventListener('keydown', e => {
     if (k === 'ArrowUp') return hit(() => tradeStep(-1));
     if (k === 'ArrowDown') return hit(() => tradeStep(1));
     if (k === 'e') return hit(editTrade);
+  }
+  if (view === 'trades' && !sel && tSub === 'stock'){
+    if (k === 'ArrowLeft' || k === 'ArrowRight') return hit(() => skStep(k === 'ArrowLeft' ? -1 : 1, 'stock'));
+    if (k === 'ArrowUp' || k === 'ArrowDown') return hit(() => skStep(k === 'ArrowUp' ? -1 : 1, 'trade'));
+    if (k === 'Enter' && skTid) return hit(() => openTrade(skTid));
   }
   if (view === 'trades' && !sel && tSub === 'done'){
     if (k === 'ArrowLeft') return hit(() => { lpage--; render(); });
