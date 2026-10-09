@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>트레이딩 저널</title>
+<title>트레이딩 차트</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="매매 장부">
+<meta name="apple-mobile-web-app-title" content="트레이딩 차트">
 <script>if(matchMedia('(max-width: 820px)').matches&&!/[?&]full=1/.test(location.search))location.replace('m.html'+location.search)</script>
 <script>try{const h=window.parent!==window&&window.parent.SHARED;if(h)document.documentElement.dataset.theme=window.parent.document.documentElement.dataset.theme||'light';}catch(e){}</script>
 <style>
@@ -464,7 +464,7 @@ svg text{fill:var(--sub);font-size:12px;font-family:inherit}
 <body>
 <div id="stage">
   <header>
-    <div class="logo" onclick="go('home')"><i>TJ</i>트레이딩 저널</div>
+    <div class="logo" onclick="go('home')"><i>R</i>트레이딩 차트</div>
     <div class="sw"><input id="q" placeholder="매매 검색 — 종목명 · 코드 · 전략 · 태그" autocomplete="off" oninput="sIdx=0;searchDraw()" onfocus="searchDraw()" onblur="setTimeout(()=>$('sres').hidden=true,180)" onkeydown="searchKey(event)"><kbd>/</kbd><div id="sres" hidden></div></div>
     <div class="seg" id="nav"></div>
     <button class="primary" onclick="newTrade()" style="border-radius:var(--r-pill)">＋ 새 매매<kbd>N</kbd></button>
@@ -1989,7 +1989,7 @@ function setV(){
       <h3 style="margin-top:12px">샘플 데이터 <small>둘러보기용</small></h3>
       <div class="note">가상의 매매 60건(봉인된 계획 · 수정 이력 · 결정 등급 · 연습용 차트), 매매일지, 주간 복기, 안 한 매매를 만듭니다. ‘샘플’ 표시가 붙고 [샘플 지우기]로 한 번에 지웁니다.</div>
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
-      <div class="note" style="margin-top:12px">트레이딩 저널 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
+      <div class="note" style="margin-top:12px">트레이딩 차트 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
 }
@@ -2009,7 +2009,7 @@ function applyTheme(){ document.documentElement.dataset.theme = CFG.theme === 'd
 sysDark.addEventListener('change', () => CFG.theme === 'auto' && applyTheme());
 function exportBackup(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], {type: 'application/json'}));
-  a.download = `트레이딩저널_백업_${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('백업 파일을 내려받았습니다');
+  a.download = `트레이딩차트_백업_${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('백업 파일을 내려받았습니다');
 }
 async function importBackup(f){
   if (!f) return;

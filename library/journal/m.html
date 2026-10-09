@@ -8,10 +8,10 @@
 <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>매매 장부</title>
+<title>트레이딩 차트</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="매매 장부">
+<meta name="apple-mobile-web-app-title" content="트레이딩 차트">
 <!--
   트레이딩 저널 — 휴대폰 화면 (2026-10-08). tools/build_web.py 가 web/journal/m.html 로 만든다 (스크립트 맨 위 CONSTS 자리에 저널의 질문 · 등급 목록을 그대로).
   큰 저널 화면(index.html)은 2560×1440 무대를 줄여 보여 주므로 휴대폰에서는 글자가 너무 작다 → 휴대폰에서 자주 하는 일만 휴대폰 크기로:
@@ -149,7 +149,7 @@ main.form{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
-<header><div class="bar"><div class="side" id="hl"></div><h1 id="title">매매 장부</h1><div class="side r" id="hr"></div></div></header>
+<header><div class="bar"><div class="side" id="hl"></div><h1 id="title">트레이딩 차트</h1><div class="side r" id="hr"></div></div></header>
 <main id="main"><div class="empty">불러오는 중…</div></main>
 <nav class="tabs" id="tabs"><div class="in">
   <button data-t="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>매매</button>
@@ -276,7 +276,7 @@ function render(){
 
 /* 매매 목록 */
 function listV(m){
-  bar('매매 장부', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
+  bar('트레이딩 차트', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
   const all = trades().map(t => ({t, c: calc(t)}));
   const nRev = all.filter(x => needReview(x.t, x.c)).length, nOpen = all.filter(x => x.c.status === 'open').length;
   const wk = rangePnl(monday(today()), addDays(monday(today()), 6)), mo = rangePnl(today().slice(0, 8) + '01', today());

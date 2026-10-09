@@ -109,7 +109,7 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88
 <div id="app" class="hidden">
   <header>
     <div class="bar"><button class="ghost hidden" id="back" aria-label="뒤로">‹ 책장</button><h1 id="title">나의 도서관</h1><button class="ghost" id="newbtn">＋ 새 노트</button></div>
-    <nav class="rooms" id="rooms" aria-label="다른 방"><a class="lnk" id="jlink" href="journal/" title="매매 장부 (트레이딩 저널)">매매 장부</a><a class="lnk" id="elink" href="english/" title="영어 스승">영어 스승</a><a class="lnk" id="tlink" href="todo/" title="내일의 할일">내일의 할일</a><a class="lnk" id="klink" href="think/" title="몰입 (Think Hard)">몰입</a><a class="lnk" id="clink" href="cards/" title="암기카드">암기카드</a><a class="lnk" id="mlink" href="mindmap/" title="마인드맵">마인드맵</a></nav>
+    <nav class="rooms" id="rooms" aria-label="다른 방"><a class="lnk" id="jlink" href="journal/" title="트레이딩 차트">트레이딩 차트</a><a class="lnk" id="elink" href="english/" title="영어 스승">영어 스승</a><a class="lnk" id="tlink" href="todo/" title="내일의 할일">내일의 할일</a><a class="lnk" id="klink" href="think/" title="몰입 (Think Hard)">몰입</a><a class="lnk" id="clink" href="cards/" title="암기카드">암기카드</a><a class="lnk" id="mlink" href="mindmap/" title="마인드맵">마인드맵</a></nav>
     <div class="floors" id="floors"></div>
     <div class="search" id="searchbox"><input id="q" type="search" placeholder="자료 찾기" autocomplete="off"></div>
   </header>
@@ -122,7 +122,8 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88
 /* ---------- 설정 ---------- */
 const CLIENT_ID = '400009441617-5v78t237a461c2bhp74s4b72a5a1g05m.apps.googleusercontent.com';                        // 구글 클라우드 'mylibrary' 의 웹 OAuth 클라이언트 (공개되어도 되는 값 — 비밀이 아님)
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';   // 이 앱(같은 프로젝트)이 만든 파일만
-const FOLDER = '나의도서관 동기화';
+// 시험: 이 PC 의 시험 주소(localhost)에서만 ?folder=… 로 다른 동기화 폴더 (tools/test_sync.py) — 공개 주소에서는 늘 진짜 폴더
+const FOLDER = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('folder')) || '나의도서관 동기화';
 const KINDS = {note: '노트', print: '프린트', binder: '서류철'};
 const COLORS = ['#7b2027', '#1d3557', '#2e4a36', '#8a5a2b', '#4a3358', '#24555c', '#5a3a24', '#33373d'];
 const $ = id => document.getElementById(id);
