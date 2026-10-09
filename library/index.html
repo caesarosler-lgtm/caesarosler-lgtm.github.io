@@ -479,7 +479,7 @@ async function start(interactive){
 }
 $('signin').onclick = () => start(true);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {scope: './'}).catch(() => {});   // 웹판을 휴대폰에 저장 (tools/web_sw.js — 빌드가 web/sw.js 로)
-window.addEventListener('load', async () => {
+(async () => {   // 바로 시작 (2026-10-09 사용자 '도서관만 좀 느려' — 예전엔 window 'load' 를 기다려, 저장해 둘 수 없는 구글 로그인 스크립트까지 다 받은 뒤에야 열렸다. 이 스크립트는 body 끝이라 화면 구조는 이미 있다)
   if (!(TOKEN || canRenew())) return;
   const devs = await quickDevs();
   if (!devs) return start(false);   // 처음 · 사본이 없으면 드라이브에서 (봉투가 있으면 누르지 않고 바로)
@@ -488,7 +488,7 @@ window.addEventListener('load', async () => {
   render();
   try { await token(false); rememberMail(); await load(); if (S.view.k !== 'edit') render(); }   // 최신은 뒤에서 — 고치는 중이 아니면 화면을 바꾼다
   catch(e){ status(); if (!TOKEN && !canRenew()){ $('gate').classList.remove('hidden'); $('app').classList.add('hidden'); } }
-});
+})();
 </script>
 </body>
 </html>
