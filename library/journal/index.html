@@ -450,25 +450,6 @@ html[data-theme=dark] .kc{box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(2
 .gchips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gchips .chip{border-radius:var(--r3);padding:8px 12px;gap:10px}
 
-/* 달력 */
-.cal{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) 190px;grid-template-rows:34px repeat(6,minmax(0,1fr));gap:6px}
-.cal .wh{text-align:center;font-size:var(--t-1);color:var(--sub);font-weight:600;align-self:center}
-.cal .c{background:var(--panel);border-radius:var(--r3);padding:10px 12px;display:flex;flex-direction:column;cursor:pointer;min-height:0;box-shadow:var(--e1);position:relative;overflow:hidden}
-.cal .c:hover{outline:2px solid rgba(var(--accent-rgb),.35)}
-.cal .c.o{opacity:.4}
-.cal .c.td{outline:2px solid var(--accent)}
-.cal .c .n{font-weight:700;font-size:var(--t0)}
-.cal .c.we .n{color:var(--muted)}
-.cal .c .v{margin-top:auto;font-size:var(--t2);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.cal .c .meta{font-size:var(--t-2);color:var(--sub);text-align:right}
-.cal .c .j{position:absolute;right:12px;top:10px;font-size:var(--t-1);color:var(--accent)}
-.cal .wk{background:rgba(128,128,128,.08);border-radius:var(--r3);padding:10px 14px;display:flex;flex-direction:column;justify-content:center;text-align:right;cursor:pointer}
-.cal .wk span{font-size:var(--t-2);color:var(--sub)}
-.cal .wk b{font-size:var(--t1);font-variant-numeric:tabular-nums}
-.chead{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4)}
-.chead .ttl{font-size:var(--t3);font-weight:700;min-width:200px;text-align:center}
-.chead .sum{display:flex;gap:var(--s5);margin-left:var(--s5);font-size:var(--t-1);color:var(--sub)}
-.chead .sum b{display:block;font-size:var(--t1);color:var(--text);font-variant-numeric:tabular-nums}
 
 /* 통계 */
 .stats{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto 400px minmax(0,1fr) minmax(0,1fr);gap:var(--s4)}
@@ -797,7 +778,7 @@ const focusFor = d => (db.weeks[addDays(monday(d), -7)] || {}).focus || '';   //
 
 /* ---------- 화면 상태 ---------- */
 let view = 'trades', sel = null, tMode = 'book', draft = null, isNew = false, focusOn = false;
-let dayD = today(), dayMode = 'day', calM = today().slice(0, 7), stRange = '3m', stTab = 'cal', lf = {q: '', st: 'all', setup: ''}, lpage = 0, tSub = 'stock';   // 켜면 첫 화면 = 매매 기록 › 종목 차트 (2026-10-10 사용자 요청)
+let dayD = today(), dayMode = 'day', stRange = '3m', stTab = 'proc', lf = {q: '', st: 'all', setup: ''}, lpage = 0, tSub = 'stock';   // 켜면 첫 화면 = 매매 기록 › 종목 차트 (2026-10-10 사용자 요청)
 let pbSel = 0, pbI = 0, qz = {id: null, ans: null};
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
@@ -812,9 +793,8 @@ const TR_VIEWS = ['trades', 'day', 'appt'];
 // 탭에 마우스를 올리면 뜨는 설명 (2026-10-10 사용자: '플레이북'이라는 말이 낯설어서 — 이름은 두고 뜻을 보여 준다)
 const NAV_TIP = {play: '<b>플레이북 — 나의 매매 작전집</b><br>원래는 미식축구 팀이 상황별 작전을 미리 그려 둔 책입니다.<br>경기 중에는 새로 생각하지 않고, 책에 있는 작전을 골라 실행합니다.<br><br>여기서는 셋업(기법)마다 한 장씩 —<br>정의 · 진입 조건 체크리스트 · 손절 · 청산 · 피할 상황을 미리 적고,<br>잘한 매매(결정 등급 A)의 진입 차트가 모범 사례로 저절로 모입니다.<br><br>장중에 즉흥으로 판단하지 않고, 차분할 때 정해 둔 작전을 따르기 위한 책.'};
 let trLast = 'trades';
-const navOn = k => view === k || (k === 'stats' && view === 'cal') || (k === 'trades' && TR_VIEWS.includes(view));
+const navOn = k => view === k || (k === 'trades' && TR_VIEWS.includes(view));
 const goTab = k => go(k === 'trades' ? (trLast === 'appt' && !OLD('appt') ? 'day' : trLast === 'trades' && tSub === 'time' && !OLD('time') ? (tSub = 'stock', 'trades') : trLast) : k);
-const isCal = () => view === 'cal' || (view === 'stats' && stTab === 'cal');   // 달력은 '통계' 탭의 첫 화면 (2026-10-10 사용자: 달력 · 통계 탭을 하나로, 이름은 '통계')
 const isTT = () => view === 'trades' && !sel && tSub === 'time';   // 매매 기록 › 시간표 (2026-10-10 사용자: '매매기록2' 탭을 매매 기록 안으로 합침)
 const weekish = () => (view === 'day' && dayMode === 'week') || (isTT() && ttMode === 'week') || (view === 'appt' && apMode === 'week');
 const tradeById = id => db.trades.find(t => t.id === id);
@@ -823,7 +803,6 @@ const tradeObj = () => tMode === 'edit' && draft && draft.id === sel ? draft : t
 function go(v){
   if (tMode === 'edit' && view === 'trades' && v !== 'trades' && !confirmLeave()) return;
   if (tMode === 'edit'){ draft = null; isNew = false; tMode = 'book'; }
-  if (v === 'cal') stTab = 'cal';
   if (TR_VIEWS.includes(v)) trLast = v;
   view = v; if (v !== 'trades') sel = null; focusOn = false;
   if (v === 'quiz' && !qz.id) quizNext();
@@ -841,7 +820,7 @@ function render(){
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
   $('main').innerHTML = view === 'home' ? homeV() : view === 'day' ? trBar() + (dayMode === 'week' ? weekV() : dayV())
     : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : tSub === 'time' ? trBar() + ttV() : listV())
-    : view === 'appt' ? trBar() + apptV() : isCal() ? calV() : view === 'stats' ? statsV() : view === 'play' ? playV() : view === 'quiz' ? quizV() : setV();
+    : view === 'appt' ? trBar() + apptV() : view === 'stats' ? statsV() : view === 'play' ? playV() : view === 'quiz' ? quizV() : setV();
   if (isBook()) setupBook();
   if (view === 'trades' && sel && tMode === 'book') document.querySelector('.pr.on')?.scrollIntoView({block: 'nearest'});
   if (view === 'trades' && !sel && tSub === 'stock') document.querySelectorAll('#skList .pr.on, #skTl .tl.on').forEach(el => el.scrollIntoView({block: 'nearest'}));
@@ -928,7 +907,7 @@ function homeV(){
       <div class="card"><h3>반복되는 실수 <small>3번 넘으면 원칙으로</small></h3>
         ${Object.keys(mc).length ? Object.entries(mc).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([m, n]) => `<div class="pr" style="cursor:default"><span class="dt" style="background:var(--up)"></span><span><b>${esc(m)}</b><small>${db.mrules[m] && db.mrules[m] !== 'no' ? '원칙으로 만듦 ✓' : n >= 3 ? '아직 원칙이 없습니다' : ''}</small></span>
           <span>${n}번 ${pend.includes(m) ? `<button class="sm primary" onclick="ruleAsk('${esc(m)}')">원칙으로</button>` : ''}</span></div>`).join('') : '<div class="empty">복기에서 실수 태그를 붙이면 여기에 모입니다.</div>'}</div>
-      <div class="card" style="flex:1"><h3>이번 달 달력<span class="sp"></span><button class="sm" onclick="calM=today().slice(0,7);go('cal')">크게 보기</button></h3>${miniCal(mo, null, 'calPick')}</div>
+      <div class="card" style="flex:1"><h3>이번 달 달력</h3>${miniCal(mo, null, 'calPick')}</div>
     </div>
   </div>`;
 }
@@ -1326,7 +1305,7 @@ const ttSide = () => `<div class="ttside"><div class="card"><div class="mhead"><
   ${miniCal(dayD.slice(0, 7), dayD, 'dayPick', weekish() ? monday(dayD) : null)}${mcKeys()}</div></div>`;
 const ttNav = (wk, sub) => { const mon = monday(dayD); return `<button onclick="dateKey('day-')">◀</button><button onclick="dateKey('today')">오늘<kbd>T</kbd></button><button onclick="dateKey('day+')">▶</button>
   <span class="ttl">${wk ? `${+mon.slice(5, 7)}/${+mon.slice(8)} ~ ${+addDays(mon, 6).slice(5, 7)}/${+addDays(mon, 6).slice(8)}` : `${+dayD.slice(5, 7)}/${+dayD.slice(8)} (${DOW[dow(dayD)]})`}<small>${dayD.slice(0, 4)}년 · ${sub}</small></span>`; };
-const vbtn = (cur, name) => [['day', '일간'], ['week', '주간']].map(([k, l]) => `<button class="vb ${cur === k ? 'on' : ''}" onclick="${name}='${k}';render()">${l}</button>`).join('') + `<button class="vb" onclick="calM=dayD.slice(0,7);go('cal')">월간</button>`;
+const vbtn = (cur, name) => [['day', '일간'], ['week', '주간']].map(([k, l]) => `<button class="vb ${cur === k ? 'on' : ''}" onclick="${name}='${k}';render()">${l}</button>`).join('');
 const dayTitle = x => `${+x.slice(5, 7)}/${+x.slice(8)} (${DOW[dow(x)]})`;
 
 /* =====================================================================
@@ -2031,34 +2010,7 @@ function ruleAsk(m){
 function ruleAdd(){ const v = $('ruleTxt').value.trim(); if (!v) return; const id = uid(); db.rules.push({id, text: v, from: ruleM}); db.mrules[ruleM] = id; closeModal(); save(); render(); toast('원칙에 추가했습니다 — 매일 장 마감 복기에서 점검합니다'); }
 function ruleSkip(){ db.mrules[ruleM] = 'no'; closeModal(); save(); render(); }
 
-/* =====================================================================
-   6. 달력
-   ===================================================================== */
-function calV(){
-  const ym = calM, [y, m] = ym.split('-').map(Number), first = iso(new Date(y, m - 1, 1)), start = monday(first), dp = dailyPnl(), td = today();
-  const md = [...dp.entries()].filter(([d]) => d.startsWith(ym)), mx = Math.max(1e-9, ...md.map(([, v]) => Math.abs(v))), tot = sum(md.map(([, v]) => v));
-  const mL = closedList().filter(x => x.c.close.startsWith(ym)), pr = proc(mL);
-  let cells = '월화수목금토일'.split('').map(x => `<div class="wh">${x}</div>`).join('') + '<div class="wh">주간</div>';
-  for (let w = 0; w < 6; w++){
-    let wk = 0, wn = 0; const wm = addDays(start, w * 7);
-    for (let i = 0; i < 7; i++){
-      const d = addDays(wm, i), v = dp.get(d), o = db.days[d] || {}, fl = dayFills(d), j = !!(o.market || o.watch || o.plan || o.good || o.bad || o.next);
-      if (v){ wk += v; wn++; }
-      const a = v ? 0.08 + 0.42 * Math.abs(v) / mx : 0, rgb = v > 0 ? '209,36,47' : '26,95,208';
-      cells += `<div class="c ${d.startsWith(ym) ? '' : 'o'} ${d === td ? 'td' : ''} ${isWe(d) ? 'we' : ''}" style="${v ? `background:linear-gradient(rgba(${rgb},${a.toFixed(2)}),rgba(${rgb},${a.toFixed(2)})),var(--panel)` : ''}" onclick="calPick('${d}')"
-        ${v || fl.length ? `data-tip="${esc(`<b>${dFull(d)}</b><br>${RES()} ${fw(v || 0)}<br>체결 ${fl.length}건${o.score ? '<br>과정 점수 ' + '●'.repeat(o.score) : ''}${o.focusOk != null ? '<br>과제 ' + (o.focusOk ? '지킴' : '못 지킴') : ''}`)}"` : ''}>
-        <span class="n">${+d.slice(8)}</span>${j ? '<span class="j">✎ 일지</span>' : ''}<span class="v ${cls(v || 0)}">${v ? fv(v) : ''}</span><span class="meta">${fl.length ? '체결 ' + fl.length : ''}${o.score ? ' · ' + '●'.repeat(o.score) : ''}${o.focusOk === 1 ? ' · 과제 ☑' : o.focusOk === 0 ? ' · 과제 ☒' : ''}</span></div>`;
-    }
-    const wo = db.weeks[wm] || {};
-    cells += `<div class="wk" onclick="openWeek('${wm}')" data-tip="${esc('주간 복기 열기' + (wo.focus ? '<br>다음 주 과제: ' + esc(wo.focus) : ''))}"><span>${wo.focus || wo.good ? '✎ 주간 복기' : '주간 복기'}</span><b class="${cls(wk)}">${wn ? fv(wk) : '–'}</b></div>`;
-  }
-  return `<div class="row" style="margin-bottom:12px">${stSeg()}</div><div class="chead"><button onclick="calShift(-1)" title="지난달 (W · ←)">◀</button><span class="ttl">${y}년 ${m}월</span><button onclick="calShift(1)" title="다음 달 (S · →)">▶</button><button onclick="calM=today().slice(0,7);render()">이번 달<kbd>T</kbd></button>
-      <div class="sum"><span>A·B 결정 비율<b>${pct0(pr.ab)}</b></span><span>월 ${RES()}<b class="${cls(tot)}">${fw(tot)}</b></span><span>매매한 날<b>${md.length}일</b></span><span>수익일 · 손실일<b><span class="up">${md.filter(x => x[1] > 0).length}</span> · <span class="dn">${md.filter(x => x[1] < 0).length}</span></b></span>
-        <span>청산 매매<b>${mL.length}건</b></span><span>손절가 내림<b>${pr.down}건</b></span></div>
-      <span class="sp"></span><span class="keyhint">날짜 = 그날 매매일지 · 오른쪽 칸 = 주간 복기</span></div>
-    <div class="cal">${cells}</div>`;
-}
-function calShift(d){ calM = addMonths(calM + '-01', d).slice(0, 7); render(); }
+/* 6. 달력 — 2026-10-10 사용자 요청으로 기능을 없앴다 (통계 › 달력). 옛 코드는 git 태그 before-remove-calendar */
 
 /* =====================================================================
    7. 통계 — [과정] 결정의 질이 좋아지고 있는가 / [성과] 무엇이 벌게 하고 무엇이 잃게 하는가
@@ -2069,8 +2021,8 @@ function grp(L, keyFn, order){
   const m = new Map(); L.forEach(x => [].concat(keyFn(x)).forEach(kk => { if (kk == null || kk === '') return; if (!m.has(kk)) m.set(kk, []); m.get(kk).push(x); }));
   const arr = [...m].map(([key, list]) => ({key, list, k: kpis(list)})); return order ? arr.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key)) : arr.sort((a, b) => b.k.total - a.k.total);
 }
-const stSeg = () => `<div class="seg">${[['cal', '달력'], ['proc', '과정 — 결정의 질'], ['perf', '성과'], ['scalp', '단타 분석']].map(([k, l]) =>
-  `<button class="${(k === 'cal' ? isCal() : view === 'stats' && stTab === k) ? 'on' : ''}" onclick="stTab='${k}';go('stats')">${l}</button>`).join('')}</div>`;
+const stSeg = () => `<div class="seg">${[['proc', '과정 — 결정의 질'], ['perf', '성과'], ['scalp', '단타 분석']].map(([k, l]) =>
+  `<button class="${view === 'stats' && stTab === k ? 'on' : ''}" onclick="stTab='${k}';go('stats')">${l}</button>`).join('')}</div>`;
 function statsV(){
   if (stTab === 'scalp') return scalpV();
   const from = rangeFrom(stRange), L = closedList().filter(x => x.c.close >= from);
@@ -3295,7 +3247,7 @@ document.addEventListener('mousemove', e => {
   if (x + tp.offsetWidth > STAGE.w - 8) x -= tp.offsetWidth + 32; if (y + tp.offsetHeight > STAGE.h - 8) y -= tp.offsetHeight + 32;
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
-const KEYS = [['1 ~ 5', '화면 이동 (매매 기록 · 통계 · 플레이북 · 훈련 · 설정) — 매매일지는 매매 기록 안, 달력은 통계 안'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
+const KEYS = [['1 ~ 5', '화면 이동 (매매 기록 · 통계 · 플레이북 · 훈련 · 설정) — 매매일지는 매매 기록 안'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
   ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
@@ -3377,11 +3329,6 @@ document.addEventListener('keydown', e => {
   if (view === 'trades' && !sel && tSub === 'done'){
     if (k === 'ArrowLeft') return hit(() => { lpage--; render(); });
     if (k === 'ArrowRight') return hit(() => { lpage++; render(); });
-  }
-  if (isCal()){
-    if (['w', 'a', 'ArrowLeft', 'ArrowUp'].includes(k)) return hit(() => calShift(-1));
-    if (['s', 'd', 'ArrowRight', 'ArrowDown'].includes(k)) return hit(() => calShift(1));
-    if (k === 't') return hit(() => { calM = today().slice(0, 7); render(); });
   }
   if (view === 'play'){
     if (k === 'ArrowUp') return hit(() => { pbSel--; pbI = 0; render(); });
