@@ -93,7 +93,7 @@ button.gh,html[data-theme=dark] button.gh{background:none;color:var(--sub);paddi
 button.gh:hover,html[data-theme=dark] button.gh:hover{background:rgba(128,128,128,.14);color:var(--text)}
 .bkwarn{color:var(--warn);font-size:var(--t-1);cursor:pointer;white-space:nowrap;font-weight:600}
 
-/* ===== 시간표 (매매기록2 · 예약) — 교정차트의 일간 예약표 모양 ===== */
+/* ===== 시간표 (매매 기록 › 시간표 · 예약) — 교정차트의 일간 예약표 모양 ===== */
 .tt{flex:1;min-height:0;display:flex;gap:var(--s4)}
 .ttside{width:270px;flex-shrink:0;display:flex;flex-direction:column;gap:var(--s4);min-height:0}
 .ttmain{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -769,10 +769,11 @@ let dayD = today(), dayMode = 'day', calM = today().slice(0, 7), stRange = '3m',
 let pbSel = 0, pbI = 0, qz = {id: null, ans: null};
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
-const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['tt', '매매기록2'], ['appt', '예약'], ['cal', '달력'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련'], ['set', '원칙 · 설정']];
+const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['appt', '예약'], ['cal', '달력'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련'], ['set', '원칙 · 설정']];
 // 머리글 탭은 한 줄 (2026-10-10 사용자: 가운데 [＋ 새 매매] 버튼은 빼고 — 새 매매는 매매 기록 · 매매일지 화면의 버튼과 N 키로).
 // 훈련 탭은 파란 계열로 눈에 띄게 (.navtr — 고르면 [＋ 새 매매]였던 파란 버튼과 같은 색)
-const weekish = () => (view === 'day' && dayMode === 'week') || (view === 'tt' && ttMode === 'week') || (view === 'appt' && apMode === 'week');
+const isTT = () => view === 'trades' && !sel && tSub === 'time';   // 매매 기록 › 시간표 (2026-10-10 사용자: '매매기록2' 탭을 매매 기록 안으로 합침)
+const weekish = () => (view === 'day' && dayMode === 'week') || (isTT() && ttMode === 'week') || (view === 'appt' && apMode === 'week');
 const tradeById = id => db.trades.find(t => t.id === id);
 const tradeObj = () => tMode === 'edit' && draft && draft.id === sel ? draft : tradeById(sel);
 
@@ -790,8 +791,8 @@ function render(){
   $('nav').innerHTML = NAV.map(([k, l], i) => `<button class="${view === k ? 'on' : ''}${k === 'quiz' ? ' navtr' : ''}" onclick="go('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
   $('main').innerHTML = view === 'home' ? homeV() : view === 'day' ? (dayMode === 'week' ? weekV() : dayV())
-    : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : listV())
-    : view === 'tt' ? ttV() : view === 'appt' ? apptV() : view === 'cal' ? calV() : view === 'stats' ? statsV() : view === 'play' ? playV() : view === 'quiz' ? quizV() : setV();
+    : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : tSub === 'time' ? `<div class="lbar">${subSeg()}</div>` + ttV() : listV())
+    : view === 'appt' ? apptV() : view === 'cal' ? calV() : view === 'stats' ? statsV() : view === 'play' ? playV() : view === 'quiz' ? quizV() : setV();
   if (isBook()) setupBook();
   if (view === 'trades' && sel && tMode === 'book') document.querySelector('.pr.on')?.scrollIntoView({block: 'nearest'});
   if (view === 'trades' && !sel && tSub === 'stock') document.querySelectorAll('#skList .pr.on, #skTl .tl.on').forEach(el => el.scrollIntoView({block: 'nearest'}));
@@ -1071,7 +1072,7 @@ const vbtn = (cur, name) => [['day', '일간'], ['week', '주간']].map(([k, l])
 const dayTitle = x => `${+x.slice(5, 7)}/${+x.slice(8)} (${DOW[dow(x)]})`;
 
 /* =====================================================================
-   매매기록2 — 시간표로 보는 매매 기록. 일간: 종목마다 한 칸 / 주간: 요일마다 한 칸. 체결이 그 시각 자리에 박스로 놓인다.
+   매매 기록 › 시간표 (옛 '매매기록2' 탭, 2026-10-10 매매 기록 안으로) — 시간표로 보는 매매 기록. 일간: 종목마다 한 칸 / 주간: 요일마다 한 칸. 체결이 그 시각 자리에 박스로 놓인다.
    ===================================================================== */
 function ttV(){
   const wk = ttMode === 'week', mon = monday(dayD), days = wk ? [0, 1, 2, 3, 4, 5, 6].map(i => addDays(mon, i)).filter((x, i) => i < 5 || dayFills(x).length) : [dayD];
@@ -1220,7 +1221,7 @@ function listItems(){
     .sort((a, b) => ((b.c.close || b.c.fills.at(-1)?.date || b.t.created || '')).localeCompare(a.c.close || a.c.fills.at(-1)?.date || a.t.created || '') || b.t.no - a.t.no);
 }
 const ROWS = () => Math.max(5, Math.floor((STAGE.h - 60 - 48 - 56 - 40 - 60) / 51));
-const subSeg = () => `<div class="seg"><button class="${tSub === 'done' ? 'on' : ''}" onclick="tSub='done';render()">한 매매</button><button class="${tSub === 'stock' ? 'on' : ''}" onclick="tSub='stock';render()">종목 차트</button><button class="${tSub === 'skip' ? 'on' : ''}" onclick="tSub='skip';render()">안 한 매매 <span class="muted">${db.skips.length}</span></button></div>`;
+const subSeg = () => `<div class="seg"><button class="${tSub === 'done' ? 'on' : ''}" onclick="tSub='done';render()">한 매매</button><button class="${tSub === 'stock' ? 'on' : ''}" onclick="tSub='stock';render()">종목 차트</button><button class="${tSub === 'time' ? 'on' : ''}" onclick="tSub='time';render()">시간표</button><button class="${tSub === 'skip' ? 'on' : ''}" onclick="tSub='skip';render()">안 한 매매 <span class="muted">${db.skips.length}</span></button></div>`;
 function listV(){
   const all = listItems(), per = ROWS(), pages = Math.max(1, Math.ceil(all.length / per)); lpage = clip(lpage, 0, pages - 1);
   const rows = all.slice(lpage * per, lpage * per + per), cl = all.filter(x => x.c.status === 'closed'), k = kpis(cl), pr = proc(cl);
@@ -3004,9 +3005,9 @@ document.addEventListener('mousemove', e => {
   if (x + tp.offsetWidth > STAGE.w - 8) x -= tp.offsetWidth + 32; if (y + tp.offsetHeight > STAGE.h - 8) y -= tp.offsetHeight + 32;
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
-const KEYS = [['1 ~ 0', '화면 이동 (홈 · 매매일지 · 매매 기록 · 매매기록2 · 예약 · 달력 · 통계 · 플레이북 · 훈련 · 설정)'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
+const KEYS = [['1 ~ 9', '화면 이동 (홈 · 매매일지 · 매매 기록 · 예약 · 달력 · 통계 · 플레이북 · 훈련 · 설정)'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '매매 기록 쓰기 (계획 · 체결 · 복기)'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
-  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매기록2/예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
+  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
 
@@ -3044,7 +3045,7 @@ document.addEventListener('keydown', e => {
       if (['q', 'w', 'e'].includes(k)) return hit(() => { dr.conf = {q: 1, w: 2, e: 3}[k]; render(); });
     } else if (c && (k === ' ' || k === 'Enter')) return hit(() => { drillNext(); render(); });
   }
-  if (/^[0-9]$/.test(k)) return hit(() => go(NAV[(+k + 9) % 10][0]));
+  if (/^[0-9]$/.test(k)){ const nv = NAV[(+k + 9) % 10]; if (nv) return hit(() => go(nv[0])); return; }
   if (k === '/') return hit(() => $('q').focus());
   if (k === '?') return hit(showHelp);
   if (k === 'n') return hit(() => newTrade(view === 'day' ? dayD : undefined));
@@ -3058,9 +3059,9 @@ document.addEventListener('keydown', e => {
     if (view === 'trades' && tMode === 'edit') return hit(cancelEdit);
     if (view === 'trades' && sel) return hit(() => { sel = null; render(); });
   }
-  if (view === 'tt' && k === 'v') return hit(() => { ttMode = ttMode === 'week' ? 'day' : 'week'; render(); });
+  if (isTT() && k === 'v') return hit(() => { ttMode = ttMode === 'week' ? 'day' : 'week'; render(); });
   if (view === 'appt' && k === 'v') return hit(() => { apMode = apMode === 'week' ? 'day' : 'week'; render(); });
-  if (view === 'day' || view === 'tt' || view === 'appt'){
+  if (view === 'day' || isTT() || view === 'appt'){
     if (k === 'a' || k === 'ArrowLeft') return hit(() => dateKey('day-'));
     if (k === 'd' || k === 'ArrowRight') return hit(() => dateKey('day+'));
     if (k === 'w' || k === 'ArrowUp') return hit(() => dateKey('mon-'));
