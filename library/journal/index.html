@@ -1121,10 +1121,19 @@ function dkWheel(e){ if (e.target.closest('textarea,input,select') || Date.now()
 function ppOpen(id){   // 매매일지에서 그 매매의 첫 장으로 ('new' = 새 매매 장)
   if (view !== 'day' || dayMode !== 'day'){ dayMode = 'day'; go('day'); }
   const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => spHas(x, id))); render();
-  if (id === 'new') setTimeout(() => $('pp_name')?.focus(), 40);
+  if (id === 'new') setTimeout(() => ($('pp_name') || document.querySelector(`textarea[oninput*="'new'"]`))?.focus(), 40);   // 종목명 칸이 없으면(판단 기록만) 첫 질문 칸
 }
 function ppCur(){ if (view !== 'day' || dayMode !== 'day' || JUDGE_ONLY()) return null; const x = daySpreads(dayD, dayFills(dayD))[dk]; return x && x.id && x.id !== 'new' ? tradeById(x.id) : null; }
-const ppTouch = (t, id) => { if (id !== 'new'){ t.updated = new Date().toISOString(); save(); } };
+const ppTouch = (t, id) => {
+  if (id !== 'new'){ t.updated = new Date().toISOString(); save(); return; }
+  if (!JUDGE_ONLY()) return;
+  // 판단 기록만일 때는 종목명 칸이 없다 (2026-10-10 사용자) → 새 매매 장에 처음 쓰는 순간 매매가 생긴다.
+  // 다시 그리지 않고 그 장의 'new' 를 새 id 로 바꿔 끼운다 — 한글을 조합하는 중에 다시 그리면 글자가 깨지고 커서를 잃는다
+  t.no = ++db.seq; db.trades.push(t); ppNew = null; save();
+  document.querySelectorAll('[oninput],[onclick],[onchange]').forEach(el => ['oninput', 'onclick', 'onchange'].forEach(a => {
+    const v = el.getAttribute(a); if (v && v.includes("'new'")) el.setAttribute(a, v.split("'new'").join(`'${t.id}'`));
+  }));
+};
 function ppSet(id, path, v){   // 글 · 숫자 칸 (봉인 안 된 계획 · 복기 · 메모)
   const t = ppT(id); if (!t) return; const ks = path.split('.'); let o = t; ks.slice(0, -1).forEach(k => o = o[k]); o[ks.at(-1)] = v; ppTouch(t, id);
   if (path.startsWith('plan.')) ppRefresh(t, id);
@@ -1201,7 +1210,7 @@ const ppChips = (id, kind, v, list) => `<span class="pchips clk">${list.map((x, 
 const ppDots = (id, kind, v) => `<span class="pdots clk">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= v ? 'on' : ''}" onclick="ppToggle('${id}','${kind}',${i})">●</i>`).join('')}</span>`;
 const ppSealNote = t => t.seal ? `<span class="stamp ${t.seal.late ? 'late' : ''}">${t.seal.late ? '사후 작성' : '🔒 봉인'}</span> <span class="m">${dtFmt(t.seal.at)} — 고치면 사유와 함께 이력으로 남습니다${t.revs.length ? ` · 수정 ${t.revs.length}건` : ''}</span>`
   : '<span class="m">첫 체결을 적는 순간 이 계획이 봉인됩니다 — 계획은 들어가기 전에</span>';
-const ppFoot = t => t.name ? `No. ${t.no} · ${esc(t.name)}${t.code ? ' (' + esc(t.code) + ')' : ''}` : '새 매매';
+const ppFoot = t => t.name ? `No. ${t.no} · ${esc(t.name)}${t.code ? ' (' + esc(t.code) + ')' : ''}` : t.no ? `No. ${t.no}` : '새 매매';
 function ppFillSum(t, c){
   if (!c.fills.length) return '<span class="m">체결을 적으면 평균단가 · 잔량 · 결과가 계산됩니다.</span>';
   return `<table>${f4('평균 매수가', `${fmt(c.avgBuy)} <span class="m">매수 ${fmt(c.buyQty)}주 · 매도 ${fmt(c.sellQty)}주 · 잔량 ${fmt(c.qty)}주</span>`, RES(), `<b class="${cls(c.realized)}">${c.sellQty ? tv(c) : '–'}</b>${c.status === 'closed' ? ` <span class="m">${pc(c.ret)}</span>` : ''} <span class="m">${stName[c.status]}</span>`)}</table>`;
@@ -1263,10 +1272,8 @@ function ppJudge(t, id, side = '왼쪽'){
   const r = t.review, c = calc(t, true), only = JUDGE_ONLY();
   // 판단 기록만일 때 장 제목 = 매매일지 (2026-10-10 사용자)
   return pSheet(only ? '매매일지' : '판단 기록', '복기 · 끝난 뒤에 — 돈이 아니라 결정', `
-    ${only ? `${id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>종목명을 적고 Enter — 그 순간 이 매매가 만들어집니다. 아래를 먼저 써도 함께 들어갑니다.</span></div>' : ''}
-      <table>${f4('종목명', `<input class="pin" ${id === 'new' ? 'id="pp_name"' : ''} list="nameList" value="${esc(t.name)}" placeholder="예) 삼성전자" onchange="ppName('${id}',this.value,'name')" onkeydown="if(event.key==='Enter')this.blur()">`, '날짜', dDot(t.created || dayD))}</table>`
-      : id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>먼저 앞 장(계획서)에 종목명을 적으면 이 매매가 만들어집니다 — 여기 쓴 것도 함께 들어갑니다.</span></div>' : ''}
-    ${bsec('다섯 가지 질문', '돈이 아니라 결정을 돌아봅니다')}
+    ${only ? '' : `${id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>먼저 앞 장(계획서)에 종목명을 적으면 이 매매가 만들어집니다 — 여기 쓴 것도 함께 들어갑니다.</span></div>' : ''}
+    ${bsec('다섯 가지 질문', '돈이 아니라 결정을 돌아봅니다')}`}
     ${REVIEW_Q.map(([k, l, ph], i) => bsec(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph)).join('')}
     ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
     ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
