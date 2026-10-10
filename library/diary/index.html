@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나의 일기</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="나의 일기">
+<script>if(matchMedia('(max-width: 820px)').matches&&!/[?&]full=1/.test(location.search))location.replace('m.html'+location.search)</script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="shim.js"></script>
+<style>/* 웹판: PC 프로그램에서만 되는 단추 (창 크기 · 백업 센터) */ #qhdBtn,#bkBtn,#sBackup{display:none!important}</style>
+<!--
+  나의 일기 — 교정 전자차트의 '메모' 쪽(A4 세로)과 같은 종이 두 장을 펼쳐 놓고 바로 쓰는 일기장.
+  - 노트: 3달이 한 권, 하루가 한 쪽(37줄). 그 3달의 첫날부터 왼쪽·오른쪽 차례로 놓인다. 쪽이 찼을 때 마지막 줄에서 Enter = 같은 날 쪽 하나 더 (2026-10-11, 글 안의 쪽 나눔 \f).
+  - 묶어 보기: 3개월(분기)치 일기를 한 권의 노트에 이어 쓴 것처럼 날짜 머리와 함께 이어 붙여 보여 준다 (보기 전용).
+  - 화면은 설정.json 의 width×height(기본 2560×1440 QHD) 크기의 '무대'로 그려지고, 창 크기에 맞춰 통째로 축소·확대된다.
+  - 데이터: 나의일기.pyw 로 실행하면 data/diary.json, 이 파일을 직접 열면 브라우저 안(localStorage)에만 저장된다.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang&family=Nanum+Myeongjo&family=Nanum+Pen+Script&display=swap">
+<style>
+:root{
+  /* ===== 디자인 기준 (교정 전자차트와 같은 값) ===== */
+  --t-3:8.7px; --t-2:10.4px; --t-1:12.5px; --t0:15px; --t1:18px; --t2:21.6px; --t3:25.9px; --t4:31.1px; --t5:37.3px;
+  --r1:4px; --r2:8px; --r3:12px; --r4:16px; --r5:24px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --ease:cubic-bezier(.2,.8,.2,1); --d1:89ms; --d2:144ms; --d3:233ms;
+  --e1:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(0,0,0,.05);
+  --bg:#f5f5f7; --panel:#fff; --line:rgba(0,0,0,.09); --text:#1d1d1f; --sub:#6e6e73;
+  --accent:#0071e3; --accent-weak:#eaf3fe; --accent-rgb:0,113,227; --accent-hi:#4aa3ff; --accent-hover:#0a7cf0; --danger:#d70015; --ok:#248a3d; --warn:#b25000;
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  /* 종이 (교정차트 '메모' 쪽과 같은 값, 설정에서 바뀜) */
+  --font:var(--ui); --fs:13.5px; --ink:#16348a; --paper:#fffef8; --rule:#c8d2de; --k:1;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#d8dade;overscroll-behavior:none}
+#stage{position:absolute;left:0;top:0;width:var(--W,2560px);height:var(--H,1440px);transform-origin:0 0;background:var(--bg);overflow:hidden}
+body{font-family:var(--ui);font-size:var(--t0);color:var(--text);letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:var(--text);background:rgba(0,0,0,.055);border:none;border-radius:var(--r3);padding:7px 14px;font-weight:500;transition:background var(--d2) var(--ease),transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease)}
+button:hover{background:rgba(0,0,0,.095)}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-hover)}
+button:disabled{opacity:.38;cursor:default}
+button:disabled:hover{background:rgba(0,0,0,.055)}
+input,select{font:inherit;color:var(--text);border:1px solid rgba(0,0,0,.14);border-radius:var(--r3);padding:8px 11px;background:#fff;width:100%;transition:box-shadow var(--d2) var(--ease),border-color var(--d2) var(--ease)}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.16)}
+.muted{color:var(--sub)}
+
+/* 머리글 */
+header{display:flex;align-items:center;height:52px;padding:0 22px;gap:16px;background:color-mix(in srgb,var(--bg) 22%,rgba(255,255,255,.84));backdrop-filter:saturate(180%) blur(22px);color:var(--text);border-bottom:1px solid var(--line);position:relative;z-index:40}
+.brand{display:flex;align-items:center;gap:12px;cursor:pointer;flex-shrink:0}
+.logo{width:28px;height:28px;border-radius:var(--r2);background:linear-gradient(145deg,var(--accent-hi),var(--accent));display:flex;align-items:center;justify-content:center;font-size:var(--t0);box-shadow:0 1px 3px rgba(var(--accent-rgb),.4)}
+header h1{font-size:var(--t0);font-weight:700;margin:0;letter-spacing:-.02em;white-space:nowrap}
+header button{color:var(--text);border:none;background:rgba(0,0,0,.055)}
+header button:hover{background:rgba(0,0,0,.095)}
+header button.primary{background:var(--accent);color:#fff}
+header button.primary:hover{background:var(--accent-hover)}
+header button.ghost{background:none;color:var(--sub);padding:6px 10px}
+header button.ghost.on{color:var(--accent);font-weight:600}
+header button.ghost:hover{background:rgba(0,0,0,.06);color:var(--text)}
+header button.pill{border-radius:980px;padding:7px 16px}
+#saved{font-size:var(--t-1);color:var(--sub);white-space:nowrap}
+header button.ghost.warn{color:var(--warn);font-weight:600}
+#infoBtn{position:relative}#newDot{display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#e5262b}
+#infoBtn.dot #newDot{display:block}
+/* 백업 센터 · 환경 점검 (교정차트와 같은 모양) */
+.bk-st{padding:var(--s3) var(--s4);border-radius:var(--r4);background:rgba(128,128,128,.07);font-size:var(--t-1);line-height:1.7;margin-bottom:var(--s3)}
+.bk-st b.ok{color:var(--ok)}.bk-st b.bad{color:var(--danger)}.bk-st b.warn{color:var(--warn)}
+.bk-list{font-size:var(--t-1);color:var(--sub);line-height:1.8;margin-top:var(--s2)}
+.env{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s3)}
+.env div{display:flex;gap:10px;font-size:var(--t-1);line-height:1.5;align-items:flex-start}
+.env i{font-style:normal;flex:0 0 18px;text-align:center}
+.env .bad{color:var(--danger)}.env .warn{color:var(--warn)}
+.notes{width:100%;min-height:120px;font:inherit;font-size:var(--t-1);line-height:1.6;border:1px solid rgba(0,0,0,.14);border-radius:var(--r3);padding:10px 12px;resize:vertical;background:transparent;color:var(--text)}
+.mh2{font-size:var(--t0);font-weight:700;margin:var(--s4) 0 var(--s2)}
+#saved.fail{color:var(--danger);font-weight:700}
+.seg{display:flex;gap:2px;padding:3px;background:rgba(0,0,0,.06);border-radius:var(--r3);flex-shrink:0}
+header .seg button{background:none;padding:5px 16px;border-radius:var(--r2);color:var(--sub)}
+header .seg button:hover{background:rgba(0,0,0,.04)}
+header .seg button.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.15);font-weight:600}
+.search{position:relative;width:520px;max-width:30vw;flex-shrink:1;min-width:180px}
+header>button,header>nav,header>#saved{flex-shrink:0;white-space:nowrap}   /* 창이 좁아도 단추 글자가 두 줄로 꺾이지 않게 (줄어드는 건 찾기 칸 · 단축키 안내) */
+.search input{height:36px;border-radius:var(--r3);background:rgba(0,0,0,.055);border:1px solid transparent;padding:0 46px 0 38px;font-size:var(--t0)}
+.search input:focus{background:#fff;border-color:var(--accent)}
+.search .sicon{position:absolute;left:13px;top:10px;color:var(--sub);pointer-events:none}
+.search>kbd{position:absolute;right:10px;top:8px;font:inherit;font-size:var(--t-2);color:var(--sub);background:rgba(0,0,0,.07);border-radius:var(--r2);padding:1px 8px;pointer-events:none}
+.sres{position:absolute;top:44px;left:0;width:620px;max-width:90vw;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r4);box-shadow:0 22px 60px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.06);padding:8px;z-index:60}
+.sres[hidden]{display:none}
+.shead{font-size:var(--t-1);font-weight:600;color:var(--sub);padding:6px 10px 4px}
+.sr{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-radius:var(--r3);cursor:pointer}
+.sr b{font-size:var(--t0);font-weight:600}
+.sr .meta{font-size:var(--t-1);color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr mark{background:rgba(255,214,10,.45);color:inherit;border-radius:2px}
+.sr.on{background:var(--accent);color:#fff}
+.sr.on .meta{color:rgba(255,255,255,.82)}
+.sr.on mark{background:rgba(255,255,255,.3)}
+.shint{font-size:var(--t-2);color:var(--sub);padding:8px 10px 2px;border-top:1px solid var(--line);margin-top:8px}
+
+/* 단축키 표시 */
+.kbd{display:inline-block;margin-left:8px;font:600 10px/1 ui-monospace,Consolas,monospace;color:var(--sub);border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--r1);padding:2px 5px;background:rgba(128,128,128,.1);vertical-align:1px}
+header .kbd{margin-left:8px;font-size:var(--t-2);font-weight:700;padding:1px 6px;opacity:1;color:var(--text);background:rgba(128,128,128,.14);border-color:rgba(128,128,128,.4)}
+button.primary .kbd,header button.primary .kbd{color:#fff;background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.6)}
+#keybar{flex:1;display:flex;align-items:center;justify-content:center;gap:var(--s4);min-width:0;overflow:hidden;font-size:var(--t-1);color:var(--sub);white-space:nowrap}
+html.nokeybar #keybar{visibility:hidden}
+#keybar .kh-t{font-weight:700;color:var(--text);opacity:.6}
+#keybar .kh{display:inline-flex;align-items:center;gap:var(--s1);flex:0 0 auto}#keybar .kh em{font-style:normal;margin-left:var(--s2)}
+#keybar .kbd{margin-left:0;font-size:var(--t-2);padding:2px 6px;color:var(--text);background:var(--panel);opacity:.9}#keybar .kbd+.kbd{margin-left:var(--s1)}
+#keybar .khx{flex:0 0 auto;font-size:var(--t-2);padding:1px 8px;background:transparent;border:1px solid var(--line);color:var(--sub);opacity:.55}#keybar .khx:hover{opacity:1}
+#kbcard{position:absolute;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.22);backdrop-filter:blur(3px)}
+#kbcard .kb-box{min-width:600px;background:var(--panel);color:var(--text);border-radius:var(--r5);padding:26px 32px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+#kbcard .kb-h{font-size:var(--t2);font-weight:700;margin-bottom:16px}
+#kbcard .kb-r{display:flex;align-items:center;gap:16px;padding:8px 0;border-top:1px solid var(--line);font-size:var(--t0)}
+#kbcard .kb-r span{flex:0 0 280px}#kbcard .kb-r em{font-style:normal;color:var(--sub)}
+#kbcard .kbd.big{font-size:var(--t-1);padding:4px 9px;margin:0 2px}
+#kbcard .kb-f{margin-top:16px;font-size:var(--t-1);color:var(--sub);text-align:center}
+
+/* 화면 배치: 왼쪽 달력 패널 + 책 */
+.wrap{display:flex;gap:var(--s5);height:calc(100% - 52px);padding:var(--s5) var(--s6)}
+.side{flex:0 0 268px;display:flex;flex-direction:column;gap:var(--s4);min-height:0}
+html.bkfocus .side{display:none}
+/* F 집중 보기 (2026-10-11 사용자: '머리글까지 모두 숨기고 쪽이 창에 가득'): 머리글 · 여백 없이 펼친 두 쪽만 */
+html.bkfocus header{display:none}
+html.bkfocus .wrap{height:100%;padding:0}
+html.bkfocus .bkdesk{border-radius:0}
+.apside{background:var(--panel);border:1px solid var(--line);border-radius:var(--r4);padding:12px 12px 10px;box-shadow:var(--e1)}
+.apside.grow{flex:1;min-height:0;display:flex;flex-direction:column}
+#minical .mch{display:flex;align-items:center;gap:8px;margin-bottom:8px;height:30px}
+#minical .mch b{flex:1;text-align:center;font-size:var(--t0)}
+#minical .mch button{padding:0 9px;height:28px;line-height:28px}
+.mcg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mcw7 span{text-align:center;font-size:var(--t-2);color:var(--sub);padding:2px 0}
+.mcd{position:relative;height:33px;border:0;background:transparent;border-radius:var(--r2);font-size:var(--t-1);color:var(--text);cursor:pointer;padding:0}
+.mcd:hover{background:var(--accent-weak)}
+.mcd.sat,.mcw7 .sat{color:#0a63c9}
+.mcd.sun,.mcw7 .sun{color:#d70015}
+.mcd.fut{opacity:.45}
+.mcd.has{font-weight:700}
+.mcd.inq{background:rgba(128,128,128,.07)}
+.mcd.sel{background:var(--accent-weak);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mcd.today{background:var(--accent);color:#fff;font-weight:700}
+.mcd i{position:absolute;left:50%;bottom:3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
+.mcd.has i{background:var(--accent)}
+.mcd.today i{background:#fff}
+.mcleg{display:flex;gap:12px;margin:8px 2px 4px;font-size:var(--t-2);color:var(--sub)}
+.mcleg i{display:inline-block;margin-right:4px;vertical-align:-1px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.mcst{display:flex;gap:var(--s2);margin-top:var(--s2)}
+.mcst div{flex:1;background:rgba(128,128,128,.08);border-radius:var(--r3);padding:8px 10px}
+.mcst b{display:block;font-size:var(--t2);font-weight:700;line-height:1.1}
+.mcst span{font-size:var(--t-2);color:var(--sub)}
+.mcwt{font-size:var(--t-1);font-weight:700;color:var(--sub);margin:2px 2px 6px;display:flex;justify-content:space-between}
+.mcwk{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0}
+.mcwr{display:grid;grid-template-columns:58px 1fr;gap:6px;align-items:center;text-align:left;border:0;background:transparent;border-radius:var(--r2);padding:6px 7px;font-size:var(--t-1);cursor:pointer;color:var(--text);flex:none;font-weight:400}
+.mcwr:hover{background:var(--accent-weak)}
+.mcwr.sel{box-shadow:inset 0 0 0 1.5px var(--accent);background:var(--accent-weak)}
+.mcwr .w{color:var(--sub);font-weight:600}
+.mcwr .r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcwr.sun .w{color:#d70015}.mcwr.sat .w{color:#0a63c9}
+.mcempty{font-size:var(--t-1);color:var(--sub);padding:8px 4px;line-height:1.6}
+/* 날짜 이동 단축키 그림 (WASD) — 교정차트와 같은 모양 */
+.mck{margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--line);text-align:center}
+html.nokeybar .mck{display:none}
+.mck-t{font-size:var(--t-2);font-weight:600;letter-spacing:.08em;color:var(--sub);margin-bottom:var(--s2);opacity:.85}
+.mck-pad{display:grid;grid-template-columns:44px 36px 36px 36px 44px;grid-template-rows:auto 36px 36px auto;column-gap:var(--s1);row-gap:var(--s1);justify-content:center;align-items:center}
+.mck-pad .lb{font-size:var(--t-2);color:var(--sub);white-space:nowrap;letter-spacing:-.01em}
+.mck-pad .lb.top{grid-column:3;grid-row:1}.mck-pad .lb.bot{grid-column:3;grid-row:4}
+.mck-pad .lb.left{grid-column:1;grid-row:3;text-align:right;padding-right:var(--s1)}.mck-pad .lb.right{grid-column:5;grid-row:3;text-align:left;padding-left:var(--s1)}
+.mck-pad .lb.top::before{content:"˄ "}.mck-pad .lb.bot::before{content:"˅ "}.mck-pad .lb.left::before{content:"‹ "}.mck-pad .lb.right::after{content:" ›"}
+.kc{width:36px;height:36px;padding:0;border-radius:var(--r3);border:1px solid rgba(128,128,128,.28);border-bottom-color:rgba(128,128,128,.4);background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 90%,var(--text) 10%));box-shadow:0 1px 0 rgba(128,128,128,.28),inset 0 1px 0 rgba(255,255,255,.55);font-size:var(--t0);font-weight:600;color:var(--text);line-height:1;cursor:pointer;transition:transform var(--d1) var(--ease),box-shadow var(--d1) var(--ease),background var(--d2) var(--ease),color var(--d2) var(--ease)}
+.kc.w{grid-column:3;grid-row:2}.kc.a{grid-column:2;grid-row:3}.kc.s{grid-column:3;grid-row:3}.kc.d{grid-column:4;grid-row:3}
+.kc:hover{background:var(--accent-weak);color:var(--accent)}
+.kc.press,.kc:active{transform:translateY(1px);box-shadow:0 0 0 rgba(0,0,0,0),inset 0 1px 2px rgba(0,0,0,.18);background:var(--accent);border-color:var(--accent);color:#fff}
+.mck-f{display:flex;align-items:center;justify-content:center;gap:var(--s1);margin-top:var(--s3);font-size:var(--t-2);color:var(--sub);white-space:nowrap}
+.mck-f .kc.tk{width:24px;height:24px;border-radius:var(--r2);font-size:var(--t-1);margin-right:2px}
+.mck-f i{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.45;margin:0 var(--s1)}
+.mck-f .kbd{margin:0;padding:1px 4px;font-size:var(--t-2)}.mck-f .kbd+.kbd{margin-left:2px}.mck-f .kbd:last-of-type{margin-right:3px}
+
+/* 책상과 펼친 두 쪽 (교정차트의 종이 차트와 같은 책상) */
+.book{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s2)}
+.bkdesk{flex:1;min-height:0;position:relative;border-radius:var(--r4);display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(#e7e8ec,#dcdee3)}
+.bkx{display:none}
+html.bkfocus .bkx{display:block;position:absolute;right:16px;top:14px;z-index:5;width:38px;height:38px;border-radius:50%;padding:0;font-size:var(--t0);background:rgba(30,30,34,.55);color:#fff;opacity:.35;transition:opacity var(--d3) var(--ease)}
+html.bkfocus .bkx:hover{opacity:1}
+.spread{position:relative;display:flex;box-shadow:0 10px 34px rgba(0,0,0,.32)}
+.sheetbox{width:calc(794px * var(--k));height:calc(1123px * var(--k));overflow:clip;position:relative;background:var(--paper)}
+.sheetbox::after{content:"";position:absolute;top:0;bottom:0;width:6%;pointer-events:none}
+.sheetbox.L::after{right:0;background:linear-gradient(90deg,transparent,rgba(0,0,0,.16))}
+.sheetbox.R::after{left:0;background:linear-gradient(270deg,transparent,rgba(0,0,0,.16))}
+.turn{position:absolute;bottom:0;width:calc(90px * var(--k));height:calc(90px * var(--k));border:0;background:transparent;z-index:4;font-size:22px;color:transparent;border-radius:0;padding:0}
+.turn.tl{left:0;border-radius:0 100% 0 0;--cx:0%}
+.turn.tr{right:0;border-radius:100% 0 0 0;--cx:100%}
+.turn:hover{color:#888;background:radial-gradient(circle at var(--cx) 100%,rgba(0,0,0,.10),transparent 70%)}
+.turn:active{transform:none}
+
+/* ===== 종이 한 장: 교정차트 '메모' 쪽과 같은 모양 (A4 794×1123 을 그린 뒤 --k 로 맞춘다) ===== */
+.sheet{width:794px;height:1123px;transform:scale(var(--k));transform-origin:0 0;padding:46px 54px 28px;display:flex;flex-direction:column;font-family:var(--ui);font-size:13.5px;line-height:1.5;color:#1b1f24;background:var(--paper);letter-spacing:0}
+.sh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px double #222;padding-bottom:6px;margin-bottom:14px;height:42px;flex:none}
+.sh b{font-size:22px;letter-spacing:.06em;white-space:nowrap}
+.sh b small{font-size:13px;font-weight:400;color:#666;letter-spacing:0;margin-left:10px}
+.sh>span{font-size:11.5px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68%;display:flex;gap:14px;align-items:baseline}
+/* 날씨 (난중일기처럼 날짜 다음에 한 단어): 한 번 눌러 고르기 */
+.wxs{display:inline-flex;gap:2px}
+.wx{font:12.5px var(--ui);color:#b9b9b9;background:none;border:0;padding:1px 5px;border-radius:4px;cursor:pointer}
+.wx:hover{color:#555;background:rgba(0,0,0,.05)}
+.wx.on{color:#1b1f24;font-weight:700}
+.wxo{font-size:12.5px;color:#1b1f24;font-weight:700}
+.sbody{height:962px;flex:none;position:relative;overflow:clip}
+/* 가로줄: CSS 무늬 대신 화면의 실제 점(화소)에 맞춰 캔버스에 그린다 → 모든 줄이 정확히 같은 두께 */
+.sbody>canvas.rules{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.sbody>*:not(.rules){position:relative;z-index:1}
+
+/* ===== 노트 표지 (3달 한 권): 앞표지 · 뒤표지 — 덮인 책처럼 한 장만 놓인다 =====
+   단정하고 고요하게: 고운 리넨 천 · 눌러 새긴(형압) 제목 · 꼭 필요한 글자만 (뒤표지는 글자 없이) */
+.cover{width:794px;height:1123px;transform:scale(var(--k));transform-origin:0 0;position:relative;overflow:hidden;cursor:pointer;color:rgba(255,253,248,.86);
+  border-radius:8px 22px 22px 8px;background-color:var(--cv);
+  background-image:
+    linear-gradient(168deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.04) 38%,rgba(0,0,0,0) 60%,rgba(0,0,0,.14) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23m)'/%3E%3C/svg%3E");
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.12)}
+.cover.back{border-radius:22px 8px 8px 22px}
+.sheetbox.cvbox,.sheetbox.void{background:transparent;overflow:visible}
+.spread.closed{box-shadow:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)) drop-shadow(0 22px 40px rgba(0,0,0,.22))}
+/* 책등 쪽 접히는 자리(경첩): 가는 홈 하나 */
+.cv-hinge{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(255,255,255,.14))}
+.cover.front .cv-hinge{left:34px}.cover.back .cv-hinge{right:34px;transform:scaleX(-1)}
+.cv-spine{position:absolute;top:0;bottom:0;width:34px;background:rgba(0,0,0,.05)}
+.cover.front .cv-spine{left:0}.cover.back .cv-spine{right:0}
+/* 눌러 새긴 제목 (형압): 표지보다 살짝 어둡고, 아래쪽에 빛이 맺힌다 */
+.cv-mark{position:absolute;top:338px;left:34px;right:0;text-align:center;font:400 40px 'Gowun Batang',Batang,serif;letter-spacing:.5em;text-indent:.5em;
+  color:rgba(0,0,0,.34);text-shadow:0 1.5px 0 rgba(255,255,255,.26),0 -1px 0 rgba(0,0,0,.12)}
+/* 뒤표지의 '끝': 앞표지 제목과 같은 높이 · 같은 크기 · 같은 음각. 한 글자라 자간 없이, 책등(오른쪽)을 뺀 면의 가운데 */
+.cover.back .cv-mark{left:0;right:34px;letter-spacing:0;text-indent:0}
+.cv-rule{position:absolute;top:418px;left:calc(34px + (760px - 36px) / 2);width:36px;height:1px;background:rgba(255,255,255,.38)}
+.cv-sub{position:absolute;top:444px;left:34px;right:0;text-align:center;font-size:14px;letter-spacing:.55em;text-indent:.55em;color:rgba(255,253,248,.72)}
+.cv-foot{position:absolute;bottom:96px;left:34px;right:0;text-align:center;line-height:2.2}
+.cv-foot .nm{font:400 17px 'Gowun Batang',Batang,serif;letter-spacing:.3em;text-indent:.3em;color:rgba(255,253,248,.86)}
+/* 금박 날짜: 표지에 눌러 찍은 금박 — ① 비스듬히 흐르는 금빛 ② 위 테두리의 눌린 그림자 ③ 아래 테두리의 옅은 빛 맺힘 */
+.cv-foot .gold{display:inline-block;font:400 21px 'Gowun Batang',Batang,serif;letter-spacing:.3em;text-indent:.3em;padding:0 .1em;
+  background:linear-gradient(100deg,#a8792c 0%,#e6c46f 16%,#fff2c4 27%,#e2b85c 38%,#b0832f 52%,#f0d27f 66%,#fff0bd 76%,#c99a42 88%,#9e722a 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:.45px rgba(232,196,110,.55);   /* 획을 살짝 도톰하게 — 금박은 가는 인쇄보다 두툼하다 */
+  filter:drop-shadow(0 -1px 0 rgba(40,25,5,.45)) drop-shadow(0 1px 0 rgba(255,236,190,.22)) drop-shadow(0 0 6px rgba(255,220,140,.10))}
+.sf{display:flex;justify-content:space-between;border-top:1px solid #aaa;padding-top:6px;font-size:11px;color:#777;margin-top:auto;flex:none}
+/* 글: 26px 줄 간격 (교정차트 .lines 와 같음) */
+.ink{font-family:var(--font);font-size:var(--fs);line-height:26px;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;letter-spacing:0;padding:0 4px;margin:0;border:0;border-radius:0;width:686px;color:var(--ink);tab-size:4;font-weight:400;display:block}
+textarea.ink{resize:none;outline:none;background:transparent;overflow:hidden;caret-color:var(--ink);box-shadow:none}
+textarea.ink::placeholder{color:#aab4c2}
+/* 그림이 든 쪽 (2026-10-11): 글 칸 · 그림 칸을 위아래로 쌓는다. 높이는 모두 26px 줄칸의 배수라 가로줄이 어긋나지 않는다 */
+.sbody.segd{display:flex;flex-direction:column}
+.sbody.segd textarea.tb{flex:none}
+.sbody.segd textarea.tb.last{flex:1 1 auto}
+.dimg{flex:none;position:relative;padding:0 4px;display:flex;align-items:center}
+.dimg img{display:block;max-width:100%;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.08);background:var(--paper)}
+.dimg .dimx,.dimg .dimr{position:absolute;opacity:0;transition:opacity .15s}
+.dimg:hover .dimx,.dimg:hover .dimr,.dimg.drag .dimr{opacity:1}
+.dimg .dimx{top:6px;width:24px;height:24px;border-radius:12px;border:0;padding:0;background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:24px;cursor:pointer}
+.dimg .dimr{width:14px;height:14px;border-right:2px solid rgba(0,0,0,.45);border-bottom:2px solid rgba(0,0,0,.45);cursor:nwse-resize}
+#measure{position:absolute;left:-10000px;top:0;visibility:hidden;height:auto;pointer-events:none}
+/* 묶어 보기: 날짜 머리 줄 (한 줄 = 26px) */
+.bd-h{height:26px;line-height:26px;padding:0 4px;font-weight:700;color:#1b1f24;display:flex;gap:10px;align-items:baseline;cursor:pointer;white-space:nowrap}
+.bd-h small{font-weight:400;color:#888;font-size:11.5px}
+.bd-h:hover{color:var(--accent)}
+.bd-gap{height:26px}
+.bd-b{cursor:pointer}
+.bd-empty{padding:26px 4px;color:#888}
+
+/* 대화 상자 · 알림 */
+.modal{position:absolute;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal[hidden]{display:none}
+.modal .box{background:var(--panel);border-radius:var(--r5);padding:22px 24px;width:520px;max-width:92%;max-height:86%;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.modal h3{margin:0 0 16px;font-size:var(--t1)}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:var(--s3)}
+.fld>span{font-size:var(--t-1);color:var(--sub)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s4)}
+.chk{display:flex;align-items:center;gap:8px;font-size:var(--t-1);margin:4px 0 8px;cursor:pointer}
+.chk input{width:auto;margin:0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row .sp{flex:1}
+.note{font-size:var(--t-1);color:var(--sub);line-height:1.65;margin-top:var(--s3)}
+.ab-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}.ab-grid>div{padding:var(--s3) var(--s4);border-radius:var(--r4);background:rgba(128,128,128,.07);font-size:var(--t-1);line-height:1.65}.ab-grid p{margin:var(--s1) 0 var(--s2);color:var(--sub)}
+.toast{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(30,30,32,.94);color:#fff;border-radius:var(--r4);padding:12px 20px;font-size:var(--t0);box-shadow:0 14px 40px rgba(0,0,0,.35);z-index:70;pointer-events:none;transition:opacity var(--d3) var(--ease)}
+
+/* ===== 다크 모드 (교정차트와 같은 값) — 종이는 그대로, 책상만 어둡게 ===== */
+html[data-theme=dark]{color-scheme:dark;--bg:#1c1c1e;--panel:#2c2c2e;--line:rgba(255,255,255,.12);--text:#f2f2f7;--sub:#9b9ba3;
+  --accent:#0a84ff;--accent-weak:rgba(10,132,255,.20);--accent-rgb:10,132,255;--accent-hi:#64b5ff;--accent-hover:#409cff;--danger:#ff6961;--ok:#4cd964;--warn:#ffb340}
+html[data-theme=dark],html[data-theme=dark] body{background:#0b0b0c}
+html[data-theme=dark] button{background:rgba(255,255,255,.10)}
+html[data-theme=dark] button:hover{background:rgba(255,255,255,.17)}
+html[data-theme=dark] button.primary{background:var(--accent);color:#fff}
+html[data-theme=dark] button.primary:hover{background:var(--accent-hover)}
+html[data-theme=dark] input,html[data-theme=dark] select{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:var(--text)}
+html[data-theme=dark] select option{background:#2c2c2e}
+html[data-theme=dark] header{background:rgba(28,28,30,.82)}
+html[data-theme=dark] header button{background:rgba(255,255,255,.10)}
+html[data-theme=dark] header button:hover{background:rgba(255,255,255,.17)}
+html[data-theme=dark] header button.primary{background:var(--accent);color:#fff}
+html[data-theme=dark] header button.ghost{background:none}
+html[data-theme=dark] header button.ghost:hover{background:rgba(255,255,255,.10);color:var(--text)}
+html[data-theme=dark] .seg{background:rgba(255,255,255,.09)}
+html[data-theme=dark] header .seg button{background:none}
+html[data-theme=dark] header .seg button.on{background:#505054;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+html[data-theme=dark] .search input{background:rgba(255,255,255,.09);border-color:transparent}
+html[data-theme=dark] .search input:focus{background:rgba(255,255,255,.14);border-color:var(--accent)}
+html[data-theme=dark] .search>kbd{background:rgba(255,255,255,.12)}
+html[data-theme=dark] .sres{background:rgba(44,44,46,.98);box-shadow:0 22px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.10)}
+html[data-theme=dark] .modal{background:rgba(0,0,0,.5)}
+html[data-theme=dark] .modal .box{background:#2c2c2e;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08)}
+html[data-theme=dark] .mcd.sat,html[data-theme=dark] .mcw7 .sat,html[data-theme=dark] .mcwr.sat .w{color:#6ab0ff}
+html[data-theme=dark] .mcd.sun,html[data-theme=dark] .mcw7 .sun,html[data-theme=dark] .mcwr.sun .w{color:#ff6b6b}
+html[data-theme=dark] .mcd,html[data-theme=dark] .mcwr{background:transparent}
+html[data-theme=dark] .mcd.inq{background:rgba(255,255,255,.05)}
+html[data-theme=dark] .mcd:hover,html[data-theme=dark] .mcwr:hover{background:var(--accent-weak)}
+html[data-theme=dark] .mcd.today{background:var(--accent);color:#fff}
+html[data-theme=dark] .mcd.sel,html[data-theme=dark] .mcwr.sel{background:var(--accent-weak)}
+html[data-theme=dark] .bkdesk{background:linear-gradient(#2b2b2e,#1f1f21)}
+html[data-theme=dark] .spread{filter:brightness(.92)}
+html[data-theme=dark] .turn,html[data-theme=dark] .sheet .wx{background:transparent}
+html[data-theme=dark] .notes{border-color:rgba(255,255,255,.18)}
+</style>
+</head>
+<body>
+<div id="stage">
+<header>
+  <div class="brand" onclick="goToday()" title="오늘"><span class="logo">📖</span><h1 id="bTitle">나의 일기</h1></div>
+  <div class="search">
+    <svg class="sicon" viewBox="0 0 20 20" width="16" height="16"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="search" placeholder="일기 찾기 — 낱말" autocomplete="off" oninput="sInput()" onfocus="sOpen()" onblur="sClose()" onkeydown="sKey(event)">
+    <kbd>/</kbd>
+    <div id="sres" class="sres" hidden></div>
+  </div>
+  <nav class="seg"><button data-v="day" onclick="setView('day')" title="3달 노트 — 하루 한 쪽 (오늘: T)">노트<kbd class="kbd">T</kbd></button><button data-v="bundle" onclick="setView('bundle')" title="3개월치를 한 노트처럼 이어서 보기 (B)">묶어 보기<kbd class="kbd">B</kbd></button></nav>
+  <button class="primary pill" onclick="writeNew()" title="오늘 쪽을 열고 바로 쓰기 (N)">＋ 오늘 쓰기<kbd class="kbd">N</kbd></button>
+  <button class="ghost" onmousedown="event.preventDefault()" onclick="insertTemplate()" title="매매 판단 기록 다섯 질문을 이 쪽에 넣기 (Q) — Ctrl+Z 로 되돌리기">템플릿<kbd class="kbd">Q</kbd></button>
+  <div id="keybar"></div>
+  <span id="saved"></span>
+  <button class="ghost" id="themeBtn" onclick="toggleTheme()" title="다크 모드 / 라이트 모드 (L)"></button>
+  <button class="ghost" id="qhdBtn" onclick="winMode('qhd')" title="창을 QHD(2560×1440) 크기로 고정 · F11 전체 화면">QHD</button>
+  <button class="ghost" id="bkBtn" onclick="bkOpen()" title="백업 센터: 외부 백업 폴더 · 지금 백업">백업</button>
+  <button class="ghost" onclick="openSettings()" title="책 제목 · 글꼴 · 종이 · 잉크">설정</button>
+  <button class="ghost" id="infoBtn" onclick="aboutOpen()" title="소개 · 환경 점검 · 고칠 점 메모">ⓘ<i id="newDot"></i></button>
+</header>
+<div class="wrap">
+  <aside class="side" id="side"></aside>
+  <section class="book">
+    <div class="bkdesk" id="desk"><div class="spread" id="spread"></div><button class="bkx" onclick="bkFocus(false)" title="집중 보기 끝내기 (Esc · F)">✕</button></div>
+  </section>
+</div>
+<div class="modal" id="modal" hidden></div>
+</div><!-- /stage -->
+<div id="measure" class="ink"></div>
+<script>
+'use strict';
+/* ---------- 종이 (교정차트 '메모' 쪽: A4 794×1123, 본문 37줄 × 26px) ---------- */
+const SW = 794, SH = 1123, LH = 26, LINES = 37;   // 2026-10-11 사용자: 36줄 아래 빈 자리에 한 줄 더 (37 × 26 = 962px, .sbody 높이와 같게)
+const KEY = 'myDiary.v1';
+const WD = '일월화수목금토';
+const FONTS = {
+  chart:    {name: '기본 (교정차트와 같은 글씨)', fam: 'var(--ui)', fs: 13.5},
+  gowun:    {name: '고운바탕',                  fam: "'Gowun Batang', Batang, serif", fs: 14.5, probe: 'Gowun Batang'},
+  myeongjo: {name: '나눔명조',                  fam: "'Nanum Myeongjo', Batang, serif", fs: 14, probe: 'Nanum Myeongjo'},
+  pen:      {name: '손글씨 (나눔펜)',           fam: "'Nanum Pen Script', cursive", fs: 19, probe: 'Nanum Pen Script'},
+  batang:   {name: '바탕 (컴퓨터 내장)',         fam: "Batang, '바탕', serif", fs: 14},
+};
+const INKS = {chart: ['파란 잉크 (교정차트와 같음)', '#16348a'], black: ['먹색', '#22262b'], brown: ['갈색', '#5b3a22']};
+const PAPERS = {chart: ['미백 (교정차트와 같음)', '#fffef8'], cream: ['미색', '#fbf6ea'], white: ['흰 종이', '#ffffff']};
+const DEF_SETTINGS = {title: '나의 일기', author: '', font: 'chart', ink: 'chart', paper: 'chart', lines: true};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const p2 = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+const today = () => ymd(new Date());
+const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const fmtDot = s => { const d = parseD(s); return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`; };
+const dLong = s => { const d = parseD(s); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일`; };
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); };
+const shiftMonth = (s, n) => { const b = parseD(s), day = b.getDate(); b.setDate(1); b.setMonth(b.getMonth() + n); b.setDate(Math.min(day, new Date(b.getFullYear(), b.getMonth() + 1, 0).getDate())); return ymd(b); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const isTyping = t => t && t.matches && (t.matches('input, textarea, select') || t.isContentEditable);
+const hasText = e => !!(e && ((e.body && e.body.trim()) || e.weather));   // 글이나 날씨가 있으면 쓴 날 (쪽 나눔 \f 만 있는 글은 빈 글)
+// 같은 날 이어 쓰는 쪽 (2026-10-11 사용자: '마지막 줄에서 엔터를 더 치면 같은 날짜로 한 쪽 더'): 쪽 사이는 글(body) 안의 쪽 나눔 문자 \f 하나.
+// 자료 칸은 그대로 (새 칸 없음). 위치(off)는 늘 body 전체에서의 글자 자리 — 찾기 · 묶어 보기 · 날씨가 쓰는 자리와 같다.
+const PB = '\f';
+const partsOf = d => ((entryOf(d) || {}).body || '').split(PB);
+const partBase = (parts, p) => parts.slice(0, p).reduce((n, s) => n + s.length + 1, 0);   // p 번째 쪽 첫 글자의 body 안 자리
+function locate(d, off){   // body 안 자리 → {p 몇 번째 쪽, o 그 쪽 안 자리} (off 가 없으면 마지막 쪽의 글 끝)
+  const parts = partsOf(d);
+  if (off == null){ const p = parts.length - 1; return {p, o: parts[p].replace(/\s+$/, '').length}; }
+  let p = 0;
+  while (p < parts.length - 1 && off > parts[p].length){ off -= parts[p].length + 1; p++; }
+  return {p, o: clamp(off, 0, parts[p].length)};
+}
+// 그림 (2026-10-11 사용자: '차트를 복사해서 붙여 넣기 — 커서 자리, 끌어서 크기 조절'): 글 안의 한 줄 ![그림 가로x세로](그림 파일)
+// 그림 파일은 책장 그림과 같은 data/images/YYYY-MM/ (도서관 /api/image — 백업 · 내 드라이브 동기화에 함께 들어간다). 자료 칸은 그대로.
+// 그림이 든 쪽 = [글, 그림, 글, 그림, 글 …] (짝수 자리 = 글 칸, 홀수 = 그림). 줄 바꿈 하나로 이어 붙이면 원래 글과 같다.
+const IMG_LINE = /^!\[그림 (\d{2,4})x(\d{2,4})\]\((\d{4}-\d{2}\/[A-Za-z0-9_\-]{1,80}\.(?:png|jpg|jpeg|webp|gif))\)$/;
+const IMG_ANY = /^!\[그림 \d{2,4}x\d{2,4}\]\([^)\n]*\)$/gm;
+const IMG_W = 686, IMG_MIN = 120;   // 그림 폭: 글 칸 폭까지, 가장 작게 120px
+const imgLine = g => `![그림 ${Math.round(g.w)}x${Math.round(g.h)}](${g.file})`;
+const imgURL = f => window.WEB && WEB.img ? WEB.img(f) : '/api/image/file?p=' + encodeURIComponent(f);   // 웹판은 드라이브에서 받아 둔 것 (shim)
+const imgRows = g => Math.max(1, Math.ceil(g.h / LH));
+function splitSegs(part){
+  const out = []; let buf = [];
+  for (const L of part.split('\n')){
+    const m = L.match(IMG_LINE);
+    if (m){ out.push(buf.join('\n')); buf = []; out.push({w: +m[1], h: +m[2], file: m[3]}); }
+    else buf.push(L);
+  }
+  out.push(buf.join('\n'));
+  return out;
+}
+const joinSegs = segs => segs.map(x => typeof x === 'string' ? x : imgLine(x)).join('\n');
+const segBase = (segs, s) => segs.slice(0, s).reduce((n, x) => n + (typeof x === 'string' ? x : imgLine(x)).length + 1, 0);
+const segRows = x => typeof x === 'string' ? lineCount(x) : imgRows(x);
+const pageRows = part => splitSegs(part).reduce((n, x) => n + segRows(x), 0);
+function locSeg(part, o){   // 쪽 안 자리 → {s 몇 번째 글 칸, o 그 칸 안 자리} (그림 줄 위면 다음 글 칸 맨 앞)
+  const segs = splitSegs(part); let pos = 0;
+  for (let s = 0; s < segs.length; s++){
+    const x = segs[s], len = (typeof x === 'string' ? x : imgLine(x)).length;
+    if (typeof x === 'string' && o <= pos + len) return {s, o: clamp(o - pos, 0, len)};
+    if (typeof x !== 'string' && o <= pos + len) return {s: s + 1, o: 0};
+    pos += len + 1;
+  }
+  return {s: segs.length - 1, o: segs[segs.length - 1].length};
+}
+const plainBody = s => String(s || '').replace(/\f/g, '\n').replace(IMG_ANY, '[그림]');   // 찾기 · 달력 한 줄 보기용
+// 날씨: 난중일기의 첫머리처럼 날짜 다음에 한 단어 ('part' 는 v1.0x 의 '구름 조금')
+const WX = [['sun', '맑음'], ['cloud', '흐림'], ['rain', '비'], ['snow', '눈'], ['wind', '바람']];
+const wxName = v => (WX.find(x => x[0] === v) || [, v === 'part' ? '구름 조금' : ''])[1];
+
+let db = {version: 2, settings: {...DEF_SETTINGS}, entries: [], trash: []};
+let serverOK = false;
+let view = 'day';                // 'day' 노트(하루 한 쪽) / 'bundle' 묶어 보기
+let cur = null;                  // 노트에서 고른 날 (YYYY-MM-DD)
+let curP = 0;                    // 그날의 몇 번째 쪽 (같은 날 쪽이 여럿일 때)
+let qKey = null;                 // 묶어 보기의 분기 (YYYY-Q)
+let pages = [], nS = 1, si = 0;  // 지금 보는 쪽들, 펼침면 수, 지금 펼친 면
+let pendingFocus = null;         // 다시 그린 뒤 커서를 둘 자리 {d, off}
+let cover = null;                // 덮인 노트를 보고 있으면 'back'(뒤표지, 왼쪽 자리) · 'front'(앞표지, 오른쪽 자리)
+let composing = false;           // 한글 조합 중 (조합 중에는 쪽을 다시 나누지 않는다)
+const M = $('measure');
+
+/* ---------- 화면 크기: 모니터 · 창에 저절로 맞춤 (2026-10-11 사용자: '모니터에 따라 해상도를 자동으로') ----------
+   예전엔 2560×1440 무대를 창에 맞춰 통째로 줄였다 → 작은 모니터에선 머리글 · 달력 글씨까지 작아졌다.
+   이제 무대 = 창 크기 그대로(글씨 · 단추는 늘 같은 크기, 펼친 쪽만 책상에 맞춰 커지고 작아짐). 창이 STAGE_MIN 보다 작을 때만 통째로 줄인다. */
+const STAGE_MIN = {w: 1280, h: 720};
+const STAGE = {w: 2560, h: 1440};
+function fit(){
+  STAGE.w = Math.max(innerWidth, STAGE_MIN.w); STAGE.h = Math.max(innerHeight, STAGE_MIN.h);
+  const r = document.documentElement.style; r.setProperty('--W', STAGE.w + 'px'); r.setProperty('--H', STAGE.h + 'px');
+  const s = Math.min(innerWidth / STAGE.w, innerHeight / STAGE.h);
+  $('stage').style.transform = `translate(${(innerWidth - STAGE.w * s) / 2}px,${(innerHeight - STAGE.h * s) / 2}px) scale(${s})`;
+  if (typeof drawRules === 'function') requestAnimationFrame(drawRules);   // 창 크기가 바뀌면 화면의 점도 달라지므로 줄을 다시 그린다
+}
+function applyStage(){ fit(); fitBook(); }
+let resizeT = null;
+addEventListener('resize', () => { fit(); clearTimeout(resizeT); resizeT = setTimeout(() => { fitBook(); if (typeof renderKeyBar === 'function') renderKeyBar(); }, 60); });
+function fitBook(){   // 책상에 펼친 두 쪽을 꽉 차게
+  const f = document.documentElement.classList.contains('bkfocus'), dk = $('desk'), w = dk.clientWidth - (f ? 24 : 64), h = dk.clientHeight - (f ? 16 : 48);   // 집중 보기는 가장자리 여백만 조금
+  document.documentElement.style.setProperty('--k', Math.max(0.2, Math.min(h / SH, w / (2 * SW))).toFixed(4));
+  requestAnimationFrame(drawRules);
+}
+
+/* ---------- 쪽 나누기: 글을 실제로 재서 한 쪽(37줄)에 들어가는 만큼씩 자른다 ---------- */
+function fits(s, lines){
+  M.textContent = (s === '' || s.endsWith('\n')) ? s + '​' : s;   // 끝의 줄바꿈도 한 줄로 친다 (입력칸과 같게)
+  return M.offsetHeight <= lines * LH + 2;
+}
+function lineCount(s){ M.textContent = (s === '' || s.endsWith('\n')) ? s + '​' : s; return Math.round(M.offsetHeight / LH); }
+function paginate(t, first = LINES, rest = LINES){
+  const n = t.length, segs = [];
+  if (!n) return [{s: 0, e: 0}];
+  let st = 0;
+  while (st < n){
+    const lines = segs.length ? rest : first;
+    if (fits(t.slice(st), lines)){ segs.push({s: st, e: n}); break; }
+    let lo = 1, hi = Math.max(1, n - st - 1);
+    if (fits(t.slice(st, st + 1), lines)){
+      while (lo < hi){ const mid = (lo + hi + 1) >> 1; if (fits(t.slice(st, st + mid), lines)) lo = mid; else hi = mid - 1; }
+    }
+    let k = lo;
+    const c = t[st + k], pc = t[st + k - 1];   // 낱말(어절) 한가운데서 잘리지 않게: 가까운 띄어쓰기 뒤에서 자른다
+    if (c && !/\s/.test(c) && !/\s/.test(pc)){
+      const b = Math.max(t.lastIndexOf(' ', st + k - 1), t.lastIndexOf('\n', st + k - 1));
+      if (b > st && st + k - b <= 40) k = b + 1 - st;
+    }
+    let e = st + k, nl = false;
+    while (e < n && t[e] === ' ') e++;          // 쪽 끝의 띄어쓰기·줄바꿈은 앞 쪽에 붙인다 (다음 쪽이 빈 줄로 시작하지 않게)
+    if (e < n && t[e] === '\n'){ e++; nl = true; }
+    segs.push({s: st, e}); st = e;
+    if (st >= n && nl) segs.push({s: n, e: n}); // 마지막에 줄을 바꿨으면 새 쪽에서 이어 쓴다
+  }
+  return segs;
+}
+const segCache = new Map();             // 날짜 → {key, segs, dirty}
+const segKey = e => db.settings.font + '|' + e.body;
+function segsFor(e){
+  const c = segCache.get(e.date), key = segKey(e);
+  if (c && !c.dirty && c.key === key) return c.segs;
+  const segs = paginate(e.body);
+  segCache.set(e.date, {key, segs, dirty: false});
+  return segs;
+}
+const shownSegs = e => (segCache.get(e.date) || {}).segs || segsFor(e);
+
+/* ---------- 일기 (하루에 한 편) ---------- */
+const sorted = () => db.entries.filter(hasText).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+const entryOf = d => db.entries.find(e => e.date === d);
+function entryFor(d){   // 그날의 일기 (없으면 빈 일기를 만든다 — 글이 없으면 저장되지 않는다)
+  let e = entryOf(d);
+  if (!e){ const now = new Date().toISOString(); e = {id: uid(), date: d, body: '', created: now, updated: now}; db.entries.push(e); }
+  return e;
+}
+function touch(e){ e.updated = new Date().toISOString(); scheduleSave(); }
+
+/* ---------- 쪽 엮기 ---------- */
+const qOf = d => { const x = parseD(d); return `${x.getFullYear()}-${Math.floor(x.getMonth() / 3) + 1}`; };
+const qInfo = k => { const [y, q] = k.split('-').map(Number), m0 = (q - 1) * 3 + 1; return {y, q, m0, from: `${y}-${p2(m0)}-01`, to: `${y}-${p2(m0 + 2)}-31`, label: `${y}년 ${m0}–${m0 + 2}월`}; };
+const qEnd = k => { const qi = qInfo(k); return ymd(new Date(qi.y, qi.m0 + 2, 0)); };   // 그 3달의 마지막 날
+function qDays(k){ const out = [], end = qEnd(k); for (let d = qInfo(k).from; d <= end; d = addDays(d, 1)) out.push(d); return out; }
+// 노트: 3달이 한 권, 하루가 한 쪽(이어 쓴 날은 여러 쪽). 그 3달의 첫날부터 왼쪽 · 오른쪽 · 왼쪽 … 으로 놓인다
+function layout(){
+  if (view === 'day'){
+    qKey = qOf(cur);
+    pages = [];
+    qDays(qKey).forEach((d, i) => { const n = partsOf(d).length; for (let p = 0; p < n; p++) pages.push({k: 'day', d, i, p, n}); });
+    if (pages.length % 2) pages.push({k: 'end'});   // 쪽 수가 홀수인 3달은 마지막 오른쪽이 빈 쪽
+    nS = Math.ceil(pages.length / 2);
+    let at = pages.findIndex(pg => pg.d === cur && pg.p === curP);
+    if (at < 0) at = pages.findIndex(pg => pg.d === cur);
+    si = spreadOf(Math.max(0, at));
+    return;
+  }
+  pages = bundlePages();
+  nS = Math.ceil(pages.length / 2);
+  si = clamp(si, 0, nS - 1);
+}
+// 묶어 보기: 3개월치 일기를 날짜 머리 + 본문으로 이어 붙여 37줄 쪽에 차례로 채운다
+let bundleCache = {key: '', pages: []};
+function bundlePages(){
+  const qi = qInfo(qKey), list = sorted().filter(e => e.date >= qi.from && e.date <= qi.to);
+  const key = qKey + '|' + db.settings.font + '|' + list.map(e => e.date + ':' + e.body.length + ':' + e.updated).join(',');
+  if (bundleCache.key === key) return bundleCache.pages;
+  const out = []; let items = [], rem = LINES;
+  const newPage = () => { out.push({k: 'bundle', items}); items = []; rem = LINES; };
+  for (const e of list){
+    if (items.length){ if (rem >= 3){ items.push({t: 'gap'}); rem--; } else newPage(); }
+    if (rem < 2) newPage();
+    items.push({t: 'h', e}); rem--;
+    const raw = e.body.replace(/\f/g, '\n').replace(IMG_ANY, m => '[그림]'.padEnd(m.length, '⁠'));   // 이어 쓴 쪽은 줄 바꿈으로, 그림 줄은 '[그림]' 으로 (보이지 않는 글자로 길이를 맞춰 두 번 누른 자리가 그대로)
+    const body = raw.replace(/^\s+|\s+$/g, ''), off = raw.indexOf(body);
+    const segs = paginate(body, rem, LINES);
+    segs.forEach((sg, j) => {
+      if (j) newPage();
+      const text = body.slice(sg.s, sg.e);
+      items.push({t: 'b', e, text, at: off + sg.s});
+      rem -= j === segs.length - 1 ? lineCount(text) : rem;
+    });
+  }
+  if (items.length || !out.length) newPage();
+  if (out.length % 2) out.push({k: 'bundle', items: []});
+  out.forEach(p => { p.n = list.length; p.list = list; });
+  bundleCache = {key, pages: out};
+  return out;
+}
+const spreadOf = i => Math.floor(i / 2);
+function datesOnSpread(){
+  if (cover) return [];
+  const ds = new Set();
+  [pages[si * 2], pages[si * 2 + 1]].forEach(p => { if (!p) return; if (p.k === 'day') ds.add(p.d); else if (p.items) p.items.forEach(it => it.e && ds.add(it.e.date)); });
+  return [...ds];
+}
+
+/* ---------- 그리기 ---------- */
+function sheetHTML(i, live){
+  const pg = pages[i], side = i % 2 ? 'R' : 'L', st = db.settings;
+  const book = esc(st.title || '나의 일기');
+  if (!pg) return `<div class="sheet ${side}"></div>`;
+  let title = '', right = '', body = '', left = '', pn = '', wx = '', segd = '';
+  if (pg.k === 'end'){   // 날 수가 홀수인 3달의 마지막 오른쪽
+    return `<div class="sheet ${side}" data-i="${i}"><div class="sh"><b></b><span><span>${book} · ${qInfo(qKey).label}</span></span></div>`
+         + `<div class="sbody${st.lines ? ' ruled' : ''}"></div><div class="sf"><span>${qInfo(qKey).label} 노트의 끝</span><span></span></div></div>`;
+  }
+  if (pg.k === 'day'){
+    const e = entryOf(pg.d) || {date: pg.d, body: '', weather: ''}, d = parseD(pg.d), qi = qInfo(qKey), part = partsOf(pg.d)[pg.p] || '';
+    if (pg.p) wx = '';   // 날씨는 그날의 첫 쪽에만
+    else wx = live ?`<span class="wxs" title="이 날의 날씨 (한 번 더 누르면 지움)">${WX.map(([v, n]) => `<button class="wx${e.weather === v ? ' on' : ''}" data-act="wx" data-v="${v}" tabindex="-1">${n}</button>`).join('')}</span>`
+              : (wxName(e.weather) ? `<span class="wxo">${wxName(e.weather)}</span>` : '');
+    title = `${d.getMonth() + 1}월 ${d.getDate()}일<small>${WD[d.getDay()]}요일${pg.n > 1 ? ` · ${pg.p + 1}/${pg.n}쪽` : ''}</small>`;
+    right = `${e.title ? esc(e.title) + ' · ' : ''}${book} · ${qi.label}`;
+    const segs = splitSegs(part), over = part && pageRows(part) > LINES;   // 예전에 한 쪽보다 길게 써 둔 날: 지우지 않고 알려 준다
+    left = `${st.author ? esc(st.author) + ' · ' : ''}${fmtDot(pg.d)} (${WD[d.getDay()]})${over ? ' · <b style="color:#b25000">⚠ 쪽보다 긴 글 — 묶어 보기(B)에서 전체 보기</b>' : ''}`;
+    pn = `p. ${i + 1}`;
+    const at = `data-d="${pg.d}" data-p="${pg.p}"`;
+    if (live && segs.length > 1){   // 그림이 든 쪽: 글 칸 · 그림 칸을 차례로
+      segd = ' segd';
+      body =segs.map((x, s) => typeof x === 'string'
+        ? `<textarea class="ink tb${s === segs.length - 1 ? ' last' : ''}" ${at} data-s="${s}" spellcheck="false" style="height:${lineCount(x) * LH}px"></textarea>`
+        : `<div class="dimg" ${at} data-s="${s}" style="height:${imgRows(x) * LH}px"><img src="${imgURL(x.file)}" style="width:${x.w}px;height:${x.h}px" alt="" draggable="false">`
+          + `<button class="dimx" data-act="imgdel" title="이 그림을 쪽에서 빼기 (그림 파일은 남겨 둬요)" style="left:${x.w - 26}px" tabindex="-1">✕</button><i class="dimr" style="left:${x.w - 12}px;top:${(imgRows(x) * LH + x.h) / 2 - 12}px" title="끌어서 크기 바꾸기"></i></div>`).join('');
+    } else body = live ? `<textarea class="ink tb" ${at} data-s="0" spellcheck="false" style="height:${(LINES + 6) * LH}px"${!e.body && !pg.p && pg.d === today() ? ` placeholder="${promptOf(pg.d)}"` : ''}></textarea>`
+                : `<div class="ink tb">${esc(plainBody(part))}</div>`;
+  } else {
+    const qi = qInfo(qKey), first = pg.items.find(it => it.e);
+    title = first ? `${parseD(first.e.date).getMonth() + 1}월<small>${qi.y}년</small>` : `${qi.m0}–${qi.m0 + 2}월<small>${qi.y}년</small>`;
+    right = `${book} · 묶어 보기 · ${qi.label}`;
+    left = `${st.author ? esc(st.author) + ' · ' : ''}${qi.label} · ${pg.n}편`;
+    pn = `p. ${i + 1}`;
+    body = pg.items.map(it => it.t === 'gap' ? '<div class="bd-gap"></div>'
+      : it.t === 'h' ? `<div class="bd-h" data-open="${it.e.date}" title="이 날의 쪽 열기 (두 번 눌러 고쳐 쓰기)">${dLong(it.e.date)}${wxName(it.e.weather) ? `<small>${wxName(it.e.weather)}</small>` : ''}${it.e.title ? `<small>${esc(it.e.title)}</small>` : ''}</div>`
+      : `<div class="ink bd-b" data-open="${it.e.date}" data-at="${it.at}">${esc(it.text)}</div>`).join('')
+      + (!pg.items.length && i === 0 ? `<div class="bd-empty">${qi.label}에 쓴 일기가 없습니다.</div>` : '');
+  }
+  return `<div class="sheet ${side}" data-i="${i}"><div class="sh"><b>${title}</b><span>${wx}<span>${right}</span></span></div>`
+       + `<div class="sbody${st.lines ? ' ruled' : ''}${segd}">${body}</div><div class="sf"><span>${left}</span><span>${pn}</span></div></div>`;
+}
+function render(){
+  const sp = $('spread'), a = si * 2, b = a + 1, live = view === 'day';
+  const turns = `<button class="turn tl" data-act="prev" title="앞 장">‹</button><button class="turn tr" data-act="next" title="다음 장">›</button>`;
+  sp.classList.toggle('closed', !!cover);
+  if (cover){   // 덮인 노트: 뒤표지는 왼쪽 쪽 자리, 앞표지는 오른쪽 쪽 자리 (나머지 자리는 비워 둔다)
+    const back = cover === 'back' ? `<div class="sheetbox cvbox">${coverHTML('back')}</div>` : '<div class="sheetbox void"></div>';
+    const front = cover === 'front' ? `<div class="sheetbox cvbox">${coverHTML('front')}</div>` : '<div class="sheetbox void"></div>';
+    sp.innerHTML = back + front + turns; updateBar(); return;
+  }
+  sp.innerHTML = `<div class="sheetbox L">${sheetHTML(a, live)}</div><div class="sheetbox R">${sheetHTML(b, live)}</div>` + turns;
+  sp.querySelectorAll('textarea.tb').forEach(ta => { ta.value = splitSegs(partsOf(ta.dataset.d)[+ta.dataset.p] || '')[+ta.dataset.s] || ''; okVal.set(ta, {v: ta.value, s: ta.value.length}); });
+  updateBar(); drawRules();
+  if (pendingFocus){ const f = pendingFocus; pendingFocus = null; focusTa(f.d, f.off); }
+}
+// 노트 표지: 3달마다 다른, 차분한 천 색 (1–3월 겨울 슬레이트 · 4–6월 봄 세이지 · 7–9월 여름 안개 청록 · 10–12월 가을 클레이)
+const COVER_COLORS = ['#56657a', '#7a8c74', '#5f8790', '#9a6c57'];
+const SEASONS = ['겨울', '봄', '여름', '가을'];
+function coverHTML(side){
+  const qi = qInfo(qKey), st = db.settings, last = parseD(qEnd(qKey));
+  const season = `${SEASONS[qi.q - 1]} · ${qi.y}`, range = `${qi.m0}. 1 ~ ${last.getMonth() + 1}. ${last.getDate()}`;
+  const style = `style="--cv:${COVER_COLORS[qi.q - 1]}"`;
+  if (side === 'front') return `<div class="cover front" ${style} data-act="next" title="펼치기 (→)"><div class="cv-spine"></div><div class="cv-hinge"></div>
+      <div class="cv-mark">${esc(st.title || '나의 일기')}</div><div class="cv-rule"></div><div class="cv-sub">${season}</div>
+      <div class="cv-foot">${st.author ? `<div class="nm">${esc(st.author)}</div>` : ''}<div class="gold">${range}</div></div></div>`;
+  return `<div class="cover back" ${style} data-act="next"><div class="cv-spine"></div><div class="cv-hinge"></div><div class="cv-mark">끝</div></div>`;   // 뒤표지: '끝' 한 글자만 음각으로
+}
+// 오늘의 빈 쪽에 건네는 한 문장 — 날마다 바뀐다
+const PROMPTS = ['오늘은 어떤 하루였나요?', '오늘 가장 오래 머문 생각은 무엇이었나요?', '오늘 고마웠던 한 가지를 적어 볼까요?', '오늘의 나에게 한마디 해 준다면?',
+  '오늘 마음을 움직인 장면이 있었나요?', '내일의 나에게 남기고 싶은 말은?', '오늘 잘한 일 하나를 떠올려 보세요.', '지금 이 순간, 마음은 어떤가요?',
+  '오늘 누구와 어떤 이야기를 나눴나요?', '오늘 새로 알게 된 것이 있나요?', '오늘을 한 단어로 적는다면?'];
+const promptOf = d => PROMPTS[Math.floor(parseD(d) / 864e5) % PROMPTS.length];
+// 가로줄을 화면의 실제 점에 맞춰 그린다: 줄마다 정확히 1화소 → 몇 줄만 두꺼워 보이는 일이 없다
+function drawRules(){
+  const dpr = devicePixelRatio || 1, col = getComputedStyle(document.documentElement).getPropertyValue('--rule').trim() || '#c8d2de';
+  document.querySelectorAll('#spread .sbody.ruled').forEach(sb => {
+    let c = sb.querySelector(':scope > canvas.rules');
+    if (!c){ c = document.createElement('canvas'); c.className = 'rules'; sb.prepend(c); }
+    const r = sb.getBoundingClientRect(), W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round(r.height * dpr));
+    if (c.width !== W || c.height !== H){ c.width = W; c.height = H; }
+    const g = c.getContext('2d'), sy = H / (LINES * LH);
+    g.clearRect(0, 0, W, H); g.fillStyle = col;
+    for (let n = 1; n <= LINES; n++) g.fillRect(0, Math.min(H - 1, Math.round(n * LH * sy) - 1), W, 1);   // 26px 줄칸의 맨 아래 한 화소
+  });
+}
+function updateBar(){
+  document.documentElement.classList.toggle('bundle', view === 'bundle');
+  $('bTitle').textContent = document.title = db.settings.title || '나의 일기';
+  document.querySelectorAll('nav.seg button').forEach(x => x.classList.toggle('on', x.dataset.v === view));
+  renderSide();
+}
+
+/* ---------- 쪽 넘기기: 애니메이션 없이 바로 ---------- */
+function turn(apply){ cover = null; apply(); render(); }   // 어디로 가든 일단 표지는 덮고(펼치고) 시작
+// 펼침면 t 로 (노트: 그 펼침면의 왼쪽 날짜가 '고른 날'이 된다)
+const toSpread = t => view === 'day' ? () => { cur = pages[t * 2].d; curP = pages[t * 2].p || 0; layout(); } : () => { si = t; };
+function go(t){ t = clamp(t, 0, nS - 1); if (t !== si) turn(toSpread(t)); }
+// 한 펼침면 앞/뒤로 가는 '할 일'. 실제 노트처럼:
+//   … 마지막 펼침면 → 뒤표지(왼쪽 자리) → 다음 노트 앞표지(오른쪽 자리) → 첫 펼침면 …   (거꾸로도 같은 차례)
+function stepApply(d){
+  const prevQ = qOf(addDays(qInfo(qKey).from, -1)), nextQ = qOf(addDays(qEnd(qKey), 1));
+  const openAt = (q, first) => () => { qKey = q; if (view === 'day'){ cur = first ? qInfo(q).from : qEnd(q); layout(); } else { layout(); si = first ? 0 : nS - 1; } };
+  const showCover = (side, q) => () => { qKey = q; if (view === 'day') cur = side === 'front' ? qInfo(q).from : qEnd(q); layout(); cover = side; };
+  if (cover === 'front') return d > 0 ? openAt(qKey, true) : showCover('back', prevQ);
+  if (cover === 'back') return d < 0 ? openAt(qKey, false) : showCover('front', nextQ);
+  const t = si + d;
+  if (t >= 0 && t < nS) return toSpread(t);
+  return showCover(d > 0 ? 'back' : 'front', qKey);
+}
+// ← → : 한 장씩
+function step(d){ const ap = stepApply(d); if (ap) turn(ap); }
+
+/* ---------- 터치패드 두 손가락으로 넘기기 ---------- */
+// 오른쪽 → 왼쪽으로 밀면 미래(다음) 쪽, 왼쪽 → 오른쪽이면 과거(앞) 쪽. 윈도우 터치패드 스크롤 방향 설정을 읽어 맞춘다
+// 정확하게: ① 한 번 밀면 딱 한 장  ② 손가락을 뗀 뒤 흘러오는 관성 신호는 무시  ③ 관성 중에 다시 밀면 새 손짓으로 알아챔
+//           ④ 살짝 스친 정도(문턱 아래)는 무시  ⑤ 가로로 시작한 손짓은 끝까지 가로로 본다
+const SWIPE_STEP = 50;       // 가로로 이만큼(화소) 밀면 한 장 넘긴다
+const WHEEL_STEP = 40;       // 마우스 휠 · 위아래 두 손가락은 이만큼에 한 장
+const SWIPE_GAP = 110;       // 신호가 이만큼(ms) 끊기면 새 손짓
+const G = {active: false, axis: '', acc: 0, last: 0, hist: [], sign: 1, done: false, quiet: null};   // 한 번의 손짓 상태
+const swipeSign = () => (ENV && ENV.touchNatural === false ? -1 : 1) * (db.settings.swipeRev ? -1 : 1);
+document.addEventListener('wheel', e => {
+  if (!$('modal').hidden || $('kbcard') || e.target.closest('.side, .sres, header')) return;
+  let dx = e.deltaX, dy = e.deltaY;
+  if (e.deltaMode === 1){ dx *= 16; dy *= 16; } else if (e.deltaMode === 2){ dx *= 400; dy *= 400; }   // 줄·쪽 단위로 오는 장치도 화소로
+  const now = performance.now(), gap = now - G.last; G.last = now;
+  const horizNow = Math.abs(dx) > Math.abs(dy);
+  if (horizNow || G.axis === 'x') e.preventDefault();   // 브라우저의 '뒤로 가기' 밀기 동작이 끼어들지 않게
+  // ③ 새 손짓인가? 잠깐 끊겼거나, 이미 처리한 손짓의 관성 중에 신호가 갑자기 세지거나 방향이 바뀌면 새로 민 것
+  let fresh = !G.active || gap > SWIPE_GAP;
+  if (!fresh && G.done && G.hist.length){
+    const v = G.axis === 'x' ? dx * G.sign : dy, pv = G.hist[G.hist.length - 1];
+    if ((Math.abs(v) > Math.abs(pv) * 1.6 && Math.abs(v) > 8) || (Math.sign(v) !== Math.sign(pv) && Math.abs(v) > 4)) fresh = true;
+  }
+  if (fresh) Object.assign(G, {active: true, axis: horizNow ? 'x' : 'y', acc: 0, hist: [], done: false, sign: horizNow ? swipeSign() : 1});
+  clearTimeout(G.quiet); G.quiet = setTimeout(() => { G.active = false; }, SWIPE_GAP);
+  const v = G.axis === 'x' ? dx * G.sign : dy;
+  G.hist.push(v); if (G.hist.length > 8) G.hist.shift();
+  if (G.done) return;   // ② 이번 손짓은 이미 한 장 넘겼다 — 남은 관성은 흘려보낸다
+  G.acc += v;
+  if (Math.abs(G.acc) >= (G.axis === 'x' ? SWIPE_STEP : WHEEL_STEP)){ G.done = true; step(G.acc > 0 ? 1 : -1); }   // ① 한 장
+}, {passive: false});
+// 그 날짜의 쪽을 연다 (이미 펼쳐져 있으면 그 쪽으로 커서만 옮긴다)
+function openDay(d, o = {}){
+  if (view === 'day' && datesOnSpread().includes(d) && !o.force){
+    cur = d; renderSide();
+    if (!o.focus || focusTa(d, o.caret)) return;   // 그 자리가 다음 펼침면의 이어 쓴 쪽이면 넘겨서 연다
+  }
+  turn(() => { view = 'day'; cur = d; curP = o.caret != null ? locate(d, o.caret).p : o.focus ? partsOf(d).length - 1 : 0; layout(); if (o.focus) setFocusEnd(d, o.caret); });
+}
+function prune(d){ const e = entryOf(d); if (e && !hasText(e)){ db.entries = db.entries.filter(x => x !== e); segCache.delete(d); } }
+function setView(v){
+  if (v === view){ if (v === 'day' && cur !== today()) openDay(today()); return; }
+  if (v === 'bundle'){ turn(() => { view = 'bundle'; qKey = qOf(cur || today()); bundleCache.key = ''; layout(); si = spreadOf(bundlePageOf(cur)); }); }
+  else openDay(cur || today(), {force: true});
+}
+function bundlePageOf(d){ const i = pages.findIndex(p => p.items && p.items.some(it => it.e && it.e.date >= d)); return i < 0 ? Math.max(0, pages.length - 1) : i; }
+function quarterNav(n){
+  if (view !== 'bundle') return;
+  const qi = qInfo(qKey), d = new Date(qi.y, qi.m0 - 1 + n * 3, 1);
+  turn(() => { qKey = qOf(ymd(d)); layout(); si = 0; });
+}
+
+/* ---------- 쓰기 (노트): 한 쪽 = 37줄. 쪽이 가득 차면 더 써지지 않고, 마지막 줄에서 Enter 를 누르면 같은 날 쪽이 하나 더 생긴다 ---------- */
+const okVal = new WeakMap();     // 쓰기 칸마다 '마지막으로 쪽 안에 들어갔던 글'과 커서 자리
+const taBase = ta => { const parts = partsOf(ta.dataset.d), p = +ta.dataset.p; return partBase(parts, p) + segBase(splitSegs(parts[p] || ''), +ta.dataset.s); };   // 이 글 칸 첫 글자의 body 안 자리
+function caretOf(){   // 지금 커서가 어느 날 몇 번째 글자에 있는가 (body 전체에서의 자리)
+  const ta = document.activeElement;
+  return ta && ta.matches && ta.matches('textarea.tb') ? {d: ta.dataset.d, off: taBase(ta) + ta.selectionStart} : null;
+}
+const segOf = ta => splitSegs(partsOf(ta.dataset.d)[+ta.dataset.p] || '');
+const budget = ta => LINES - segOf(ta).reduce((n, x, s) => n + (s === +ta.dataset.s ? 0 : segRows(x)), 0);   // 이 글 칸이 쓸 수 있는 줄 수 (쪽 37줄 − 다른 칸)
+function segFit(ta){   // 그림이 든 쪽의 글 칸 높이 = 글 줄 수 × 26px (마지막 칸은 남은 자리까지 늘어난다)
+  if (ta.parentElement && ta.parentElement.classList.contains('segd')) ta.style.height = lineCount(ta.value) * LH + 'px';
+}
+function setFocusEnd(d = cur, off = null){ pendingFocus = {d, off}; }   // off 가 없으면 마지막 쪽의 글 끝
+function focusEnd(){ curP = partsOf(cur).length - 1; layout(); setFocusEnd(cur); render(); }
+function focusTa(d, off){   // 그 날의 쓰기 칸에 커서를 둔다 (off = body 안 자리, 없으면 글 끝). 그 쪽이 펼침면에 없으면 false
+  const {p, o} = locate(d, off), g = locSeg(partsOf(d)[p] || '', o);
+  const ta = $('spread').querySelector(`textarea.tb[data-d="${d}"][data-p="${p}"][data-s="${g.s}"]`); if (!ta) return false;
+  ta.focus({preventScroll: true}); ta.setSelectionRange(g.o, g.o);
+  return true;
+}
+function syncBody(ta){
+  const e = entryFor(ta.dataset.d), parts = (e.body || '').split(PB), p = +ta.dataset.p, segs = splitSegs(parts[p] || '');
+  segs[+ta.dataset.s] = ta.value.replace(/\f/g, '\n');   // 붙여 넣은 글 속의 쪽 나눔 문자는 줄 바꿈으로
+  parts[p] = joinSegs(segs);
+  const b = parts.join(PB);
+  if (e.body !== b){ e.body = b; touch(e); }
+}
+// 쪽을 더하거나 빼고 다시 그린 뒤 그 자리에 커서
+function setParts(d, parts, p, o){
+  const e = entryFor(d); e.body = parts.join(PB); touch(e);
+  turn(() => { cur = d; curP = p; layout(); pendingFocus = {d, off: partBase(parts, p) + o}; });
+}
+function addPage(ta){   // 마지막 줄에서 Enter: 다음 쪽이 있으면 그 쪽 맨 앞으로, 없으면 같은 날 쪽을 하나 더
+  const d = ta.dataset.d, p = +ta.dataset.p, parts = partsOf(d);
+  if (p + 1 < parts.length){ const off = partBase(parts, p + 1); if (!focusTa(d, off)) turn(() => { cur = d; curP = p + 1; layout(); pendingFocus = {d, off}; }); return; }
+  parts.push(''); setParts(d, parts, p + 1, 0);
+  toast('같은 날 쪽을 하나 더 만들었어요 · 빈 쪽 맨 앞에서 Backspace 로 없애기');
+}
+function joinPage(ta){   // 이어 쓴 쪽 맨 앞에서 Backspace: 앞 쪽에 다 들어가면 합치고, 아니면 앞 쪽 끝으로
+  const d = ta.dataset.d, p = +ta.dataset.p, parts = partsOf(d), prev = parts[p - 1];
+  if (pageRows(prev + parts[p]) <= LINES){ parts.splice(p - 1, 2, prev + parts[p]); setParts(d, parts, p - 1, prev.length); }
+  else if (!focusTa(d, partBase(parts, p) - 1)) turn(() => { cur = d; curP = p - 1; layout(); pendingFocus = {d, off: partBase(parts, p) - 1}; });
+}
+// 쪽 지킴이: 글이 길어졌는데 37줄을 넘으면 방금 친 것을 되돌린다 (지우는 것은 언제나 된다)
+function fitGuard(ta){
+  const prev = okVal.get(ta) || {v: '', s: 0};
+  if (ta.value.length > prev.v.length && !fits(ta.value, budget(ta))){
+    ta.value = prev.v; ta.setSelectionRange(prev.s, prev.s);
+    toast(`이 쪽이 가득 찼어요 (${LINES}줄) · 마지막 줄에서 Enter = 같은 날 쪽 하나 더`);
+  } else okVal.set(ta, {v: ta.value, s: ta.selectionStart});
+  syncBody(ta); segFit(ta);
+}
+// 입력할 때마다: 한글 조합 중에는 글만 맞춰 두고, 조합이 끝나면 쪽 지킴이가 확인한다
+function onBodyInput(ta, ev){ if (composing || ev.isComposing){ syncBody(ta); segFit(ta); } else fitGuard(ta); }
+// 그림 앞뒤 글 칸 사이를 화살표 · Backspace 로 오가기
+function segFocus(ta, s, end){
+  const t = ta.parentElement.querySelector(`textarea.tb[data-s="${s}"]`); if (!t) return false;
+  t.focus({preventScroll: true}); const o = end ? t.value.length : 0; t.setSelectionRange(o, o); return true;
+}
+function onBodyKey(ta, ev){
+  if (ev.isComposing || composing) return;
+  const k = ev.key;
+  if (ev.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')){ ev.preventDefault(); openDay(addDays(ta.dataset.d, k === 'ArrowLeft' ? -1 : 1), {focus: true}); return; }   // 쓰던 중에 어제 · 내일 쪽으로
+  if (k === 'Escape') ta.blur();
+  const at = ta.selectionStart, one = at === ta.selectionEnd;
+  const s = +ta.dataset.s, lastSeg = !ta.parentElement.querySelector(`textarea.tb[data-s="${s + 2}"]`);
+  if (k === 'Enter' && one && lastSeg && !ev.shiftKey && !ev.ctrlKey && !ev.altKey && !ev.metaKey && at === ta.value.length && !fits(ta.value + '\n', budget(ta))){ ev.preventDefault(); addPage(ta); return; }
+  if (k === 'Backspace' && one && at === 0 && s > 0){ ev.preventDefault(); segFocus(ta, s - 2, true); return; }   // 그림 바로 아래: 그림 위 글 끝으로 (그림은 ✕ 로 뺀다)
+  if (k === 'Backspace' && one && at === 0 && +ta.dataset.p > 0){ ev.preventDefault(); joinPage(ta); return; }
+  if (k === 'ArrowUp' && one && s > 0 && ta.value.lastIndexOf('\n', at - 1) < 0 && segFocus(ta, s - 2, true)) ev.preventDefault();
+  if (k === 'ArrowDown' && one && ta.value.indexOf('\n', at) < 0 && segFocus(ta, s + 2, false)) ev.preventDefault();
+}
+function writeNew(){ openDay(today(), {focus: true, force: view !== 'day'}); }
+/* 템플릿 (2026-10-11 사용자: '원할 때만 미리 적힌 글로'): 누를 때만 지금 쪽의 커서 자리(쓰던 칸이 없으면 이 쪽 · 오늘 쪽의 글 끝)에 글만 넣는다.
+   자료 칸은 그대로 — 넣은 글은 보통 일기 글(body)과 같아서 지우거나 고쳐 써도 된다. 쪽(37줄)에 안 들어가면 넣지 않는다. */
+const TEMPLATE = ['1. 왜 이 종목을 봤는가', '2. 왜 이 자리에서 들어갔는가', '3. 예상한 움직임과 실제 움직임', '4. 어떻게 대처했는가', '5. 다시 돌아가도 같은 매매를 할 것인가']
+  .join('\n\n\n') + '\n';   // 질문마다 답 쓸 줄 둘
+function insertTemplate(){
+  const a = document.activeElement, ta0 = a && a.matches && a.matches('textarea.tb') ? a : null;
+  if (!ta0 && !(view === 'day' && datesOnSpread().includes(cur))){ openDay(view === 'day' ? cur : today(), {focus: true, force: view !== 'day'}); setTimeout(insertTemplate, 80); return; }
+  const ta = ta0 || $('spread').querySelector(`textarea.tb[data-d="${cur}"][data-p="${curP}"]`) || $('spread').querySelector(`textarea.tb[data-d="${cur}"]`); if (!ta) return;
+  if (!ta0){ ta.focus({preventScroll: true}); const o = ta.value.replace(/\s+$/, '').length; ta.setSelectionRange(o, o); }
+  const v = ta.value, at = ta.selectionStart, end = ta.selectionEnd, before = v.slice(0, at);
+  const lead = !before.length || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';   // 앞 글과 한 줄 띄우기
+  const text = lead + TEMPLATE;
+  if (!fits(before + text + v.slice(end), budget(ta))){ toast(`템플릿이 들어갈 자리가 모자라요 (한 쪽 ${LINES}줄)`); return; }
+  ta.focus({preventScroll: true});
+  if (!document.execCommand('insertText', false, text)){ ta.setRangeText(text, at, end, 'end'); ta.dispatchEvent(new Event('input', {bubbles: true})); }   // execCommand = Ctrl+Z 로 되돌릴 수 있게
+  const c = at + lead.length + TEMPLATE.indexOf('\n') + 1; ta.setSelectionRange(c, c);   // 첫 질문 아래 줄에서 바로 쓰기
+}
+function goToday(){ openDay(today(), {focus: true, force: view !== 'day'}); }
+
+/* ---------- 책의 이벤트 ---------- */
+const SP = $('spread');
+SP.addEventListener('input', ev => { if (ev.target.matches('textarea.tb')) onBodyInput(ev.target, ev); });
+document.addEventListener('compositionstart', () => { composing = true; });
+document.addEventListener('compositionend', () => { composing = false; setTimeout(() => { const ta = document.activeElement; if (!composing && ta && ta.matches && ta.matches('textarea.tb')) fitGuard(ta); }, 0); });
+SP.addEventListener('keydown', ev => { if (ev.target.matches('textarea.tb')) onBodyKey(ev.target, ev); });
+SP.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'prev') step(-1);
+  else if (act === 'next') step(1);
+  else if (act === 'wx'){   // 날씨: 그 쪽의 날짜에, 쓰던 자리(커서)는 그대로 두고
+    const c = caretOf(), e = entryFor(pages[+b.closest('.sheet').dataset.i].d);
+    e.weather = e.weather === b.dataset.v ? '' : b.dataset.v; touch(e);
+    render(); if (c) focusTa(c.d, c.off);
+  }
+});
+// 왼쪽 · 오른쪽 쪽을 누르면 그 날이 '고른 날'이 된다 (달력에 표시)
+SP.addEventListener('focusin', ev => { const ta = ev.target; if (!ta.matches || !ta.matches('textarea.tb')) return; curP = +ta.dataset.p; if (ta.dataset.d !== cur){ cur = ta.dataset.d; renderSide(); } });
+SP.addEventListener('mousedown', ev => { if (ev.target.closest('.wx')) ev.preventDefault(); });   // 날씨를 눌러도 쓰기 칸의 커서를 잃지 않게
+
+/* ---------- 그림 붙여 넣기 · 크기 · 빼기 (2026-10-11) ---------- */
+function imgSetPage(d, p, segs, focusOff){   // 그 쪽을 segs 로 바꿔 쓰고 다시 그린 뒤 커서
+  const e = entryFor(d), parts = (e.body || '').split(PB); parts[p] = joinSegs(segs);
+  e.body = parts.join(PB); touch(e); segCache.delete(d);
+  render();
+  if (focusOff != null) focusTa(d, partBase(parts, p) + focusOff);
+}
+const readURL = f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
+const natSize = url => new Promise(ok => { const im = new Image(); im.onload = () => ok([im.naturalWidth, im.naturalHeight]); im.onerror = () => ok([IMG_W, 300]); im.src = url; });
+async function pasteImage(ta, file){
+  if (!serverOK){ toast('그림을 붙일 수 없어요 — 다시 열어 주세요'); return; }
+  const d = ta.dataset.d, p = +ta.dataset.p, s = +ta.dataset.s, at = ta.selectionStart, end = ta.selectionEnd;
+  const url = await readURL(file), [nw, nh] = await natSize(url);
+  const segs0 = segOf(ta), v = ta.value;
+  // 커서 자리에서 글 칸을 둘로 나누고 그 사이에 그림 (줄 바꿈 자리에서 나뉘면 빈 줄을 하나 덜 만든다)
+  let a = v.slice(0, at), b = v.slice(end);
+  if (a.endsWith('\n')) a = a.slice(0, -1);
+  if (b.startsWith('\n')) b = b.slice(1);
+  const rest = segs0.reduce((n, x, i) => n + (i === s ? 0 : segRows(x)), 0) + lineCount(a) + lineCount(b);
+  const room = LINES - rest;   // 그림이 쓸 수 있는 줄 수
+  if (room < 3){ toast('이 쪽에 그림을 넣을 자리가 모자라요 · 마지막 줄에서 Enter 로 쪽을 더 만든 뒤 붙여 넣으세요'); return; }
+  let w = Math.min(IMG_W, nw / Math.max(1, devicePixelRatio || 1)), h = w * nh / nw;   // 화면에서 본 크기 그대로 (쪽 폭보다 크면 쪽 폭)
+  if (h > room * LH){ h = room * LH; w = h * nw / nh; }
+  if (w < IMG_MIN){ w = IMG_MIN; h = w * nh / nw; }
+  if (h > room * LH){ toast('이 쪽에 그림을 넣을 자리가 모자라요'); return; }
+  toast('그림을 붙이는 중…');
+  let r = null;
+  try { r = await (await fetch('/api/image/upload', {method: 'POST', body: JSON.stringify({tid: 'diary', data: url})})).json(); } catch (e){}
+  if (!r || !r.ok){ toast((r && r.error) || '그림을 저장하지 못했어요'); return; }
+  const segs = segOf(ta);   // 그사이 바뀌었을 수 있으니 지금 것으로
+  segs.splice(s, 1, a, {w, h, file: r.file}, b);
+  imgSetPage(d, p, segs, segBase(segs, s + 2));
+  toast('그림을 붙였어요 · 오른쪽 아래 모서리를 끌어 크기 바꾸기');
+}
+SP.addEventListener('paste', ev => {
+  const ta = ev.target; if (!ta.matches || !ta.matches('textarea.tb')) return;
+  const f = [...(ev.clipboardData || {}).items || []].find(it => it.kind === 'file' && /^image\//.test(it.type));
+  if (!f) return;
+  ev.preventDefault(); pasteImage(ta, f.getAsFile());
+});
+SP.addEventListener('dragover', ev => { if (ev.target.matches && ev.target.matches('textarea.tb') && [...ev.dataTransfer.types].includes('Files')) ev.preventDefault(); });
+SP.addEventListener('drop', ev => {
+  const ta = ev.target; if (!ta.matches || !ta.matches('textarea.tb')) return;
+  const f = [...ev.dataTransfer.files].find(x => /^image\//.test(x.type)); if (!f) return;
+  ev.preventDefault(); ta.focus(); pasteImage(ta, f);
+});
+SP.addEventListener('click', ev => {   // ✕ = 쪽에서 그림 빼기 (그림 파일은 지우지 않고 남겨 둔다)
+  const b = ev.target.closest('[data-act="imgdel"]'); if (!b) return;
+  const box = b.closest('.dimg'), d = box.dataset.d, p = +box.dataset.p, s = +box.dataset.s;
+  if (!confirm('이 그림을 쪽에서 뺄까요?\n(그림 파일은 지우지 않고 남겨 둬요)')) return;
+  const segs = splitSegs(partsOf(d)[p] || ''), above = segs[s - 1];
+  segs.splice(s - 1, 3, above + '\n' + segs[s + 1]);
+  imgSetPage(d, p, segs, segBase(segs, s - 1) + above.length);
+});
+// 오른쪽 아래 모서리를 끌어 크기 바꾸기: 비율은 그대로, 폭 120px ~ 글 칸 폭, 쪽(37줄)에 들어가는 만큼까지
+SP.addEventListener('pointerdown', ev => {
+  const hd = ev.target.closest('.dimr'); if (!hd) return;
+  ev.preventDefault();
+  const box = hd.closest('.dimg'), img = box.querySelector('img'), d = box.dataset.d, p = +box.dataset.p, s = +box.dataset.s;
+  const segs = splitSegs(partsOf(d)[p] || ''), g = segs[s], ratio = g.h / g.w;
+  const others = segs.reduce((n, x, i) => n + (i === s ? 0 : segRows(x)), 0), maxH = (LINES - others) * LH;
+  const k = box.closest('.sheet').getBoundingClientRect().width / SW, x0 = ev.clientX, w0 = g.w;
+  let w = w0, h = g.h;
+  box.classList.add('drag'); hd.setPointerCapture(ev.pointerId);
+  const move = e => {
+    w = clamp(w0 + (e.clientX - x0) / k, IMG_MIN, IMG_W); h = w * ratio;
+    if (h > maxH){ h = maxH; w = h / ratio; }
+    img.style.width = w + 'px'; img.style.height = h + 'px';
+    box.style.height = Math.max(1, Math.ceil(h / LH)) * LH + 'px';
+    hd.style.left = (w - 12) + 'px'; hd.style.top = (Math.ceil(h / LH) * LH + h) / 2 - 12 + 'px';
+  };
+  const up = () => {
+    hd.removeEventListener('pointermove', move); hd.removeEventListener('pointerup', up); hd.removeEventListener('pointercancel', up);
+    box.classList.remove('drag');
+    if (Math.round(w) === Math.round(g.w)) return;
+    segs[s] = {w, h, file: g.file}; imgSetPage(d, p, segs, null);
+  };
+  hd.addEventListener('pointermove', move); hd.addEventListener('pointerup', up); hd.addEventListener('pointercancel', up);
+});
+SP.addEventListener('dblclick', ev => {   // 묶어 보기: 날짜 머리나 본문을 두 번 누르면 그날의 쪽에서 고쳐 쓰기 (누른 자리에 커서)
+  const o = ev.target.closest('[data-open]'); if (!o) return;
+  let g = null;
+  if (o.dataset.at != null){
+    const r = document.caretRangeFromPoint && document.caretRangeFromPoint(ev.clientX, ev.clientY);
+    g = +o.dataset.at + (r && o.contains(r.startContainer) ? r.startOffset : 0);
+  }
+  window.getSelection().removeAllRanges();
+  openDay(o.dataset.open, {focus: true, caret: g, force: true});
+});
+document.addEventListener('focusin', () => renderKeyBar());
+document.addEventListener('focusout', () => setTimeout(renderKeyBar, 0));
+
+/* ---------- 왼쪽 패널: 미니 달력 · 이 달의 일기 · 날짜 이동 키 (교정차트 예약 화면의 달력과 같은 모양) ---------- */
+let mcYM = null, mcSync = null;
+function streak(){   // 오늘(또는 어제)까지 이어서 쓴 날 수
+  const has = new Set(sorted().map(e => e.date));
+  let d = has.has(today()) ? today() : addDays(today(), -1), n = 0;
+  while (has.has(d)){ n++; d = addDays(d, -1); }
+  return n;
+}
+const firstLine = e => (plainBody(e.body).trim().split('\n').find(x => x.trim()) || '').trim();
+function renderSide(){
+  const el = $('side'); if (!el) return;
+  const focusD = view === 'day' ? cur : (datesOnSpread()[0] || qInfo(qKey).from);
+  const ym = focusD.slice(0, 7);
+  if (ym !== mcSync){ mcSync = ym; mcYM = ym; }   // 날을 옮기면 달력도 그 달로, 달력만 넘기고 있을 땐 그대로
+  const [y, m] = mcYM.split('-').map(Number), first = (new Date(y, m - 1, 1).getDay() + 6) % 7, days = new Date(y, m, 0).getDate();
+  const all = sorted(), has = new Map(all.map(e => [e.date, e])), td = today();
+  const selD = datesOnSpread(), qi = view === 'bundle' ? qInfo(qKey) : null;
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<span></span>';
+  for (let day = 1; day <= days; day++){
+    const d = `${y}-${p2(m)}-${p2(day)}`, dw = (first + day - 1) % 7, e = has.get(d);
+    cells += `<button class="mcd${d === td ? ' today' : ''}${selD.includes(d) ? ' sel' : ''}${e ? ' has' : ''}${d > td ? ' fut' : ''}${qi && d >= qi.from && d <= qi.to ? ' inq' : ''}${dw === 5 ? ' sat' : dw === 6 ? ' sun' : ''}" onclick="mcPick('${d}')" title="${e ? esc(firstLine(e).slice(0, 40)) || '이 날의 일기' : d > td ? '아직 오지 않은 날' : '이 날의 일기 쓰기'}">${day}<i></i></button>`;
+  }
+  const list = view === 'bundle' ? all.filter(e => e.date >= qi.from && e.date <= qi.to) : all.filter(e => e.date.slice(0, 7) === mcYM);
+  const rows = list.map(e => { const d = parseD(e.date), dw = d.getDay();
+    return `<button class="mcwr${selD.includes(e.date) ? ' sel' : ''}${dw === 0 ? ' sun' : dw === 6 ? ' sat' : ''}" onclick="mcPick('${e.date}')"><span class="w">${view === 'bundle' ? (d.getMonth() + 1) + '/' : ''}${d.getDate()}일 (${WD[dw]})</span><span class="r">${esc(e.title || firstLine(e) || wxName(e.weather))}</span></button>`; }).join('');
+  el.innerHTML = `<div class="apside"><div id="minical">
+      <div class="mch"><button onclick="mcNav(-1)" title="이전 달 보기">◀</button><b>${y}년 ${m}월</b><button onclick="mcNav(1)" title="다음 달 보기">▶</button></div>
+      <div class="mcg mcw7">${[...'월화수목금토일'].map((x, i) => `<span class="${i === 6 ? 'sun' : i === 5 ? 'sat' : ''}">${x}</span>`).join('')}</div><div class="mcg">${cells}</div>
+      <div class="mcleg"><span><i></i>쓴 날</span><span>날짜를 누르면 그날의 쪽이 열립니다</span></div>
+      <div class="mcst"><div title="이 달에 쓴 날"><b>${all.filter(e => e.date.slice(0, 7) === mcYM).length}</b><span>이 달</span></div><div title="오늘(또는 어제)까지 하루도 빠짐없이 이어서 쓴 날"><b>${streak()}</b><span>연속</span></div><div title="모두 쓴 날"><b>${all.length}</b><span>모두</span></div></div>
+    </div>${mcKeys()}</div>
+    <div class="apside grow"><div class="mcwt"><span>${view === 'bundle' ? qi.label + ' 묶음' : m + '월의 일기'}</span><span>${list.length}편</span></div>
+      <div class="mcwk">${rows || `<div class="mcempty">${view === 'bundle' ? '이 3개월' : '이 달'}에는 아직 쓴 일기가 없습니다.</div>`}</div></div>`;
+}
+function mcNav(n){ const [y, m] = mcYM.split('-').map(Number), d = new Date(y, m - 1 + n, 1); mcYM = d.getFullYear() + '-' + p2(d.getMonth() + 1); renderSide(); }
+// 날짜를 누르면: 노트는 그날의 쪽 / 묶어 보기는 그날이 있는 쪽 (안 쓴 날이면 노트로)
+function mcPick(d){
+  if (view === 'bundle' && hasText(entryOf(d))){
+    if (qOf(d) !== qKey) turn(() => { qKey = qOf(d); layout(); si = spreadOf(bundlePageOf(d)); }, d > qInfo(qKey).from);
+    else go(spreadOf(bundlePageOf(d)));
+    return;
+  }
+  openDay(d, {focus: true, force: view !== 'day'});
+}
+/* 날짜 이동 단축키 그림: W A S D 키보드 모양 (교정차트와 같은 자리·같은 뜻: A 어제 · D 내일 · W 지난달 · S 다음 달) */
+function mcKeys(){
+  if (keybarOff) return '';
+  const k = (key, label, act, cls) => `<button class="kc ${cls || ''}" data-k="${key}" onclick="dateKey('${act}')" title="${label} (${key})">${key}</button>`;
+  const b = view === 'bundle';
+  return `<div class="mck" title="한글 자판에서도 같은 자리 키가 동작해요">
+    <div class="mck-t">날짜 이동</div>
+    <div class="mck-pad">
+      <span class="lb top">${b ? '이전 3개월' : '지난달'}</span>
+      ${k('W', b ? '이전 3개월' : '지난달', 'mon-', 'w')}
+      <span class="lb left">${b ? '앞 일기' : '어제'}</span>${k('A', b ? '앞 일기' : '어제', 'day-', 'a')}${k('S', b ? '다음 3개월' : '다음 달', 'mon+', 's')}${k('D', b ? '다음 일기' : '내일', 'day+', 'd')}<span class="lb right">${b ? '다음 일기' : '내일'}</span>
+      <span class="lb bot">${b ? '다음 3개월' : '다음 달'}</span>
+    </div>
+    <div class="mck-f">${k('T', '오늘로', 'today', 'tk')}<span>오늘</span><i></i><kbd class="kbd">B</kbd><span>묶어 보기</span><i></i><kbd class="kbd">Enter</kbd><span>쓰기</span></div></div>`;
+}
+function dateKey(act){
+  if (act === 'today'){ goToday(); return true; }
+  if (view === 'bundle'){
+    if (act === 'mon-' || act === 'mon+'){ quarterNav(act === 'mon+' ? 1 : -1); return true; }
+    const ds = datesOnSpread(), list = sorted();   // A·D = 묶음 안의 앞 / 다음 일기가 있는 쪽
+    const t = act === 'day-' ? [...list].reverse().find(e => e.date < (ds[0] || '9')) : list.find(e => e.date > (ds[ds.length - 1] || '0'));
+    if (t) mcPick(t.date); else toast(act === 'day-' ? '앞에 쓴 일기가 없어요' : '다음 일기가 없어요');
+    return true;
+  }
+  const map = {'day-': addDays(cur, -1), 'day+': addDays(cur, 1), 'mon-': shiftMonth(cur, -1), 'mon+': shiftMonth(cur, 1)};
+  if (map[act]){ openDay(map[act]); return true; }
+  return false;
+}
+const KC_MAP = {'day-': 'A', 'day+': 'D', 'mon-': 'W', 'mon+': 'S', 'today': 'T'};
+function kcPress(act){
+  const k = KC_MAP[act]; if (!k) return;
+  setTimeout(() => { const el = document.querySelector(`.mck .kc[data-k="${k}"]`); if (!el) return; el.classList.add('press'); setTimeout(() => el.classList.remove('press'), 160); }, 0);
+}
+
+/* ---------- 집중 보기 (F): 왼쪽 패널을 숨기고 종이를 크게 ---------- */
+function bkFocus(on){ const r = document.documentElement; on = on == null ? !r.classList.contains('bkfocus') : on; r.classList.toggle('bkfocus', on); fitBook(); renderKeyBar(); }
+
+/* ---------- 단축키: 교정차트와 같은 체계 ---------- */
+const GKEYS = {b: 'bundle', 'ㅠ': 'bundle', n: 'new', 'ㅜ': 'new', f: 'focus', 'ㄹ': 'focus', l: 'theme', 'ㅣ': 'theme',
+  a: 'day-', 'ㅁ': 'day-', d: 'day+', 'ㅇ': 'day+', w: 'mon-', 'ㅈ': 'mon-', s: 'mon+', 'ㄴ': 'mon+', t: 'today', 'ㅅ': 'today', q: 'tpl', 'ㅂ': 'tpl'};
+document.addEventListener('keydown', e => {
+  const k = e.key, typing = isTyping(e.target), mod = e.ctrlKey || e.metaKey, lk = (k || '').toLowerCase();
+  if (k === 'F11'){ e.preventDefault(); winMode('fullscreen'); return; }
+  if (!$('modal').hidden){ if (k === 'Escape') closeModal(); return; }
+  if ($('kbcard')) return;
+  if (mod && ['k', 'ㅏ', 'f', 'ㄹ'].includes(lk)){ e.preventDefault(); $('search').focus(); $('search').select(); return; }
+  if (mod && ['p', 'ㅔ'].includes(lk)){ e.preventDefault(); return; }   // 인쇄 기능은 없앴다 (창 화면이 그대로 인쇄되지 않게 막아 둔다)
+  if (mod && ['s', 'ㄴ'].includes(lk)){ e.preventDefault(); saveNow().then(ok => ok && toast('저장했습니다')); return; }
+  if (e.target.id === 'search') return;
+  if (k === 'PageDown'){ e.preventDefault(); step(1); return; }
+  if (k === 'PageUp'){ e.preventDefault(); step(-1); return; }
+  if (typing){ if (k === 'Escape') e.target.blur(); return; }
+  if (e.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')){ e.preventDefault(); step(k === 'ArrowLeft' ? -1 : 1); return; }
+  if (mod || e.altKey) return;
+  if (k === '/'){ e.preventDefault(); $('search').focus(); $('search').select(); return; }
+  if (k === '?'){ e.preventDefault(); kbCard(); return; }
+  if (k === 'ArrowRight' || k === 'ArrowDown' || k === ' '){ e.preventDefault(); step(1); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowUp'){ e.preventDefault(); step(-1); return; }
+  if (k === 'Home'){ e.preventDefault(); go(0); return; }
+  if (k === 'End'){ e.preventDefault(); go(nS - 1); return; }
+  if (k === 'Enter'){ e.preventDefault(); if (view === 'day') focusEnd(); else { const d = datesOnSpread()[0]; if (d) openDay(d, {focus: true, force: true}); } return; }
+  if (k === 'Escape'){ if (document.documentElement.classList.contains('bkfocus')) bkFocus(false); return; }
+  if (['k', 'ㅏ'].includes(lk)){ e.preventDefault(); keybarToggle(); return; }
+  const act = GKEYS[lk]; if (!act) return;
+  e.preventDefault();
+  if (/^(day|mon|today)/.test(act)){ dateKey(act); kcPress(act); }
+  else if (act === 'bundle') setView(view === 'bundle' ? 'day' : 'bundle');
+  else if (act === 'new') writeNew();
+  else if (act === 'tpl') insertTemplate();
+  else if (act === 'focus') bkFocus();
+  else if (act === 'theme'){ toggleTheme(); toast(isDark() ? '다크 모드 · L 로 되돌리기' : '라이트 모드 · L 로 되돌리기'); }
+});
+/* 머리글 단축키 안내: 지금 할 수 있는 키를 한 줄로 (K 로 켜고 끔) */
+let keybarOff = (() => { try { return localStorage.getItem('keybar') === '0'; } catch (e){ return false; } })();
+function keyHints(){
+  const a = document.activeElement;
+  if (a && a.matches && a.matches('textarea.tb')) return [['Esc', '쓰기 칸에서 나오기'], ['Alt ← →', '어제·내일'], ['Enter', '마지막 줄에서 쪽 더'], ['PageUp PageDown', '펼침면'], ['Ctrl S', '저장']];
+  if (view === 'bundle') return [['← →', '쪽 넘기기'], ['W S', '이전·다음 3개월'], ['A D', '앞·다음 일기'], ['B', '노트로'], ['Enter', '그날 쪽에서 쓰기'], ['/', '찾기']];
+  return [['← →', '앞·다음 펼침면'], ['A D', '어제·내일'], ['W S', '지난달·다음 달'], ['T', '오늘'], ['Enter', '쓰기'], ['Q', '템플릿'], ['B', '묶어 보기'], ['/', '찾기']];
+}
+function renderKeyBar(){
+  const el = $('keybar'); if (!el) return;
+  document.documentElement.classList.toggle('nokeybar', keybarOff);
+  if (keybarOff){ el.innerHTML = ''; return; }
+  el.innerHTML = `<span class="kh-t">⌨</span>${keyHints().slice(0, 6).map(([k, t]) => `<span class="kh">${k.split(' ').map(x => `<kbd class="kbd">${x}</kbd>`).join('')}<em>${t}</em></span>`).join('')}
+    <span class="kh"><kbd class="kbd">?</kbd><em>전체</em></span><button class="khx" onclick="keybarToggle()" title="단축키 안내 숨기기 (K)">×</button>`;
+  const chips = () => [...el.querySelectorAll('.kh')];   // 머리글의 남는 폭에 맞춰 뒤쪽 안내부터 줄인다
+  while (el.scrollWidth > el.clientWidth + 1 && chips().length > 2){ const c = chips(); c[c.length - 2].remove(); }
+  if (el.scrollWidth > el.clientWidth + 1){ const t = el.querySelector('.kh-t'); if (t) t.remove(); }
+}
+function keybarToggle(){
+  keybarOff = !keybarOff; try { localStorage.setItem('keybar', keybarOff ? '0' : '1'); } catch (e){}
+  renderKeyBar(); renderSide();
+  toast(keybarOff ? '단축키 안내를 껐어요 · K 키로 다시 켤 수 있어요' : '단축키 안내를 켰어요');
+}
+function kbCard(){
+  if ($('kbcard')){ kbClose(); return; }
+  const day = [['← →  ·  PageUp / PageDown  ·  두 손가락', '앞 / 다음 펼침면 (3달 노트의 처음·끝에서는 앞·다음 노트로)'], ['A  ·  D', '어제 / 내일'], ['W  ·  S', '지난달 / 다음 달 같은 날'], ['T', '오늘'], ['Home  ·  End', '이 노트의 처음 / 끝'], ['Enter', '쓰기 칸으로 (글 끝에 커서)']];
+  const wr = [['Esc', '쓰기 칸에서 나오기 (그다음 글자 단축키 사용)'], ['Alt + ←  ·  →', '쓰던 중에 어제 / 내일 쪽으로'], [`한 쪽 = ${LINES}줄`, '쪽이 가득 차면 마지막 줄에서 Enter = 같은 날 쪽 하나 더'], ['이어 쓴 쪽 맨 앞에서 Backspace', '앞 쪽과 합치기 (빈 쪽이면 없애기)']];
+  const bd = [['B', '묶어 보기 켜기·끄기 (3개월치를 한 노트처럼)'], ['← →', '쪽 넘기기'], ['W  ·  S', '이전 / 다음 3개월'], ['A  ·  D', '앞 / 다음 일기'], ['두 번 누르기', '그 날의 쪽에서 고쳐 쓰기']];
+  const all = [['N', '오늘 일기 쓰기'], ['Q', '템플릿 넣기 (매매 판단 기록 다섯 질문 · Ctrl+Z 로 되돌리기)'],['F', '집중 보기 (머리글 · 달력을 숨기고 쪽만 창에 가득) · Esc 로끝'], ['/  ·  Ctrl+K', '일기 찾기'], ['Ctrl+S', '지금 저장'], ['F11', '전체 화면'], ['L', '라이트 · 다크 모드 바꾸기'], ['K', '머리글 단축키 안내 켜기·끄기'], ['?', '이 단축키 안내']];
+  const R = ([k, t]) => `<div class="kb-r"><span>${k.split('  ·  ').map(x => `<kbd class="kbd big">${x}</kbd>`).join(' · ')}</span><em>${t}</em></div>`;
+  const H = t => `<div class="kb-h" style="font-size:var(--t0);margin:14px 0 4px">${t}</div>`;
+  const el = document.createElement('div'); el.id = 'kbcard';
+  el.innerHTML = `<div class="kb-box"><div class="kb-h">⌨ 나의 일기 단축키</div>${H('노트 (하루 한 쪽)')}${day.map(R).join('')}${H('쓰는 중')}${wr.map(R).join('')}${H('묶어 보기')}${bd.map(R).join('')}${H('어디서든')}${all.map(R).join('')}
+    <div class="kb-f">아무 키나 누르면 닫혀요</div></div>`;
+  el.onclick = kbClose; $('stage').appendChild(el);
+  setTimeout(() => { if ($('kbcard')) document.addEventListener('keydown', kbKey, true); }, 0);
+}
+function kbKey(e){ e.preventDefault(); e.stopPropagation(); kbClose(); }
+function kbClose(){ const c = $('kbcard'); if (c) c.remove(); document.removeEventListener('keydown', kbKey, true); }
+
+/* ---------- 일기 찾기 (머리글 검색창, 교정차트의 환자 검색과 같은 모양) ---------- */
+let sActive = 0, sShown = [];
+function sRender(){
+  const box = $('sres'); if (!box || box.hidden) return;
+  const q = $('search').value.trim(), ql = q.toLowerCase();
+  let head;
+  if (!q){ sShown = sorted().reverse().slice(0, 7).map(e => ({e, at: 0, snip: esc(plainBody(e.body).trim().slice(0, 90)).replace(/\n/g, ' ')})); head = sShown.length ? '최근 일기' : '낱말을 입력하세요'; }
+  else {
+    const m = [];
+    for (const e of sorted().reverse()){
+      const at = e.body.toLowerCase().indexOf(ql); if (at < 0) continue;
+      const a = Math.max(0, at - 24);
+      m.push({e, at, snip: ((a ? '…' : '') + esc(e.body.slice(a, at)) + '<mark>' + esc(e.body.slice(at, at + q.length)) + '</mark>' + esc(e.body.slice(at + q.length, at + q.length + 70))).replace(/!\[그림 \d+x\d+\]\([^)\s]*\)?/g, '[그림]').replace(/[\n\f]/g, ' ')});
+    }
+    head = `찾은 일기 ${m.length}편`; sShown = m.slice(0, 9);
+  }
+  sActive = Math.min(sActive, Math.max(0, sShown.length - 1));
+  box.innerHTML = `<div class="shead">${head}</div>${sShown.map((r, k) => `<div class="sr${k === sActive ? ' on' : ''}" onmousedown="event.preventDefault();sPick(${k})" onmousemove="sSetActive(${k})">
+      <b>${fmtDot(r.e.date)} ${WD[parseD(r.e.date).getDay()]}요일</b><span class="meta">${r.snip || '&nbsp;'}</span></div>`).join('')}
+    <div class="shint">↑ ↓ 이동 · Enter 그날 쪽 열기 · Esc 닫기</div>`;
+}
+function sSetActive(i){ if (i === sActive) return; sActive = i; document.querySelectorAll('#sres .sr').forEach((el, k) => el.classList.toggle('on', k === i)); }
+function sOpen(){ $('sres').hidden = false; sRender(); }
+function sClose(){ $('sres').hidden = true; }
+function sInput(){ sActive = 0; sOpen(); }
+function sPick(k){ const r = sShown[k]; if (!r) return; $('search').value = ''; sClose(); $('search').blur(); openDay(r.e.date, {focus: true, caret: r.at, force: true}); }
+function sKey(e){
+  const n = sShown.length;
+  if (e.isComposing) return;
+  if (e.key === 'ArrowDown' && n){ e.preventDefault(); sSetActive((sActive + 1) % n); }
+  else if (e.key === 'ArrowUp' && n){ e.preventDefault(); sSetActive((sActive + n - 1) % n); }
+  else if (e.key === 'Enter'){ e.preventDefault(); sPick(sActive); }
+  else if (e.key === 'Escape'){ $('search').blur(); }
+}
+
+/* ---------- 저장: 나의일기.pyw 가 data/diary.json 에 쓴다 (글이 없는 날은 저장하지 않는다) ---------- */
+let saveT = null, saving = null, again = false, failShown = false;
+function setSt(t, cls = ''){ const s = $('saved'); s.textContent = t; s.className = cls; }
+function scheduleSave(){ setSt('쓰는 중…'); clearTimeout(saveT); saveT = setTimeout(saveNow, 600); }
+const payload = () => JSON.stringify({...db, entries: db.entries.filter(hasText)});
+function saveNow(){
+  clearTimeout(saveT); saveT = null;
+  if (!serverOK){
+    try { localStorage.setItem(KEY, payload()); setSt('브라우저에 저장'); return Promise.resolve(true); }
+    catch (e){ setSt('⚠ 저장 실패', 'fail'); return Promise.resolve(false); }
+  }
+  if (saving){ again = true; return saving; }
+  saving = (async () => {
+    let ok = true;
+    try {
+      do { again = false; const r = await fetch('api/data', {method: 'POST', body: payload()}); if (!r.ok) throw new Error('HTTP ' + r.status); } while (again);
+      failShown = false;
+    } catch (err){
+      ok = false;
+      if (!failShown){ failShown = true; alert('일기를 드라이브에 저장하지 못했습니다.\n인터넷 연결을 확인한 뒤 한 번 더 고쳐 주세요.\n(' + err.message + ')'); }
+    }
+    saving = null; setSt(ok ? '✓ 저장됨' : '⚠ 파일 저장 실패', ok ? '' : 'fail'); return ok;
+  })();
+  return saving;
+}
+addEventListener('beforeunload', () => { if (saveT || saving) saveNow(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && saveT) saveNow(); });
+
+/* ---------- 라이트 / 다크 테마 · 창 모양 (교정차트와 같음) ---------- */
+let THEME = 'light';
+const sysDark = matchMedia('(prefers-color-scheme: dark)');
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+function applyTheme(t){
+  THEME = ['light', 'dark', 'auto'].includes(t) ? t : 'light';
+  document.documentElement.dataset.theme = THEME === 'dark' || (THEME === 'auto' && sysDark.matches) ? 'dark' : 'light';
+  $('themeBtn').innerHTML = (isDark() ? '☀ 라이트' : '☾ 다크') + '<kbd class="kbd">L</kbd>';   // 다른 버튼처럼 단축키를 함께 표시
+}
+sysDark.addEventListener('change', () => { if (THEME === 'auto') applyTheme('auto'); });
+function toggleTheme(){
+  const n = isDark() ? 'light' : 'dark'; applyTheme(n);
+  if (serverOK) fetch('api/config', {method: 'POST', body: JSON.stringify({theme: n})}).catch(() => {});
+  else try { localStorage.setItem('myDiary.theme', n); } catch (e){}
+}
+let winFull = false;
+async function winMode(action){
+  if (!serverOK || window.WEB){ if (action === 'fullscreen'){ if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); } return; }
+  try {
+    const r = await (await fetch('api/window', {method: 'POST', body: JSON.stringify({action})})).json();
+    if (!r.ok){ toast(r.error || '창 모양을 바꾸지 못했어요'); return; }
+    winFull = r.fullscreen; winBtns();
+    if (action === 'qhd') toast('창을 QHD(2560×1440) 크기로 맞췄어요');
+  } catch (e){ toast('창 모양을 바꾸지 못했어요'); }
+}
+function winBtns(){ $('qhdBtn').classList.toggle('on', !winFull); }
+
+/* ---------- 설정 (글꼴·종이·잉크) ---------- */
+function applySettings(){
+  const st = db.settings, f = FONTS[st.font] || FONTS.chart, r = document.documentElement.style;
+  r.setProperty('--font', f.fam); r.setProperty('--fs', f.fs + 'px');
+  r.setProperty('--ink', (INKS[st.ink] || INKS.chart)[1]);
+  r.setProperty('--paper', (PAPERS[st.paper] || PAPERS.chart)[1]);
+}
+async function waitFont(){
+  const f = FONTS[db.settings.font]; if (!f || !f.probe) return;
+  try { await Promise.race([document.fonts.load(`${f.fs}px "${f.probe}"`, '가나다 오늘의 하루'), new Promise(r => setTimeout(r, 1800))]); } catch (e){}
+}
+let fontT = null;   // 글꼴(조각)이 늦게 내려오면 글자 폭이 바뀌므로 쪽을 다시 나눈다 (조합 중이면 끝난 뒤에)
+if (document.fonts) document.fonts.addEventListener('loadingdone', () => { clearTimeout(fontT); fontT = setTimeout(relayoutAll, 250); });
+function relayoutAll(){
+  if (composing){ clearTimeout(fontT); fontT = setTimeout(relayoutAll, 400); return; }
+  segCache.clear(); bundleCache.key = '';
+  if (view !== 'bundle') return;   // 노트는 날짜마다 한 쪽이라 다시 나눌 것이 없다 (쓰는 중인 칸을 건드리지 않음)
+  const sig = () => JSON.stringify(pages.map(p => p.items && p.items.map(it => it.text || it.t)));
+  const before = sig(); layout();
+  if (sig() !== before) render();
+}
+function opts(obj, cur, nameOf = v => v[0]){ return Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(nameOf(v))}</option>`).join(''); }
+function openSettings(){
+  const st = db.settings;
+  openModal(`<h3>설정</h3>
+    <div class="grid2"><label class="fld"><span>책 제목 (종이 머리글 오른쪽)</span><input id="sTitle" maxlength="30" value="${esc(st.title)}"></label>
+    <label class="fld"><span>이름 (종이 아래 왼쪽)</span><input id="sAuthor" maxlength="20" value="${esc(st.author)}" placeholder="이름"></label>
+    <label class="fld"><span>글꼴</span><select id="sFont">${opts(FONTS, st.font, v => v.name)}</select></label>
+    <label class="fld"><span>잉크 색</span><select id="sInk">${opts(INKS, st.ink)}</select></label>
+    <label class="fld"><span>종이</span><select id="sPaper">${opts(PAPERS, st.paper)}</select></label></div>
+    <label class="chk"><input type="checkbox" id="sLines"${st.lines ? ' checked' : ''}> 줄 친 종이</label>
+    <label class="chk"><input type="checkbox" id="sSwipe"${st.swipeRev ? ' checked' : ''}> 터치패드 두 손가락 넘김 방향을 반대로 (기본: 오른쪽→왼쪽으로 밀면 다음 날)</label>
+    <div class="row" style="margin-top:12px">${serverOK ? '<button id="sExport">텍스트 파일로 내보내기</button><button id="sBackup">백업 폴더 열기</button>' : ''}<span class="sp"></span><button class="primary" onclick="closeModal()">닫기</button></div>
+    <div class="note">기본값은 교정차트의 '메모' 쪽과 같은 종이·글씨·파란 잉크입니다. 글꼴을 바꾸면 쪽이 다시 나뉩니다.<br>화면 밝기는 머리글의 [☾ 다크], 창 크기는 [QHD] · F11.</div>`, box => {
+    const upd = async () => {
+      const fontChanged = st.font !== $('sFont').value;
+      Object.assign(st, {title: $('sTitle').value.trim() || '나의 일기', author: $('sAuthor').value.trim(), font: $('sFont').value, ink: $('sInk').value,
+                         paper: $('sPaper').value, lines: $('sLines').checked, swipeRev: $('sSwipe').checked});
+      applySettings(); scheduleSave();
+      if (fontChanged){ await waitFont(); segCache.clear(); bundleCache.key = ''; }
+      layout(); render();
+    };
+    box.querySelectorAll('input,select').forEach(el => el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', upd));
+    const ex = $('sExport'); if (ex) ex.onclick = async () => { await saveNow(); const r = await (await fetch('api/export', {method: 'POST'})).json().catch(() => ({})); toast(r.ok ? '내보내기 폴더에 저장했습니다' : '내보내지 못했습니다'); };
+    const bk = $('sBackup'); if (bk) bk.onclick = () => fetch('api/open', {method: 'POST', body: 'backup'});
+  });
+}
+/* ---------- ⓘ 소개 · 환경 점검 · 고칠 점 메모 ---------- */
+function aboutOpen(){
+  openModal(`<h3>📖 나의 일기</h3>
+    <div class="ab-grid">
+      <div><b>노트</b><p>3달이 한 권, 하루가 한 쪽인 노트. 날짜마다 왼쪽·오른쪽 자리가 정해져 있고, 바로 씁니다. 날짜 옆에서 날씨를 한 번에 고릅니다.</p></div>
+      <div><b>묶어 보기 (B)</b><p>3개월치 일기를 날짜 머리와 함께 이어 붙여, 한 권의 노트에 쓴 것처럼 넘겨 봅니다.</p></div>
+    </div>
+    <div class="mh2">환경 점검 <span class="muted" style="font-weight:400;font-size:var(--t-1)">— 이 컴퓨터에서 잘 돌아가는지</span></div>
+    <div class="env" id="envList">${envHTML()}</div>
+    <div class="mh2">고칠 점 메모 <span class="muted" style="font-weight:400;font-size:var(--t-1)">— 쓰다가 불편한 점을 적어 두고, 다음에 하나씩 고쳐요</span></div>
+    <textarea class="notes" id="notes" placeholder="예) 글씨가 조금 더 컸으면 좋겠다">${esc(db.notes || '')}</textarea>
+    <div class="row" style="margin-top:16px"><span class="muted" style="font-size:var(--t-1)">v1.30 · 2026-10-04</span><span class="sp"></span><button onclick="envCheck(true)">다시 점검</button><button onclick="closeModal();kbCard()">단축키 보기</button><button class="primary" onclick="closeModal()">닫기</button></div>`, box => {
+    box.style.width = '640px';
+    $('notes').addEventListener('input', ev => { db.notes = ev.target.value; scheduleSave(); });
+  });
+}
+// 지형 살피기: 모니터 · 화면 배율 · 창 크기 · 글꼴 · 저장 · 백업을 확인해, 문제가 있으면 알려 준다
+let ENV = null, envItems = [];
+async function envCheck(show){
+  let s = {};
+  try { s = (await (await fetch('api/env')).json()) || {}; } catch (e){}
+  ENV = s; const out = [];
+  const dpr = devicePixelRatio || 1, winW = Math.round(innerWidth * dpr), winH = Math.round(innerHeight * dpr), scale = Math.min(innerWidth / STAGE.w, innerHeight / STAGE.h);
+  const fitTxt = scale < 0.999 ? `창이 작아 화면 전체를 ${Math.round(scale * 100)}% 로 줄여 보는 중` : '화면을 창 크기에 저절로 맞춤';
+  out.push(['ok', `${s.screen ? `모니터 ${s.screen[0]}×${s.screen[1]}${s.scale ? ' · 배율 ' + s.scale + '%' : ''} · ` : ''}창 ${winW}×${winH} · ${fitTxt}`]);
+  if (scale < 0.999) out.push(['warn', `창이 ${STAGE_MIN.w}×${STAGE_MIN.h}(화면 배율을 뺀 크기)보다 작아서 글씨까지 작게 보여요. 창을 키우거나 F11(전체 화면)을 누르면 제 크기로 보여요.`]);
+  if (!serverOK) out.push(['bad', '파일에 저장하지 못하고 브라우저 안에만 저장되고 있어요. 나의일기.pyw 로 실행해 주세요.']);
+  else if (s.dataWritable === false) out.push(['bad', 'data 폴더에 쓸 수 없어요. 폴더 권한이나 디스크 공간을 확인해 주세요.']);
+  else out.push(['ok', '쓰는 즉시 내 구글 드라이브(나의도서관 동기화 폴더)에 저장 — PC 와 다른 기기에도 함께']);
+  const f = FONTS[db.settings.font];
+  if (f && f.probe && !document.fonts.check(`${f.fs}px "${f.probe}"`, '가')) out.push(['warn', `'${f.name}' 글꼴을 내려받지 못해 바탕체로 보이고 있어요 (인터넷 연결 확인).`]);
+  if (GD && GD.enabled){
+    if (GD.lastOk === false) out.push(['bad', '구글 드라이브 백업 실패: ' + (GD.error || '')]);
+    else out.push(['ok', `구글 드라이브 백업 (도서관 전체)${GD.email ? ' · ' + GD.email : ''} ${GD.last ? '· 마지막 ' + tm(GD.last) : '· 곧 첫 업로드'}`]);
+  }
+  if (BK){
+    if (!BK.dirOk && !(GD && GD.enabled)) out.push(['warn', '외부 백업이 없어요. [백업]을 누르면 도서관 백업 센터로 갑니다 — 구글 드라이브나 USB 폴더를 정해 두면, 컴퓨터가 고장 나도 일기가 남아요.']);
+    else if (BK.dirOk) out.push(['ok', `외부 폴더 백업 (도서관 전체) ${BK.last ? '· 마지막 ' + tm(BK.last) : '· 곧 첫 백업을 만들어요'}`]);
+  }
+  if (s.inOneDrive) out.push(['info', '이 폴더는 OneDrive 안에 있어 일기가 클라우드에도 동기화됩니다. (원하지 않으면 폴더째 옮겨도 그대로 동작)']);
+  envItems = out;
+  const issues = out.filter(x => x[0] === 'warn' || x[0] === 'bad').length;
+  $('infoBtn').classList.toggle('dot', issues > 0);
+  const el = $('envList'); if (el) el.innerHTML = envHTML();
+  if (show === 'start' && issues) toast(`환경 점검: 확인할 것 ${issues}가지 — ⓘ 를 눌러 보세요`);
+}
+const envHTML = () => envItems.length ? envItems.map(([k, t]) => `<div class="${k}"><i>${{ok: '✓', warn: '⚠', bad: '✕', info: 'ⓘ'}[k]}</i><span>${esc(t)}</span></div>`).join('') : '<div><i>…</i><span>점검 중</span></div>';
+
+/* ---------- 백업: 나의 도서관 백업 센터 하나로 (구글 드라이브 · USB, 도서관 전체를 zip 한 개로) ----------
+   [백업]을 누르면 책장으로 돌아가 도서관의 백업 센터가 열린다. 여기서는 상태만 보고 버튼에 ⚠ 를 표시한다. */
+let BK = null, GD = null;
+const tm = s => (s || '').replace('T', ' ').slice(0, 16);
+async function bkRefresh(){
+  if (!serverOK) return;
+  if (window.WEB) return;
+  try { [BK, GD] = await Promise.all([fetch('/api/backup/status').then(r => r.json()), fetch('/api/gdrive/status').then(r => r.json()).catch(() => null)]); } catch (e){ return; }
+  const usbOk = BK.dirOk && !!BK.last;
+  const gdOk = GD && GD.enabled && GD.lastOk !== false && !(GD.ageHours != null && GD.ageHours > 48);
+  const gdBad = GD && GD.enabled && GD.lastOk === false;
+  const bad = (!usbOk && !gdOk) || gdBad;   // 외부 백업이 하나도 없거나, 켜 둔 드라이브 백업이 실패했을 때
+  const b = $('bkBtn');
+  b.textContent = bad ? '⚠ 백업' : '백업';
+  b.classList.toggle('warn', bad);
+  b.title = ['도서관 백업 센터 열기',
+             GD && GD.enabled ? (gdBad ? '구글 드라이브 ⚠ ' + GD.error : `구글 드라이브 ✓ ${tm(GD.last)}`) : '구글 드라이브 꺼짐',
+             BK.dirOk ? `USB·외부 폴더 ✓ ${tm(BK.last)}` : 'USB·외부 폴더 없음'].join('\n');
+}
+function bkOpen(){
+  if (!serverOK){ toast('백업은 나의도서관.pyw 로 실행했을 때 쓸 수 있어요'); return; }
+  saveNow(); if (window.__toParent) window.__toParent({backup: 1});
+}
+
+
+/* ---------- 대화 상자 · 알림 ---------- */
+function openModal(html, mount){ const m = $('modal'); m.innerHTML = `<div class="box">${html}</div>`; m.hidden = false; if (mount) mount(m.firstElementChild); }
+function closeModal(){ const m = $('modal'); m.hidden = true; m.innerHTML = ''; }
+$('modal').addEventListener('mousedown', ev => { if (ev.target.id === 'modal') closeModal(); });
+let toastT = null;
+function toast(msg){
+  let t = document.querySelector('.toast'); if (!t){ t = document.createElement('div'); t.className = 'toast'; $('stage').appendChild(t); }
+  t.textContent = msg; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, 1800);
+}
+
+/* ---------- 시작 ---------- */
+async function boot(){
+  let local = null, theme = 'light';
+  try { local = JSON.parse(localStorage.getItem(KEY)); } catch (e){}
+  try { theme = localStorage.getItem('myDiary.theme') || theme; } catch (e){}
+  try {
+    const c = await (await fetch('api/config')).json();
+    theme = c.theme || theme; winFull = !!c.fullscreen;
+  } catch (e){}
+  applyTheme(theme); winBtns(); applyStage();
+  try {
+    const r = await fetch('api/data');
+    if (r.ok){
+      const d = await r.json(); serverOK = true;
+      if (d && Array.isArray(d.entries)) db = d;
+      else if (local && Array.isArray(local.entries) && local.entries.length) db = local;
+    }
+  } catch (e){}
+  if (!serverOK && local && Array.isArray(local.entries)) db = local;
+  // v1.0x 의 설정(고운바탕·먹색 등)은 교정차트 '메모' 쪽 기본값으로 바꾼다
+  if (!db.version || db.version < 2){ db.settings = {...(db.settings || {}), font: 'chart', ink: 'chart', paper: 'chart'}; db.version = 2; }
+  db.settings = {...DEF_SETTINGS, ...(db.settings || {})}; delete db.settings.theme;
+  db.entries = (db.entries || []).filter(e => e && e.date); db.trash = db.trash || [];
+  // 같은 날 일기가 둘 이상이면 하나로 합친다 (하루에 한 편)
+  const byDay = new Map();
+  for (const e of db.entries){ const x = byDay.get(e.date); if (x){ x.body = [x.body, e.body].filter(s => s && s.trim()).join('\n\n'); } else byDay.set(e.date, e); }
+  db.entries = [...byDay.values()];
+  if (serverOK && db === local) saveNow();   // 브라우저에만 있던 일기를 파일로 옮긴다
+  setSt(serverOK ? '' : '브라우저 저장');
+  applySettings();
+  await waitFont();
+  cur = today(); view = 'day'; layout(); setFocusEnd(cur);
+  render(); renderKeyBar();
+  await bkRefresh(); envCheck('start');   // 지형 살피기: 시작할 때 한 번 점검하고, 문제가 있으면 알려 준다
+  setInterval(() => { if (serverOK) fetch('api/ping').catch(() => {}); }, 30000);
+  setInterval(bkRefresh, 10 * 60 * 1000);   // 브라우저로 열었을 때: 창이 닫히면 실행기가 스스로 끝나도록
+}
+boot();
+
+/* ---------- 나의 도서관 통합판: 책장에 꽂힌 '나의일기' 책으로 열린다 ----------
+   밝기는 도서관과 함께 바뀐다. 보일 때 쪽 크기를 다시 맞추고, 책장으로 돌아갈 때 쓰던 글을 바로 저장한다.
+   Esc 로 책장에 돌아가도 되는가: 창 · 단축키 카드 · 쓰는 중 · 찾기 · 집중 보기(F)가 아니면 (그때는 원래대로 그것부터 닫는다) */
+window.__roomTheme = t => applyTheme(t);
+window.__roomShown = () => { try { dispatchEvent(new Event('resize')); } catch (e){} };
+window.__roomHidden = () => { if (saveT || saving) saveNow(); };
+window.__roomEscBack = e => $('modal').hidden && !$('kbcard') && !isTyping(e.target) && e.target.id !== 'search' && !document.documentElement.classList.contains('bkfocus');
+</script>
+</body>
+</html>
