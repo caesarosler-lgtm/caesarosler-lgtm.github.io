@@ -436,6 +436,29 @@ html[data-theme=dark] .kc{box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(2
 .stmis{margin:0 0 8px;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:var(--t1)}
 .stmis li{display:grid;grid-template-columns:1fr 60px 110px;align-items:baseline}
 .stmis li b:last-child{text-align:right}
+/* 플레이북 — 작전 카드 */
+.pbwrap{flex:1;min-height:0;display:grid;grid-template-columns:380px minmax(0,1fr);gap:var(--s5)}
+.pblist{gap:var(--s3)}
+.pr .dt.pbd.up{background:var(--up)}.pr .dt.pbd.dn{background:var(--dn)}.pr .dt.pbd.mid{background:var(--sub)}
+.pbcard{gap:var(--s4);overflow:auto;padding:var(--s6) var(--s7,48px)}
+.pbcard>*{max-width:1280px}
+.pbhead{display:flex;align-items:center;gap:var(--s3)}
+.pbhead h2{margin:0;font-size:var(--t3)}
+.pbv-pill{font-size:var(--t-1);padding:4px 12px;border-radius:var(--r-pill);background:rgba(128,128,128,.14);color:var(--sub);font-weight:600}
+.pbv-pill.up{background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}.pbv-pill.dn{background:color-mix(in srgb,var(--dn) 16%,transparent);color:var(--dn)}
+.pbcols{display:grid;grid-template-columns:1fr 1fr;gap:var(--s6);padding:var(--s4) 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pbsec{font-weight:700;font-size:var(--t0);margin-bottom:6px;display:flex;align-items:baseline;gap:8px}
+.pbsec small{font-weight:400;color:var(--sub);font-size:var(--t-1)}
+.pbsub{font-size:var(--t-1);color:var(--sub);margin-top:8px}
+.pbv{line-height:1.75;font-size:var(--t0);white-space:pre-wrap;cursor:text;border-radius:var(--r2);padding:2px 6px;margin:0 -6px}
+.pbv:hover{background:var(--hover)}
+.pbv.empty{color:var(--muted)}
+.pbta{width:100%;font-size:var(--t0);line-height:1.75}
+.pbimgs{display:flex;gap:10px;flex-wrap:wrap}
+.pbimgs img{width:180px;height:112px;object-fit:cover;border-radius:var(--r2);border:1px solid var(--line);cursor:zoom-in}
+.pbmemo{border-top:1px solid var(--line);padding-top:var(--s3);font-size:var(--t-1);color:var(--sub)}
+.pbmemo>span{display:block;margin-bottom:2px}
+.pbmemo .pbv{font-size:var(--t-1)}
 .skq{display:flex;flex-direction:column;gap:2px}
 .skq span{font-size:var(--t-1);color:var(--sub)}
 .skq p{margin:0;line-height:1.6;white-space:pre-wrap}
@@ -834,7 +857,7 @@ function go(v){
   if (v === 'quiz' && qzTab === 'today' && dr.a == null) drillNext();
   render();
 }
-const isBook = () => view === 'day' || view === 'play' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
+const isBook = () => view === 'day' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
 function render(){
   if (view === 'home' && !OLD('home')) view = 'trades';   // 숨긴 화면에 머물러 있었으면 옮긴다
   if (view === 'appt' && !OLD('appt')) view = 'day';
@@ -2339,7 +2362,7 @@ async function pbImport(f){
     }
   }
   if (added || filled) save();
-  if (first >= 0){ pbSel = first; pbI = 0; } render();
+  if (first >= 0){ pbSel = first; pbI = 0; } go('play');
   toast(`셋업 ${added}개를 더하고 ${filled}칸을 채웠어요${kept ? ` · 이미 적어 둔 ${kept}칸은 그대로 뒀어요` : ''}`);
 }
 function pbExamples(s){
@@ -2347,34 +2370,50 @@ function pbExamples(s){
   pool.forEach(x => x.t.images.forEach((im, i) => out.push({x, im, i})));
   return {out, pool};
 }
+/* 플레이북 = 한 장짜리 작전 카드 (2026-10-10 사용자: '더 단순하게') — 왼쪽 작전 이름 + 점, 오른쪽 카드 하나:
+   한 줄 정의 → 들어가는 조건 · 나오는 조건(손절 · 익절) · 하지 않을 때 → 잘한 사례(작은 그림 한 줄) · 근거.
+   글은 눌러서 그 자리에서 고친다 (pbEditK — 칸 하나만 글상자로). 성적은 통계 ②와 같은 판정(R 건당 기대값). 자료 칸(def · checks · stop · exit · avoid · memo)은 그대로 */
+let pbEditK = null;
+function pbVerdict(s){
+  const L = closedList().filter(x => x.t.setup === s), n = L.length, exp = n ? sum(L.map(x => x.c.rr)) / n : 0;
+  return {n, exp, label: n < 3 ? '아직 적음' : exp >= 0.2 ? '잘 됨' : exp <= -0.1 ? '안 됨' : '보통', k: n < 3 ? '' : exp >= 0.2 ? 'up' : exp <= -0.1 ? 'dn' : 'mid'};
+}
+function pbField(k, label, ph, list){
+  const pb = pbOf(db.setups[pbSel]), v = pb[k] || '';
+  if (pbEditK === k) return `<textarea class="pbta" id="pbta" rows="${Math.max(2, v.split('\n').length + 1)}" placeholder="${esc(ph)}" oninput="pbIn(${pbSel},'${k}',this.value);this.rows=Math.max(2,this.value.split('\\n').length+1)" onblur="pbEditK=null;render()">${esc(v)}</textarea>`;
+  const lines = v.split('\n').map(x => x.trim()).filter(Boolean);
+  return `<div class="pbv ${lines.length ? '' : 'empty'}" onclick="pbEditK='${k}';render();setTimeout(()=>{const t=$('pbta');if(t){t.focus();t.selectionStart=t.value.length}},20)" title="눌러서 고치기">${!lines.length ? esc(ph) : list ? lines.map(x => `<div>☐ ${esc(x)}</div>`).join('') : nl(v)}</div>`;
+}
 function playV(){
   pbSel = clip(pbSel, 0, Math.max(0, db.setups.length - 1));
-  const s = db.setups[pbSel], cl = closedList(), stat = x => { const L = cl.filter(y => y.t.setup === x); return {L, k: kpis(L), pr: proc(L)}; };
-  if (!s) return '<div class="empty">원칙 · 설정에서 전략(셋업)을 먼저 적어 주세요.</div>';
-  const pb = pbOf(s), me = stat(s), ex = pbExamples(s), pages = Math.max(1, Math.ceil(ex.out.length / 2)); pbI = clip(pbI, 0, pages - 1);
-  const on = k => `pbIn(${pbSel},'${k}',this.value)`, shown = ex.out.slice(pbI * 2, pbI * 2 + 2);
-  const left = pSheet('플레이북 — ' + esc(s), '셋업 한 장', `
-    <table>${f4('청산한 매매', me.k.n + '건', '승률 · 손익비', me.k.n ? me.k.win.toFixed(0) + '% · ' + (me.k.payoff ? me.k.payoff.toFixed(1) : '–') : '–')}
-      ${f4('건당 기대값', me.k.n ? `<b class="${cls(me.k.exp)}">${fv(me.k.exp)}</b>` : '–', 'A·B 결정 비율', pct0(me.pr.ab))}</table>
-    ${bsec('정의', '이 셋업은 무엇인가')}${lt(3, pb.def, on('def'))}
-    ${bsec('진입 조건 체크리스트', '한 줄에 하나 — 매매를 기록할 때 이것으로 점검합니다')}${lt(8, pb.checks, on('checks'), '예) 20일선이 우상향이다')}
-    ${bsec('손절 기준')}${lt(3, pb.stop, on('stop'))}
-    ${bsec('청산 · 익절 기준')}${lt(3, pb.exit, on('exit'))}
-    ${bsec('피해야 할 상황')}${lt(3, pb.avoid, on('avoid'))}
-    ${bsec('메모')}${lt(3, pb.memo, on('memo'))}`, '플레이북 · ' + esc(s), '왼쪽');
-  const right = pSheet('모범 사례', '내가 잘한 매매', shown.length ? shown.map(({x, im, i}) => `<figure class="cap"><img src="${imgSrc(im)}" onclick="showImg(${i},'${x.t.id}')" alt="">
-        <figcaption><span><b>${esc(x.t.name)}</b> · ${IMG_KIND[im.kind] || ''} ${esc(im.cap)}</span><span><a class="link" style="color:#2f6fb2" onclick="openTrade('${x.t.id}')">${dShort(x.c.close)} · 결정 ${x.t.review.grade} · ${tv(x.c)} ▸</a></span></figcaption></figure>`).join('')
-      : `<div class="capempty" style="height:300px"><b>아직 모범 사례가 없습니다</b>이 셋업으로 <b>결정 등급 A</b>(없으면 B)를 받은 매매의<br>차트 캡처가 여기에 모입니다.<br>잘한 매매의 진입 시점 차트를 붙여 두세요.</div>
-        ${ex.pool.length ? bsec('차트는 없지만 잘한 매매') + `<table class="ptab"><tbody>${ex.pool.slice(0, 8).map(x => `<tr style="cursor:pointer" onclick="openTrade('${x.t.id}')"><td class="c" style="width:80px">${dShort(x.c.close)}</td><td><b>${esc(x.t.name)}</b></td><td class="c" style="width:40px">${x.t.review.grade}</td><td class="r" style="width:90px">${tv(x.c)}</td><td>${esc(x.t.review.lesson || '')}</td></tr>`).join('')}</tbody></table>` : ''}`,
-    `모범 사례 ${ex.out.length}장${pages > 1 ? ' · ' + (pbI + 1) + ' / ' + pages : ''}`, '오른쪽');
-  return `<div class="bkwrap"><div class="bkside"><div class="card" style="flex:1"><h3>셋업 <small>${db.setups.length}개 · ↑ ↓ 이동</small></h3>
-      <div class="plist">${db.setups.map((x, i) => { const st = stat(x), has = checksOf(x).length; return `<div class="pr ${i === pbSel ? 'on' : ''}" onclick="pbSel=${i};pbI=0;render()"><span class="dt ${has ? 'open' : ''}"></span><span><b>${esc(x)}</b><small>${st.k.n}건 · 승률 ${st.k.n ? st.k.win.toFixed(0) + '%' : '–'} · A·B ${pct0(st.pr.ab)}${has ? '' : ' · 체크리스트 없음'}</small></span>
-        <span class="${cls(st.k.exp)}" style="font-weight:700">${st.k.n ? sv(st.k.exp) : ''}</span></div>`; }).join('')}</div>
-      <div class="note">오른쪽 숫자 = 건당 기대값. 못하는 셋업을 버리는 것도 실력입니다. 셋업 이름은 원칙 · 설정에서 고칩니다.</div></div></div>
-    <div class="book"><div class="bkbar"><span class="ttl">플레이북 — ${esc(s)}</span><span class="sp"></span><button onclick="$('pbIn').click()" title="플레이북 초안 파일(.json)을 불러옵니다 — 셋업이 없으면 더하고, 이미 적어 둔 칸은 덮어쓰지 않습니다">⇪ 플레이북 불러오기</button><button onclick="lf.setup=db.setups[pbSel];lf.st='all';tSub='done';go('trades')">이 셋업의 매매 ${me.L.length}건</button><button onclick="focusToggle()">⛶ 집중 보기<kbd>F</kbd></button></div>
-      <input type="file" id="pbIn" accept=".json,application/json" hidden onchange="pbImport(this.files[0]);this.value=''">
-      <div class="bkdesk" id="desk"><div class="spread" id="spread"><div class="sheetbox left">${left}</div><div class="sheetbox right">${right}</div></div></div>
-      <div class="bkfoot"><button onclick="pbI--;render()" ${pbI <= 0 ? 'disabled' : ''}>◀ 사례</button><span id="bkInfo" style="font-weight:700">${ex.out.length ? (pbI + 1) + ' / ' + pages : '사례 없음'}</span><button onclick="pbI++;render()" ${pbI >= pages - 1 ? 'disabled' : ''}>사례 ▶</button><span class="keyhint">왼쪽 종이에 바로 쓰면 자동 저장 · ← → 모범 사례 넘기기 · ↑ ↓ 셋업</span></div></div></div>`;
+  const s = db.setups[pbSel];
+  const left = `<div class="card pblist"><h3>내 작전 <small>${db.setups.length}개</small></h3>
+    <div class="plist">${db.setups.map((x, i) => { const v = pbVerdict(x); return `<div class="pr ${i === pbSel ? 'on' : ''}" onclick="pbSel=${i};pbEditK=null;render()"><span class="dt pbd ${v.k}"></span><span><b>${esc(x)}</b></span><span class="muted" style="font-size:var(--t-2)">${v.n ? v.label : ''}</span></div>`; }).join('')}</div>
+    <button onclick="pbNew()">＋ 작전 추가</button></div>`;
+  if (!s) return `<div class="pbwrap">${left}<div class="card" style="align-items:center;justify-content:center"><div class="empty">[＋ 작전 추가]로 첫 작전(셋업)을 만드세요.</div></div></div>`;
+  const v = pbVerdict(s), ex = pbExamples(s), L = closedList().filter(x => x.t.setup === s);
+  return `<div class="pbwrap">${left}
+    <div class="card pbcard">
+      <div class="pbhead"><h2>${esc(s)}</h2><span class="sp"></span><span class="pbv-pill ${v.k}">${v.n ? `${v.label} · ${v.n}건 · ${sv(HM() ? v.exp : sum(L.map(x => x.c.realized)) / v.n)}` : '아직 매매 없음'}</span></div>
+      ${pbField('def', '정의', '이 작전은 무엇인가 — 한두 줄로')}
+      <div class="pbcols">
+        <div><div class="pbsec">들어가는 조건</div>${pbField('checks', '', '한 줄에 하나 — 매매일지 계획서의 체크리스트가 됩니다', true)}</div>
+        <div><div class="pbsec">나오는 조건</div><div class="pbsub">손절</div>${pbField('stop', '', '언제 자르나')}<div class="pbsub">익절</div>${pbField('exit', '', '언제 파나')}
+          <div class="pbsec" style="margin-top:var(--s4)">하지 않을 때</div>${pbField('avoid', '', '이럴 땐 하지 않는다')}</div>
+      </div>
+      <div class="pbsec">잘한 사례 <small>결정 등급 A(없으면 B)인 매매의 진입 차트</small><span class="sp"></span>${L.length ? `<a class="link" onclick="lf.setup=db.setups[pbSel];lf.st='all';tSub='done';go('trades')">이 작전의 매매 ${L.length}건 보기 ▸</a>` : ''}</div>
+      ${ex.out.length ? `<div class="pbimgs">${ex.out.slice(0, 6).map(({x, im, i}) => `<img src="${imgSrc(im)}" onclick="showImg(${i},'${x.t.id}')" title="${esc(x.t.name)} · ${dShort(x.c.close)}" alt="">`).join('')}</div>`
+        : `<div class="muted" style="font-size:var(--t-1)">아직 없어요 — 이 작전으로 잘한 매매의 체결 · 차트 장에 진입 차트를 붙여 두면 여기 모입니다.</div>`}
+      <div class="pbmemo"><span>근거 · 메모</span>${pbField('memo', '', '노트의 어느 곳 · 숫자 규칙 등')}</div>
+    </div></div>`;
+}
+function pbNew(){
+  modal(`<h3>새 작전 (셋업)</h3><input id="pbnm" placeholder="예) 중하단 눌림" onkeydown="if(event.key==='Enter')pbNewOk()"><div class="bt"><button onclick="closeModal()">취소</button><button class="primary" onclick="pbNewOk()">추가</button></div>`);
+  setTimeout(() => $('pbnm')?.focus(), 30);
+}
+function pbNewOk(){
+  const n = $('pbnm').value.trim(); if (!n){ toast('이름을 적어 주세요'); return; }
+  if (!db.setups.includes(n)) db.setups.push(n); pbSel = db.setups.indexOf(n); pbEditK = 'def'; closeModal(); save(); render(); setTimeout(() => $('pbta')?.focus(), 30);
 }
 
 /* =====================================================================
@@ -2575,6 +2614,8 @@ function setV(){
       <h3 style="margin-top:16px">목록 고치기 <small>한 줄에 하나씩 · 칸을 벗어나면 저장</small></h3>
       <div class="grid2">${fld('전략 (셋업) — 이름을 바꾸면 플레이북은 새로 씁니다', `<textarea rows="9" onchange="setList('setups',this.value)">${esc(db.setups.join('\n'))}</textarea>`)}${fld('실수 태그', `<textarea rows="9" onchange="setList('mistakes',this.value)">${esc(db.mistakes.join('\n'))}</textarea>`)}
         ${fld('감정', `<textarea rows="6" onchange="setList('emotions',this.value)">${esc(db.emotions.join('\n'))}</textarea>`)}</div>
+      <div class="row" style="margin-top:6px"><button onclick="$('pbIn').click()" title="플레이북 초안 파일(.json)을 불러옵니다 — 셋업이 없으면 더하고, 이미 적어 둔 칸은 덮어쓰지 않습니다">⇪ 플레이북 불러오기</button><span class="muted" style="font-size:var(--t-1)">작전(셋업) 초안 파일 — 이미 적어 둔 칸은 그대로</span></div>
+      <input type="file" id="pbIn" accept=".json,application/json" hidden onchange="pbImport(this.files[0]);this.value=''">
     </div>
     <div class="card"><h3>단위 — 돈 숨기기</h3>
       <div class="grid2">${fld('손익 표시', `<select onchange="setMoney(this.value)"><option value="1" ${s.hideMoney ? 'selected' : ''}>R 단위 (금액 숨기기) — 권장</option><option value="0" ${s.hideMoney ? '' : 'selected'}>금액 (원)</option></select>`)}
