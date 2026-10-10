@@ -74,6 +74,10 @@ header>.sp{flex-shrink:1;min-width:0}
 #nav button.navtr:hover{background:rgba(var(--accent-rgb),.2)}
 #nav button.navtr.on{color:#fff;background:var(--accent);box-shadow:0 1px 3px rgba(var(--accent-rgb),.45)}
 #nav button.navtr.on kbd{background:rgba(255,255,255,.22);color:#fff}
+/* 매매 기록 안의 [매매일지]도 같은 파란 계열 (2026-10-10 사용자: 조금 더 파랗게 강조) */
+.seg button.trj{color:var(--accent);background:var(--accent-weak);font-weight:600}
+.seg button.trj:hover{background:rgba(var(--accent-rgb),.2)}
+.seg button.trj.on,html[data-theme=dark] .seg button.trj.on{color:#fff;background:var(--accent);box-shadow:0 1px 3px rgba(var(--accent-rgb),.45)}
 #themeBtn{width:108px;text-align:center}          /* '☾ 다크' ↔ '☀ 라이트' */
 #unitBtn{width:94px;text-align:center}            /* 'R 단위' ↔ '₩ 금액' */
 #syncInd{width:168px;overflow:hidden;text-overflow:ellipsis;text-align:right}
@@ -1231,7 +1235,7 @@ function listItems(){
 const ROWS = () => Math.max(5, Math.floor((STAGE.h - 60 - 48 - 56 - 40 - 60) / 51));
 // 매매 기록 탭 안의 화면들: 한 매매 · 종목 차트 · 시간표 · 매매일지 · 예약 · 안 한 매매
 const subSeg = () => { const on = (v, t) => view === v && (!t || tSub === t) ? 'on' : '', tb = (t, l) => `<button class="${on('trades', t)}" onclick="tSub='${t}';go('trades')">${l}</button>`;
-  return `<div class="seg">${tb('done', '한 매매')}${tb('stock', '종목 차트')}${tb('time', '시간표')}<button class="${on('day')}" onclick="go('day')">매매일지</button><button class="${on('appt')}" onclick="go('appt')">예약</button>${tb('skip', `안 한 매매 <span class="muted">${db.skips.length}</span>`)}</div>`; };
+  return `<div class="seg">${tb('done', '한 매매')}${tb('stock', '종목 차트')}${tb('time', '시간표')}<button class="${on('day')} trj" onclick="go('day')">매매일지</button><button class="${on('appt')}" onclick="go('appt')">예약</button>${tb('skip', `안 한 매매 <span class="muted">${db.skips.length}</span>`)}</div>`; };
 const trBar = () => `<div class="lbar trsub">${subSeg()}</div>`;
 function listV(){
   const all = listItems(), per = ROWS(), pages = Math.max(1, Math.ceil(all.length / per)); lpage = clip(lpage, 0, pages - 1);
