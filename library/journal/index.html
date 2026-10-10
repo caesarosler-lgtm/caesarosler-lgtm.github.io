@@ -301,6 +301,7 @@ html[data-theme=dark] .spread{filter:brightness(.93)}
 .pbtn:hover{background:rgba(47,111,178,.07)}
 .pside{cursor:pointer;user-select:none}
 .pdel{cursor:pointer;color:#b0b7bf}.pdel:hover{color:#c8102e}
+.ppdel{margin-left:14px}
 .skp{border-bottom:1px dashed #c3cad3;padding-bottom:8px;margin-bottom:10px}
 .skp:last-of-type{border-bottom:none}
 .skpl span{display:block;font-size:12px;color:#6b7580;margin-top:4px}
@@ -1270,7 +1271,7 @@ function ppJudge(t, id, side = '왼쪽'){
     ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
     ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
     ${only ? '' : `<table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
-    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`}`, ppFoot(t), side);   // 판단 기록만일 때는 손절가 · R 줄과 감정 메모도 뺌 (2026-10-10 사용자)
+    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`}`, ppFoot(t) + (id === 'new' ? '' : `<span class="pdel ppdel" onclick="ppDel('${id}')" title="이 매매 기록을 지웁니다 (묻고 나서)">이 매매 지우기</span>`), side);   // 판단 기록만일 때는 손절가 · R 줄과 감정 메모도 뺌 (2026-10-10 사용자)
 }
 function tradingStep(d, dir){ let x = addDays(d, dir); while (isWe(x) && !db.days[x] && !dayFills(x).length) x = addDays(x, dir); return x; }
 function dayGo(dir){ dk = 0; dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
@@ -1818,6 +1819,15 @@ function bookFlip(d){ bookGo(bk.i + d); }
 let _wheelAt = 0;
 function bkWheel(e){ if (Date.now() - _wheelAt < 280) return; _wheelAt = Date.now(); bookFlip(e.deltaY > 0 ? 1 : -1); }
 function tradeStep(d){ const l = listItems(), i = l.findIndex(x => x.t.id === sel); const n = l[clip(i + d, 0, l.length - 1)]; if (n && n.t.id !== sel) openTrade(n.t.id); }
+function ppDel(id){   // 매매일지 장 아래 [이 매매 지우기] (2026-10-10 사용자) — 지우는 방식은 delTrade 와 같음 (그림 파일은 _삭제됨 으로 옮겨 보관)
+  const t = tradeById(id); if (!t) return;
+  const has = t.fills.length || t.images.length;
+  if (!confirm(`${t.name || '(이름 없음)'} 매매일지(No. ${t.no})를 지울까요?
+적어 둔 다섯 가지 질문의 답${has ? ` · 체결 ${t.fills.length}건 · 차트 캡처 ${t.images.length}장` : ''}이 함께 지워지고, 되돌릴 수 없습니다.`)) return;
+  t.images.forEach(im => im.file && fetch('api/image/delete', {method: 'POST', body: JSON.stringify({file: im.file})}).catch(() => {}));
+  db.trades = db.trades.filter(x => x.id !== t.id); db.quiz = db.quiz.filter(q => q.tid !== t.id); if (sel === t.id) sel = null;
+  save(); fillNameList(); dk = Math.min(dk, daySpreads(dayD, dayFills(dayD)).length - 1); render(); toast('지웠습니다');
+}
 function delTrade(){
   const t = tradeById(sel); if (!t) return;
   if (!confirm(`${t.name} 매매 기록(No. ${t.no})을 삭제할까요?\n체결 ${t.fills.length}건 · 차트 캡처 ${t.images.length}장이 함께 지워집니다.\n(그림 파일은 data/images/_삭제됨 으로 옮겨 보관)`)) return;
