@@ -8,10 +8,10 @@
 <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>나의 일기</title>
+<title>스프링노트</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="나의 일기">
+<meta name="apple-mobile-web-app-title" content="스프링노트">
 <!--
   나의일기 — 휴대폰 화면 (2026-10-11). tools/build_web.py 가 web/diary/m.html 로 만든다.
   큰 일기 화면(index.html)은 A4 두 쪽을 줄여 보여 주므로 휴대폰에서는 글씨가 6px 쯤으로 너무 작다 → 휴대폰 크기의 쓰기 화면:
@@ -108,7 +108,7 @@ main{max-width:640px;margin:0 auto;padding:10px 14px calc(92px + env(safe-area-i
 <script src="shim.js"></script>
 </head>
 <body>
-<header><div class="bar"><div class="side"><a class="nav" href="../" id="hl">‹ 책장</a></div><h1 id="title">나의 일기</h1><div class="side r"><button class="nav" id="hr">목록</button></div></div></header>
+<header><div class="bar"><div class="side"><a class="nav" href="../" id="hl">‹ 책장</a></div><h1 id="title">스프링노트</h1><div class="side r"><button class="nav" id="hr">목록</button></div></div></header>
 <main id="main"><div class="empty">불러오는 중…</div></main>
 <div class="tools" id="tools"><div class="in">
   <button id="tTpl">템플릿</button>
@@ -133,6 +133,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 /* ---------- 같은 규칙 (apps/diary.html 과 같은 코드 — 바꾸면 둘 다) ---------- */
 const LH = 26, LINES = 37, IMG_W = 686, IMG_MIN = 120;
 const WX = [['sun', '맑음'], ['cloud', '흐림'], ['rain', '비'], ['snow', '눈'], ['wind', '바람']];
+const bookTitle = t => !t || t === '나의 일기' ? '스프링노트' : t;   // 옛 기본 이름 → 새 이름 (diary.html 과 같게)
 const hasText = e => !!(e && ((e.body && e.body.trim()) || e.weather));
 const PB = '\f';
 const IMG_LINE = /^!\[그림 (\d{2,4})x(\d{2,4})\]\((\d{4}-\d{2}\/[A-Za-z0-9_\-]{1,80}\.(?:png|jpg|jpeg|webp|gif))\)$/;
@@ -208,7 +209,7 @@ function render(){
 }
 function renderDay(){
   const d = CUR, x = parseD(d), e = entryOf(d) || {}, parts = partsOf(d), td = today();
-  $('title').textContent = (DB.settings || {}).title || '나의 일기';
+  $('title').textContent = bookTitle((DB.settings || {}).title);
   let h = `<div class="dnav"><button class="arw" data-go="-1" aria-label="어제">‹</button><div class="dt"><b>${x.getMonth() + 1}월 ${x.getDate()}일</b><small>${x.getFullYear()}년 · ${WD[x.getDay()]}요일</small></div><button class="arw" data-go="1" aria-label="내일">›</button></div>`;
   if (d !== td) h += `<button class="today" data-today>오늘로</button>`;
   h += `<div class="wxs">${WX.map(([v, n]) => `<button class="wx${e.weather === v ? ' on' : ''}" data-wx="${v}">${n}</button>`).join('')}</div>`;
@@ -232,7 +233,7 @@ function renderDay(){
 }
 function grow(ta){ ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
 function renderList(){
-  $('title').textContent = '모든 일기';
+  $('title').textContent = '모든 쪽';
   const q = Q.trim().toLowerCase(), list = DB.entries.filter(hasText).sort((a, b) => a.date < b.date ? 1 : -1);
   let h = `<input id="q" type="search" placeholder="일기 찾기 — 낱말" value="${esc(Q)}" autocomplete="off">`, ym = '', n = 0;
   for (const e of list){

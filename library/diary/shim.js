@@ -11,7 +11,7 @@
 'use strict';
 const CLIENT_ID = "400009441617-5v78t237a461c2bhp74s4b72a5a1g05m.apps.googleusercontent.com";
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const ROOM = {"stores": {"data": {"prefix": "diary:", "sync": {"top": false, "lists": ["entries", "trash"], "dicts": [], "local": [], "strip": []}}}, "title": "나의 일기", "desc": "나의 도서관의 나의 일기 — 일기는 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
+const ROOM = {"stores": {"data": {"prefix": "diary:", "sync": {"top": false, "lists": ["entries", "trash"], "dicts": [], "local": [], "strip": []}}}, "title": "스프링노트", "desc": "나의 도서관의 스프링노트 — 노트는 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
 // 시험: 이 PC 의 시험 주소(localhost)에서만 ?folder=… 로 다른 동기화 폴더 (PC 쪽은 ML_SYNC_FOLDER) — 공개 주소에서는 늘 진짜 폴더
 const FOLDER = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('folder')) || '나의도서관 동기화';
 const ST = name => { const st = ROOM.stores[name]; if (!st) throw new Error('저장소 없음: ' + name); return st; };
@@ -506,7 +506,7 @@ async function imgUpload({tid, data}){
 
 /* ---------- 텍스트로 내보내기 (diary_room.export_text 와 같은 모양) → 내려받기 ---------- */
 function exportText(d){
-  const st = d.settings || {}, title = String(st.title || '나의 일기'), WK = '월화수목금토일', WX = {sun: '맑음', cloud: '흐림', rain: '비', snow: '눈', wind: '바람'};
+  const st = d.settings || {}, title = String(!st.title || st.title === '나의 일기' ? '스프링노트' : st.title), WK = '월화수목금토일', WX = {sun: '맑음', cloud: '흐림', rain: '비', snow: '눈', wind: '바람'};
   const out = [title, '='.repeat(30)];
   if (st.author) out.push('지은이  ' + st.author);
   out.push('');

@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>나의 일기</title>
+<title>스프링노트</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="나의 일기">
+<meta name="apple-mobile-web-app-title" content="스프링노트">
 <script>if(matchMedia('(max-width: 820px)').matches&&!/[?&]full=1/.test(location.search))location.replace('m.html'+location.search)</script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="shim.js"></script>
 <style>/* 웹판: PC 프로그램에서만 되는 단추 (창 크기 · 백업 센터) */ #qhdBtn,#bkBtn,#sBackup{display:none!important}</style>
 <!--
-  나의 일기 — 교정 전자차트의 '메모' 쪽(A4 세로)과 같은 종이 두 장을 펼쳐 놓고 바로 쓰는 일기장.
+  스프링노트 (2026-10-11 '나의 일기'에서 이름 바꿈 — 피터 린치의 스프링노트) — 교정 전자차트의 '메모' 쪽(A4 세로)과 같은 종이 두 장을 펼쳐 놓고 바로 쓰는 일기장.
   - 노트: 3달이 한 권, 하루가 한 쪽(37줄). 그 3달의 첫날부터 왼쪽·오른쪽 차례로 놓인다. 쪽이 찼을 때 마지막 줄에서 Enter = 같은 날 쪽 하나 더 (2026-10-11, 글 안의 쪽 나눔 \f).
   - 묶어 보기: 3개월(분기)치 일기를 한 권의 노트에 이어 쓴 것처럼 날짜 머리와 함께 이어 붙여 보여 준다 (보기 전용).
   - 화면은 설정.json 의 width×height(기본 2560×1440 QHD) 크기의 '무대'로 그려지고, 창 크기에 맞춰 통째로 축소·확대된다.
@@ -324,7 +324,7 @@ html[data-theme=dark] .notes{border-color:rgba(255,255,255,.18)}
 <body>
 <div id="stage">
 <header>
-  <div class="brand" onclick="goToday()" title="오늘"><span class="logo">📖</span><h1 id="bTitle">나의 일기</h1></div>
+  <div class="brand" onclick="goToday()" title="오늘"><span class="logo">📖</span><h1 id="bTitle">스프링노트</h1></div>
   <div class="search">
     <svg class="sicon" viewBox="0 0 20 20" width="16" height="16"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     <input id="search" placeholder="일기 찾기 — 낱말" autocomplete="off" oninput="sInput()" onfocus="sOpen()" onblur="sClose()" onkeydown="sKey(event)">
@@ -366,7 +366,9 @@ const FONTS = {
 };
 const INKS = {chart: ['파란 잉크 (교정차트와 같음)', '#16348a'], black: ['먹색', '#22262b'], brown: ['갈색', '#5b3a22']};
 const PAPERS = {chart: ['미백 (교정차트와 같음)', '#fffef8'], cream: ['미색', '#fbf6ea'], white: ['흰 종이', '#ffffff']};
-const DEF_SETTINGS = {title: '나의 일기', author: '', font: 'chart', ink: 'chart', paper: 'chart', lines: true};
+// 책 이름: 옛 기본 이름 '나의 일기'로 저장된 책은 새 이름으로 보인다 (자료는 그대로 — 설정에서 다른 이름을 쓰면 그 이름)
+const BOOK = '스프링노트', bookTitle = t => !t || t === '나의 일기' ? BOOK : t;
+const DEF_SETTINGS = {title: BOOK, author: '', font: 'chart', ink: 'chart', paper: 'chart', lines: true};
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -578,7 +580,7 @@ function datesOnSpread(){
 /* ---------- 그리기 ---------- */
 function sheetHTML(i, live){
   const pg = pages[i], side = i % 2 ? 'R' : 'L', st = db.settings;
-  const book = esc(st.title || '나의 일기');
+  const book = esc(bookTitle(st.title));
   if (!pg) return `<div class="sheet ${side}"></div>`;
   let title = '', right = '', body = '', left = '', pn = '', wx = '', segd = '';
   if (pg.k === 'end'){   // 날 수가 홀수인 3달의 마지막 오른쪽
@@ -640,7 +642,7 @@ function coverHTML(side){
   const season = `${SEASONS[qi.q - 1]} · ${qi.y}`, range = `${qi.m0}. 1 ~ ${last.getMonth() + 1}. ${last.getDate()}`;
   const style = `style="--cv:${COVER_COLORS[qi.q - 1]}"`;
   if (side === 'front') return `<div class="cover front" ${style} data-act="next" title="펼치기 (→)"><div class="cv-spine"></div><div class="cv-hinge"></div>
-      <div class="cv-mark">${esc(st.title || '나의 일기')}</div><div class="cv-rule"></div><div class="cv-sub">${season}</div>
+      <div class="cv-mark">${esc(bookTitle(st.title))}</div><div class="cv-rule"></div><div class="cv-sub">${season}</div>
       <div class="cv-foot">${st.author ? `<div class="nm">${esc(st.author)}</div>` : ''}<div class="gold">${range}</div></div></div>`;
   return `<div class="cover back" ${style} data-act="next"><div class="cv-spine"></div><div class="cv-hinge"></div><div class="cv-mark">끝</div></div>`;   // 뒤표지: '끝' 한 글자만 음각으로
 }
@@ -664,7 +666,7 @@ function drawRules(){
 }
 function updateBar(){
   document.documentElement.classList.toggle('bundle', view === 'bundle');
-  $('bTitle').textContent = document.title = db.settings.title || '나의 일기';
+  $('bTitle').textContent = document.title = bookTitle(db.settings.title);
   document.querySelectorAll('nav.seg button').forEach(x => x.classList.toggle('on', x.dataset.v === view));
   renderSide();
 }
@@ -1094,7 +1096,7 @@ function kbCard(){
   const R = ([k, t]) => `<div class="kb-r"><span>${k.split('  ·  ').map(x => `<kbd class="kbd big">${x}</kbd>`).join(' · ')}</span><em>${t}</em></div>`;
   const H = t => `<div class="kb-h" style="font-size:var(--t0);margin:14px 0 4px">${t}</div>`;
   const el = document.createElement('div'); el.id = 'kbcard';
-  el.innerHTML = `<div class="kb-box"><div class="kb-h">⌨ 나의 일기 단축키</div>${H('노트 (하루 한 쪽)')}${day.map(R).join('')}${H('쓰는 중')}${wr.map(R).join('')}${H('묶어 보기')}${bd.map(R).join('')}${H('어디서든')}${all.map(R).join('')}
+  el.innerHTML = `<div class="kb-box"><div class="kb-h">⌨ 스프링노트 단축키</div>${H('노트 (하루 한 쪽)')}${day.map(R).join('')}${H('쓰는 중')}${wr.map(R).join('')}${H('묶어 보기')}${bd.map(R).join('')}${H('어디서든')}${all.map(R).join('')}
     <div class="kb-f">아무 키나 누르면 닫혀요</div></div>`;
   el.onclick = kbClose; $('stage').appendChild(el);
   setTimeout(() => { if ($('kbcard')) document.addEventListener('keydown', kbKey, true); }, 0);
@@ -1217,7 +1219,7 @@ function opts(obj, cur, nameOf = v => v[0]){ return Object.entries(obj).map(([k,
 function openSettings(){
   const st = db.settings;
   openModal(`<h3>설정</h3>
-    <div class="grid2"><label class="fld"><span>책 제목 (종이 머리글 오른쪽)</span><input id="sTitle" maxlength="30" value="${esc(st.title)}"></label>
+    <div class="grid2"><label class="fld"><span>책 제목 (종이 머리글 오른쪽)</span><input id="sTitle" maxlength="30" value="${esc(bookTitle(st.title))}"></label>
     <label class="fld"><span>이름 (종이 아래 왼쪽)</span><input id="sAuthor" maxlength="20" value="${esc(st.author)}" placeholder="이름"></label>
     <label class="fld"><span>글꼴</span><select id="sFont">${opts(FONTS, st.font, v => v.name)}</select></label>
     <label class="fld"><span>잉크 색</span><select id="sInk">${opts(INKS, st.ink)}</select></label>
@@ -1228,7 +1230,7 @@ function openSettings(){
     <div class="note">기본값은 교정차트의 '메모' 쪽과 같은 종이·글씨·파란 잉크입니다. 글꼴을 바꾸면 쪽이 다시 나뉩니다.<br>화면 밝기는 머리글의 [☾ 다크], 창 크기는 [QHD] · F11.</div>`, box => {
     const upd = async () => {
       const fontChanged = st.font !== $('sFont').value;
-      Object.assign(st, {title: $('sTitle').value.trim() || '나의 일기', author: $('sAuthor').value.trim(), font: $('sFont').value, ink: $('sInk').value,
+      Object.assign(st, {title: $('sTitle').value.trim() || BOOK, author: $('sAuthor').value.trim(), font: $('sFont').value, ink: $('sInk').value,
                          paper: $('sPaper').value, lines: $('sLines').checked, swipeRev: $('sSwipe').checked});
       applySettings(); scheduleSave();
       if (fontChanged){ await waitFont(); segCache.clear(); bundleCache.key = ''; }
@@ -1241,7 +1243,7 @@ function openSettings(){
 }
 /* ---------- ⓘ 소개 · 환경 점검 · 고칠 점 메모 ---------- */
 function aboutOpen(){
-  openModal(`<h3>📖 나의 일기</h3>
+  openModal(`<h3>📖 스프링노트</h3>
     <div class="ab-grid">
       <div><b>노트</b><p>3달이 한 권, 하루가 한 쪽인 노트. 날짜마다 왼쪽·오른쪽 자리가 정해져 있고, 바로 씁니다. 날짜 옆에서 날씨를 한 번에 고릅니다.</p></div>
       <div><b>묶어 보기 (B)</b><p>3개월치 일기를 날짜 머리와 함께 이어 붙여, 한 권의 노트에 쓴 것처럼 넘겨 봅니다.</p></div>
@@ -1265,7 +1267,7 @@ async function envCheck(show){
   const fitTxt = scale < 0.999 ? `창이 작아 화면 전체를 ${Math.round(scale * 100)}% 로 줄여 보는 중` : '화면을 창 크기에 저절로 맞춤';
   out.push(['ok', `${s.screen ? `모니터 ${s.screen[0]}×${s.screen[1]}${s.scale ? ' · 배율 ' + s.scale + '%' : ''} · ` : ''}창 ${winW}×${winH} · ${fitTxt}`]);
   if (scale < 0.999) out.push(['warn', `창이 ${STAGE_MIN.w}×${STAGE_MIN.h}(화면 배율을 뺀 크기)보다 작아서 글씨까지 작게 보여요. 창을 키우거나 F11(전체 화면)을 누르면 제 크기로 보여요.`]);
-  if (!serverOK) out.push(['bad', '파일에 저장하지 못하고 브라우저 안에만 저장되고 있어요. 나의일기.pyw 로 실행해 주세요.']);
+  if (!serverOK) out.push(['bad', '파일에 저장하지 못하고 브라우저 안에만 저장되고 있어요. 나의도서관 프로그램으로 열어 주세요.']);
   else if (s.dataWritable === false) out.push(['bad', 'data 폴더에 쓸 수 없어요. 폴더 권한이나 디스크 공간을 확인해 주세요.']);
   else out.push(['ok', '쓰는 즉시 내 구글 드라이브(나의도서관 동기화 폴더)에 저장 — PC 와 다른 기기에도 함께']);
   const f = FONTS[db.settings.font];
