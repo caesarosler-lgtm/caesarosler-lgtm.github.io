@@ -778,6 +778,8 @@ const NAV = [['home', '홈'], ['trades', '매매 기록'], ['stats', '통계'], 
 // 훈련 탭은 파란 계열로 눈에 띄게 (.navtr — 고르면 [＋ 새 매매]였던 파란 버튼과 같은 색)
 // 매매 기록 탭 = 매매일지(day) · 매매 기록(trades) · 예약(appt) 를 한 탭으로 (2026-10-10 사용자). 세 화면(view)은 안에서 그대로 쓰고, 탭은 마지막에 보던 곳으로 간다.
 const TR_VIEWS = ['trades', 'day', 'appt'];
+// 탭에 마우스를 올리면 뜨는 설명 (2026-10-10 사용자: '플레이북'이라는 말이 낯설어서 — 이름은 두고 뜻을 보여 준다)
+const NAV_TIP = {play: '<b>플레이북 — 나의 매매 작전집</b><br>원래는 미식축구 팀이 상황별 작전을 미리 그려 둔 책입니다.<br>경기 중에는 새로 생각하지 않고, 책에 있는 작전을 골라 실행합니다.<br><br>여기서는 셋업(기법)마다 한 장씩 —<br>정의 · 진입 조건 체크리스트 · 손절 · 청산 · 피할 상황을 미리 적고,<br>잘한 매매(결정 등급 A)의 진입 차트가 모범 사례로 저절로 모입니다.<br><br>장중에 즉흥으로 판단하지 않고, 차분할 때 정해 둔 작전을 따르기 위한 책.'};
 let trLast = 'trades';
 const navOn = k => view === k || (k === 'stats' && view === 'cal') || (k === 'trades' && TR_VIEWS.includes(view));
 const goTab = k => go(k === 'trades' ? trLast : k);
@@ -800,7 +802,7 @@ function go(v){
 const isBook = () => view === 'day' || view === 'play' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
 function render(){
   document.documentElement.classList.toggle('focus', focusOn && isBook());
-  $('nav').innerHTML = NAV.map(([k, l], i) => `<button class="${navOn(k) ? 'on' : ''}${k === 'quiz' ? ' navtr' : ''}" onclick="goTab('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
+  $('nav').innerHTML = NAV.map(([k, l], i) => `<button class="${navOn(k) ? 'on' : ''}${k === 'quiz' ? ' navtr' : ''}" ${NAV_TIP[k] ? `data-tip="${esc(NAV_TIP[k])}"` : ''} onclick="goTab('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
   $('main').innerHTML = view === 'home' ? homeV() : view === 'day' ? trBar() + (dayMode === 'week' ? weekV() : dayV())
     : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : tSub === 'time' ? trBar() + ttV() : listV())
