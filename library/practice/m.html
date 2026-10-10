@@ -220,7 +220,7 @@ function renderDay(){
     const segs = splitSegs(part), rows = pageRows(part);
     h += `<section class="page" data-p="${p}"><div class="ph"><span>${parts.length > 1 ? `${p + 1}/${parts.length}쪽` : ''}</span><span class="cnt${rows > LINES ? ' over' : ''}" data-cnt="${p}">${rows} / ${LINES}줄${rows > LINES ? ' · 넘침' : ''}</span></div>`;
     segs.forEach((sg, s) => {
-      if (typeof sg === 'string') h += `<textarea data-p="${p}" data-s="${s}" rows="1" spellcheck="false"${!p && !s && !part && d === td ? ' placeholder="오늘은 어떤 하루였나요?"' : ''}></textarea>`;
+      if (typeof sg === 'string') h += `<textarea data-p="${p}" data-s="${s}" rows="1" spellcheck="false"></textarea>`;
       else {
         const on = SEL && SEL.p === p && SEL.s === s, pct = Math.round(sg.w / IMG_W * 100);
         h += `<div class="fig" data-p="${p}" data-s="${s}"><img src="${WEB.img(sg.file)}" alt="" style="width:${Math.min(100, pct)}%;aspect-ratio:${sg.w}/${sg.h}">`

@@ -608,7 +608,7 @@ function sheetHTML(i, live){
         ? `<textarea class="ink tb${s === segs.length - 1 ? ' last' : ''}" ${at} data-s="${s}" spellcheck="false" style="height:${lineCount(x) * LH}px"></textarea>`
         : `<div class="dimg" ${at} data-s="${s}" style="height:${imgRows(x) * LH}px"><img src="${imgURL(x.file)}" style="width:${x.w}px;height:${x.h}px" alt="" draggable="false">`
           + `<button class="dimx" data-act="imgdel" title="이 그림을 쪽에서 빼기 (그림 파일은 남겨 둬요)" style="left:${x.w - 26}px" tabindex="-1">✕</button><i class="dimr" style="left:${x.w - 12}px;top:${(imgRows(x) * LH + x.h) / 2 - 12}px" title="끌어서 크기 바꾸기"></i></div>`).join('');
-    } else body = live ? `<textarea class="ink tb" ${at} data-s="0" spellcheck="false" style="height:${(LINES + 6) * LH}px"${!e.body && !pg.p && pg.d === today() ? ` placeholder="${promptOf(pg.d)}"` : ''}></textarea>`
+    } else body = live ? `<textarea class="ink tb" ${at} data-s="0" spellcheck="false" style="height:${(LINES + 6) * LH}px"></textarea>`
                 : `<div class="ink tb">${esc(plainBody(part))}</div>`;
   } else {
     const qi = qInfo(qKey), first = pg.items.find(it => it.e);
@@ -650,11 +650,6 @@ function coverHTML(side){
       <div class="cv-foot">${st.author ? `<div class="nm">${esc(st.author)}</div>` : ''}<div class="gold">${range}</div></div></div>`;
   return `<div class="cover back" ${style} data-act="next"><div class="cv-spine"></div><div class="cv-hinge"></div><div class="cv-mark">끝</div></div>`;   // 뒤표지: '끝' 한 글자만 음각으로
 }
-// 오늘의 빈 쪽에 건네는 한 문장 — 날마다 바뀐다
-const PROMPTS = ['오늘은 어떤 하루였나요?', '오늘 가장 오래 머문 생각은 무엇이었나요?', '오늘 고마웠던 한 가지를 적어 볼까요?', '오늘의 나에게 한마디 해 준다면?',
-  '오늘 마음을 움직인 장면이 있었나요?', '내일의 나에게 남기고 싶은 말은?', '오늘 잘한 일 하나를 떠올려 보세요.', '지금 이 순간, 마음은 어떤가요?',
-  '오늘 누구와 어떤 이야기를 나눴나요?', '오늘 새로 알게 된 것이 있나요?', '오늘을 한 단어로 적는다면?'];
-const promptOf = d => PROMPTS[Math.floor(parseD(d) / 864e5) % PROMPTS.length];
 // 가로줄을 화면의 실제 점에 맞춰 그린다: 줄마다 정확히 1화소 → 몇 줄만 두꺼워 보이는 일이 없다
 function drawRules(){
   const dpr = devicePixelRatio || 1, col = getComputedStyle(document.documentElement).getPropertyValue('--rule').trim() || '#c8d2de';
