@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>복기</title>
+<title>트레이딩 시험지</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="복기">
+<meta name="apple-mobile-web-app-title" content="트레이딩 시험지">
 <script>if(matchMedia('(max-width: 820px)').matches&&!/[?&]full=1/.test(location.search))location.replace('m.html'+location.search)</script>
 <script>try{const h=window.parent!==window&&window.parent.SHARED;if(h)document.documentElement.dataset.theme=window.parent.document.documentElement.dataset.theme||'light';}catch(e){}</script>
 <style>
@@ -578,7 +578,7 @@ svg text{fill:var(--sub);font-size:12px;font-family:inherit}
 <body>
 <div id="stage">
   <header>
-    <div class="logo" onclick="goTab(OLD('home') ? 'home' : 'trades')"><i>R</i>복기</div>
+    <div class="logo" onclick="goTab(OLD('home') ? 'home' : 'trades')"><i>R</i>트레이딩 시험지</div>
     <div class="sw"><input id="q" placeholder="매매 검색 — 종목명 · 코드 · 전략 · 태그" autocomplete="off" oninput="sIdx=0;searchDraw()" onfocus="searchDraw()" onblur="setTimeout(()=>$('sres').hidden=true,180)" onkeydown="searchKey(event)"><kbd>/</kbd><div id="sres" hidden></div></div>
     <div class="seg" id="nav"></div>
     <span class="sp"></span>
@@ -2659,7 +2659,7 @@ function setV(){
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
       <h3 style="margin-top:12px">숨긴 기능 <small>잘 쓰지 않아 숨긴 옛 화면 — 켜면 다시 보입니다 (자료는 그대로 남아 있음)</small></h3>
       <div class="row">${[['dayFull', '매매일지 전체 장 (장전 · 장 마감 · 계획서 · 체결 · 복기 · 안 한 매매 · 주간 복기)'], ['trades', '매매 기록 탭 (한 매매 목록 · 종목 차트 · 종이 기록부 · 찾기)'], ['statsTab', '통계 탭 (질문 다섯 개)'], ['play', '플레이북 탭 (작전 카드)'], ['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
-      <div class="note" style="margin-top:12px">복기 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
+      <div class="note" style="margin-top:12px">트레이딩 시험지 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
 }
