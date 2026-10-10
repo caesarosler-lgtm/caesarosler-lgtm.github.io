@@ -2444,8 +2444,9 @@ let qzTab = 'today', dr = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0
 const DR_KIND = {pick: '고르기', num: '숫자', ox: 'O · X'}, DR_LV = ['', '쉬움', '보통', '어려움'], DR_CONF = ['', '낮음', '보통', '높음'];
 const DR_ST = {draft: '승인 대기', ok: '승인', off: '끔'};
 const caseById = id => db.cases.find(c => c.id === id);
-const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '문제'], ['bank', '문제은행'], ['grow', '성적표']].map(([k, l]) =>
-  `<button class="${qzTab === k ? 'on' : ''}" onclick="qzTab='${k}';${k === 'today' ? 'drillNext();' : ''}render()">${l}${k === 'bank' && db.cases.some(c => c.status === 'draft') ? ` <span class="needn">${db.cases.filter(c => c.status === 'draft').length}</span>` : ''}</button>`).join('')}</div></div>`;
+// [문제]는 왼쪽, 문제은행 · 성적표는 오른쪽 끝으로 (2026-10-10 사용자: '시험 치는데 거슬려')
+const qzBtn = ([k, l]) => `<button class="${qzTab === k ? 'on' : ''}" onclick="qzTab='${k}';${k === 'today' ? 'drillNext();' : ''}render()">${l}${k === 'bank' && db.cases.some(c => c.status === 'draft') ? ` <span class="needn">${db.cases.filter(c => c.status === 'draft').length}</span>` : ''}</button>`;
+const qzBar = () => `<div class="lbar"><div class="seg">${qzBtn(['today', '문제'])}</div><span class="sp"></span><div class="seg">${[['bank', '문제은행'], ['grow', '성적표']].map(qzBtn).join('')}</div></div>`;
 function drillNext(){
   const q = JC.drillQueue(db.cases, db.caseLog, today()).filter(id => id !== dr.cid || dr.a == null);
   dr = {...dr, cid: q[0] || null, a: null, ok: null, t0: Date.now()};
