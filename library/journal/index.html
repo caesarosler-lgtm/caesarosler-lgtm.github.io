@@ -992,7 +992,7 @@ function mcKeys(){
     <div class="mck-pad"><span class="lb top">지난달</span>${k('W', '지난달', 'mon-', 'w')}
       <span class="lb left">${wk ? '지난주' : '어제'}</span>${k('A', wk ? '지난주' : '어제', 'day-', 'a')}${k('S', '다음 달', 'mon+', 's')}${k('D', wk ? '다음 주' : '내일', 'day+', 'd')}<span class="lb right">${wk ? '다음 주' : '내일'}</span>
       <span class="lb bot">다음 달</span></div>
-    <div class="mck-f">${k('T', '오늘로', 'today', 'tk')}<span>오늘</span><i></i><kbd>←</kbd><kbd>→</kbd><span>${wk ? '한 주' : '하루'}</span><i></i><kbd>↑</kbd><kbd>↓</kbd><span>한 달</span></div></div>`;
+    <div class="mck-f">${k('T', '오늘로', 'today', 'tk')}<span>오늘</span>${wk || view !== 'day' ? `<i></i><kbd>←</kbd><kbd>→</kbd><span>${wk ? '한 주' : '하루'}</span>` : '<i></i><kbd>←</kbd><kbd>→</kbd><span>장 넘기기</span>'}<i></i><kbd>↑</kbd><kbd>↓</kbd><span>한 달</span></div></div>`;
 }
 function dateKey(act){
   ({'day-': () => dayGo(-1), 'day+': () => dayGo(1), 'mon-': () => dayMonth(-1), 'mon+': () => dayMonth(1), 'today': () => dayGo(0)})[act]();
@@ -1019,7 +1019,7 @@ function dayV(){
         <button onclick="dayGo(0)">오늘<kbd>T</kbd></button><span class="sp"></span><button onclick="focusToggle()">⛶ 집중 보기<kbd>F</kbd></button></div>
       <div class="bkdesk" id="desk" onwheel="dkWheel(event)"><div class="spread" id="spread"><div class="sheetbox left">${sp.l()}</div><div class="sheetbox right">${sp.r()}</div></div></div>
       <div class="bkfoot"><button onclick="dkGo(${dk - 1})" ${dk <= 0 ? 'disabled' : ''}>◀ 이전 장</button><span class="pg">${SP.map((x, i) => `<button class="${i === dk ? 'on' : ''}${x.add ? ' padd' : ''}" onclick="dkGo(${i})">${esc(x.label)}</button>`).join('')}</span><button onclick="dkGo(${dk + 1})" ${dk >= SP.length - 1 ? 'disabled' : ''}>다음 장 ▶</button>
-        <span class="keyhint">종이에 바로 쓰면 자동 저장 · PgUp PgDn 장 넘기기 · A D 하루씩 · N 새 매매 · F 집중 보기</span></div></div></div>`;
+        <span class="keyhint">종이에 바로 쓰면 자동 저장 · ← → 장 넘기기 · A D 하루씩 · N 새 매매 · F 집중 보기</span></div></div></div>`;
 }
 const dayObj = d => db.days[d] = db.days[d] || {};
 function dayIn(d, k, v){ dayObj(d)[k] = v; save(); }
@@ -3372,7 +3372,7 @@ document.addEventListener('mousemove', e => {
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
 const KEYS = [['1 2', '화면 이동 (매매일지 · 훈련) — 숨긴 탭을 켜면 번호가 늘어납니다'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
-  ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
+  ['← →', '종이 장 넘기기 (매매일지 하루도) · 주간 복기는 한 주씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
   ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
@@ -3427,7 +3427,7 @@ document.addEventListener('keydown', e => {
   }
   if (isTT() && k === 'v') return hit(() => { ttMode = ttMode === 'week' ? 'day' : 'week'; render(); });
   if (view === 'appt' && k === 'v') return hit(() => { apMode = apMode === 'week' ? 'day' : 'week'; render(); });
-  if (view === 'day' && dayMode === 'day' && (k === 'PageUp' || k === 'PageDown')) return hit(() => dkGo(dk + (k === 'PageDown' ? 1 : -1)));
+  if (view === 'day' && dayMode === 'day' && ['PageUp', 'PageDown', 'ArrowLeft', 'ArrowRight'].includes(k)) return hit(() => dkGo(dk + (k === 'PageDown' || k === 'ArrowRight' ? 1 : -1)));   // 매매일지 하루: ← → = 장 넘기기 (2026-10-10 사용자), 날짜는 A D
   if (view === 'day' || isTT() || view === 'appt'){
     if (k === 'a' || k === 'ArrowLeft') return hit(() => dateKey('day-'));
     if (k === 'd' || k === 'ArrowRight') return hit(() => dateKey('day+'));
