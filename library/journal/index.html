@@ -411,6 +411,31 @@ html[data-theme=dark] .kc{box-shadow:0 1px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(2
 .sksec{font-weight:600;font-size:var(--t0);margin-top:var(--s2)}
 .sksec:first-child{margin-top:0}
 .sksec small{font-weight:400;color:var(--sub);font-size:var(--t-1);margin-left:8px}
+/* 통계 — 질문 다섯 개 */
+.st5{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:auto;gap:var(--s5);align-content:start;overflow:auto}
+.st5c.wide{grid-column:1/-1}
+.st5c h3{font-size:var(--t1)}
+.stwait{color:var(--muted);font-size:var(--t0);padding:18px 0}
+.stline{display:flex;align-items:center;gap:var(--s6);font-size:var(--t1)}
+.stline b{font-size:var(--t3);font-variant-numeric:tabular-nums}
+.stspark{width:420px;height:64px}
+.stspark path{fill:none;stroke-width:2.5}.stspark path.up{stroke:var(--up)}.stspark path.dn{stroke:var(--dn)}
+.stspark line.z{stroke:var(--line);stroke-dasharray:4 4}
+.stbars{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.stbar{display:grid;grid-template-columns:200px 1fr 90px 76px 52px;gap:12px;align-items:center;font-size:var(--t0)}
+.stbar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stbar .tr{height:12px;background:rgba(128,128,128,.12);border-radius:6px;overflow:hidden}
+.stbar .tr i{display:block;height:100%;border-radius:6px;background:var(--muted)}
+.stbar .tr i.up{background:var(--up)}.stbar .tr i.dn{background:var(--dn)}
+.stbar .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.stbar .vd{font-weight:700;color:var(--sub)}.stbar .vd.up{color:var(--up)}.stbar .vd.dn{color:var(--dn)}
+.stkv{display:grid;grid-template-columns:auto auto auto 1fr;gap:12px 18px;align-items:baseline;font-size:var(--t1);margin-bottom:8px}
+.stkv span:not(.muted){color:var(--sub);font-size:var(--t0)}
+.stkv2{display:grid;grid-template-columns:auto 1fr;gap:12px 18px;align-items:baseline;font-size:var(--t1);margin-bottom:8px}
+.stkv2>span{color:var(--sub);font-size:var(--t0)}
+.stmis{margin:0 0 8px;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:var(--t1)}
+.stmis li{display:grid;grid-template-columns:1fr 60px 110px;align-items:baseline}
+.stmis li b:last-child{text-align:right}
 .skq{display:flex;flex-direction:column;gap:2px}
 .skq span{font-size:var(--t-1);color:var(--sub)}
 .skq p{margin:0;line-height:1.6;white-space:pre-wrap}
@@ -2023,7 +2048,56 @@ function grp(L, keyFn, order){
 }
 const stSeg = () => `<div class="seg">${[['proc', '과정 — 결정의 질'], ['perf', '성과'], ['scalp', '단타 분석']].map(([k, l]) =>
   `<button class="${view === 'stats' && stTab === k ? 'on' : ''}" onclick="stTab='${k}';go('stats')">${l}</button>`).join('')}</div>`;
+/* =====================================================================
+   7-0. 통계 — 질문 다섯 개, 한 화면 (2026-10-10 사용자: '너무 복잡해서 뭐가 뭔지 모르겠다' → A 안).
+   ① 요즘 어때? ② 어떤 기법이 나한테 맞나? ③ 언제 잘 되고 언제 안 되나? ④ 무엇이 나를 잃게 하나? ⑤ 결정은 좋아지고 있나?
+   계산은 JC.analyze (단타 분석과 같은 숫자). 판정(잘 됨 · 안 됨)은 늘 R 기준. 옛 화면(과정 · 성과 · 단타 분석)은 숨긴 기능 'stats'.
+   ===================================================================== */
+let stP = '3m';
+const ST_MIN = 5;   // 이보다 적으면 표 대신 '쌓이면 보여요'
 function statsV(){
+  if (OLD('stats')) return oldStatsV();
+  const td = today(), from = stP === 'm' ? td.slice(0, 8) + '01' : stP === '3m' ? addMonths(td, -3) : '0000';
+  const items = anItems(from, td), val = HM() ? 'r' : 'pnl', a = JC.analyze(items, val), aR = JC.analyze(items, 'r'), b = a.basic, few = b.n < ST_MIN;
+  const wait = n => `<div class="stwait">청산한 매매가 ${n}건 이상 쌓이면 보여요${b.n ? ` · 지금 ${b.n}건` : ''}</div>`;
+  const card = (q, body, wide) => `<div class="card st5c${wide ? ' wide' : ''}"><h3>${q}</h3>${body}</div>`;
+  // ① 요즘 어때?
+  const spark = () => { const pts = a.curve.map(p => p.cum); if (pts.length < 2) return ''; const W = 420, H = 64, lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), sp = hi - lo || 1;
+    const X = i => i / (pts.length - 1) * W, Y = v => H - 4 - (v - lo) / sp * (H - 8);
+    return `<svg class="stspark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" class="z"/><path d="${pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join('')}" class="${pts.at(-1) >= 0 ? 'up' : 'dn'}"/></svg>`; };
+  const c1 = !b.n ? '<div class="stwait">이 기간에 청산한 매매가 없어요</div>'
+    : `<div class="stline"><span><b>${b.n}</b>건</span><span>승률 <b>${b.winRate.toFixed(0)}%</b></span><span>합계 <b class="${cls(b.total)}">${fw(b.total)}</b></span>${b.payoff ? `<span>손익비 <b>${b.payoff.toFixed(1)}</b></span>` : ''}<span class="sp"></span>${spark()}</div>`;
+  // ② 어떤 기법이 나한테 맞나?
+  const verdict = r => r.n < 3 ? ['아직 적음', ''] : r.expectancy >= 0.2 ? ['잘 됨', 'up'] : r.expectancy <= -0.1 ? ['안 됨', 'dn'] : ['보통', ''];
+  const setups = a.bySetup.map(r => ({...r, rv: (aR.bySetup.find(x => x.key === r.key) || r)})), mx = Math.max(1e-9, ...setups.map(r => Math.abs(r.expectancy)));
+  const c2 = few ? wait(ST_MIN) : `<div class="stbars">${setups.map(r => { const [v, k] = verdict(r.rv); return `<div class="stbar"><span class="nm">${esc(r.key)}</span>
+      <span class="tr"><i class="${cls(r.expectancy)}" style="width:${Math.max(2, Math.abs(r.expectancy) / mx * 100)}%"></i></span><span class="num ${cls(r.expectancy)}">${sv(r.expectancy)}</span><span class="vd ${k}">${v}</span><span class="muted">${r.n}건</span></div>`; }).join('')}</div>
+      <div class="note">막대 = 한 번 매매할 때 평균 결과 (건당 기대값). 3건 미만은 '아직 적음'.</div>`;
+  // ③ 언제 잘 되고 언제 안 되나?
+  const slots = aR.bySlot30.filter(r => r.key.includes('–') && r.n >= ST_MIN), best = [...slots].sort((x, y) => y.expectancy - x.expectancy)[0], worst = [...slots].sort((x, y) => x.expectancy - y.expectancy)[0];
+  const sval = r => sv((a.bySlot30.find(x => x.key === r.key) || r).expectancy);
+  const c3 = few ? wait(ST_MIN) : !slots.length ? `<div class="stwait">한 시간대(30분)에 ${ST_MIN}건 이상 쌓이면 보여요</div>`
+    : `<div class="stkv"><span>잘 되는 때</span><b>${best.key}</b><b class="${cls(best.expectancy)}">${sval(best)}</b><span class="muted">${best.n}건</span>
+        ${worst && worst !== best && worst.expectancy < 0 ? `<span>안 되는 때</span><b>${worst.key}</b><b class="dn">${sval(worst)}</b><span class="muted">${worst.n}건</span>` : '<span>안 되는 때</span><b class="muted" style="grid-column:span 3">손해 보는 시간대가 아직 없어요</b>'}</div>
+      <div class="note">진입 시각 기준 · 건당 기대값 · ${ST_MIN}건 이상인 시간대만</div>`;
+  // ④ 무엇이 나를 잃게 하나?
+  const mis = a.byMistake.filter(r => r.total < 0).slice(0, 3);
+  const c4 = few ? wait(ST_MIN) : !mis.length ? '<div class="stwait">실수로 잃은 매매가 아직 없어요 — 매매일지의 복기 장에서 실수 점검에 ☒ 를 하면 여기 모여요</div>'
+    : `<ol class="stmis">${mis.map(r => `<li><b>${esc(r.key)}</b><span class="muted">${r.n}번</span><b class="dn">${fw(r.total)}</b></li>`).join('')}</ol><div class="note">그 실수가 있었던 매매의 결과를 더한 것 — 가장 많이 잃게 한 순</div>`;
+  // ⑤ 결정은 좋아지고 있나? (기간과 상관없이 최근 석 달)
+  const months = [-2, -1, 0].map(n => addMonths(td.slice(0, 8) + '01', n).slice(0, 7)), cl = closedList();
+  const pm = months.map(m => ({m, pr: proc(cl.filter(x => x.c.close.startsWith(m)))})).filter(x => x.pr.n);
+  const trend = (get, fmtv) => { const xs = pm.map(x => ({m: x.m, v: get(x.pr)})).filter(x => x.v != null); if (!xs.length) return '<span class="muted">아직 없음</span>';
+    const arrow = xs.length > 1 ? (xs.at(-1).v > xs[0].v ? ' <b class="up">↑</b>' : xs.at(-1).v < xs[0].v ? ' <b class="dn">↓</b>' : ' →') : '';
+    return xs.map(x => `${+x.m.slice(5)}월 <b>${fmtv(x.v)}</b>`).join(' → ') + arrow; };
+  const c5 = !pm.length ? '<div class="stwait">최근 석 달 동안 청산한 매매가 없어요</div>'
+    : `<div class="stkv2"><span>A·B 결정 비율</span><div>${trend(p => p.ab, v => v.toFixed(0) + '%')}</div><span>원칙 준수 (5점)</span><div>${trend(p => p.follow, v => v.toFixed(1))}</div></div>
+      <div class="note">결과(돈)와 상관없이 결정의 질 — 매매일지 복기 장의 결정 등급 · 원칙 준수 점에서</div>`;
+  return `<div class="lbar"><div class="seg">${[['m', '이번 달'], ['3m', '3개월'], ['all', '전체']].map(([k, l]) => `<button class="${stP === k ? 'on' : ''}" onclick="stP='${k}';render()">${l}</button>`).join('')}</div>
+      <span class="sp"></span><span class="muted" style="font-size:var(--t-1)">청산 ${b.n}건 · 기준 ${HM() ? 'R (M 키로 원)' : '원 (M 키로 R)'}</span></div>
+    <div class="st5">${card('① 요즘 어때?', c1, true)}${card('② 어떤 기법이 나한테 맞나?', c2)}${card('③ 언제 잘 되고 언제 안 되나?', c3)}${card('④ 무엇이 나를 잃게 하나?', c4)}${card('⑤ 결정은 좋아지고 있나?', c5)}</div>`;
+}
+function oldStatsV(){   // 옛 통계 화면 (과정 · 성과 · 단타 분석) — 숨긴 기능 'stats' 를 켤 때만
   if (stTab === 'scalp') return scalpV();
   const from = rangeFrom(stRange), L = closedList().filter(x => x.c.close >= from);
   return `<div class="row" style="margin-bottom:16px">${stSeg()}
@@ -2545,7 +2619,7 @@ function setV(){
       <div class="note">가상의 매매 60건(봉인된 계획 · 수정 이력 · 결정 등급 · 연습용 차트), 매매일지, 주간 복기, 안 한 매매를 만듭니다. ‘샘플’ 표시가 붙고 [샘플 지우기]로 한 번에 지웁니다.</div>
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
       <h3 style="margin-top:12px">숨긴 기능 <small>잘 쓰지 않아 숨긴 옛 화면 — 켜면 다시 보입니다 (자료는 그대로 남아 있음)</small></h3>
-      <div class="row">${[['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
+      <div class="row">${[['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
       <div class="note" style="margin-top:12px">트레이딩 차트 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
