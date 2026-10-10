@@ -287,6 +287,27 @@ html[data-theme=dark] .spread{filter:brightness(.93)}
 .flag.bad{color:#a01020;background:#fdeeee;border-left-color:#d05050}
 .focusbox{border:1.5px solid #2f6fb2;background:#f3f7fc;padding:6px 10px;margin-bottom:8px;font-size:13.5px;color:#16348a;display:flex;gap:10px;align-items:baseline}
 .focusbox b{color:#2f6fb2;white-space:nowrap;font-size:12px}
+/* 종이에 바로 쓰는 칸 (매매일지 안의 매매 장) */
+.sheet .pin{display:block;width:100%;border:none;border-radius:0;background:transparent;font:inherit;font-size:13px;color:#16348a;padding:0;margin:0;outline:none;box-shadow:none;min-height:20px}
+.sheet .pin.r{text-align:right;font-variant-numeric:tabular-nums}
+.sheet .pin:focus{background:rgba(47,111,178,.07)}
+.sheet .pin::placeholder{color:#b4bcc6}
+.sheet .pin:disabled{opacity:.35}
+.sheet select.pin{appearance:none;-webkit-appearance:none;cursor:pointer}
+.sheet input.pin::-webkit-outer-spin-button,.sheet input.pin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sheet input.pin::-webkit-calendar-picker-indicator{opacity:.35;cursor:pointer}
+.pbtn{display:inline-block;border:1px dashed #b9c2cd;border-radius:4px;padding:2px 10px;margin-right:8px;font-size:12px;cursor:pointer;color:#2f6fb2;background:none}
+.pbtn:hover{background:rgba(47,111,178,.07)}
+.pside{cursor:pointer;user-select:none}
+.pdel{cursor:pointer;color:#b0b7bf}.pdel:hover{color:#c8102e}
+.ppimgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ppimgs figure{margin:0;border:1px solid #c9ced4;padding:4px;background:#fff}
+.ppimgs img{display:block;width:100%;height:150px;object-fit:contain;background:#f4f5f6;cursor:zoom-in}
+.ppimgs figcaption{font-size:11px;color:#555;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bkfoot .pg{display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden;min-width:0}
+.bkfoot .pg button{white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;padding:4px 12px;font-size:var(--t-1);border-radius:var(--r-pill)}
+.bkfoot .pg button.on{background:var(--accent);color:#fff}
+.bkfoot .pg button.padd{color:var(--accent)}
 .stamp{display:inline-block;border:1.5px solid #2f6fb2;color:#2f6fb2;border-radius:4px;padding:0 6px;font-size:11.5px;font-weight:700;transform:rotate(-2deg)}
 .stamp.late{border-color:#b25000;color:#b25000}
 .pg-g{font-size:26px!important;font-weight:800}
@@ -938,15 +959,18 @@ const daySide = (d, body) => `<div class="bkside"><div class="card"><div class="
     <div class="muted" style="font-size:var(--t-2);margin-top:6px;text-align:center">아래 점: <span class="up">●</span> 수익 · <span class="dn">●</span> 손실 · <span style="opacity:.6">●</span> 일지만</div>${mcKeys()}</div>${body}</div>`;
 function dayV(){
   const d = dayD, fl = dayFills(d), ts = [...new Set(fl.map(x => x.t))];
+  if (dkDay !== d){ dkDay = d; dk = 0; ppNew = null; }
+  const SP = daySpreads(d, fl); dk = clip(dk, 0, SP.length - 1); const sp = SP[dk];
   return `<div class="bkwrap">${daySide(d, `<div class="card" style="flex:1"><h3>이날 매매한 종목 <small>${ts.length}종목 · 체결 ${fl.length}건</small></h3>
         <div class="plist">${ts.length ? ts.map(t => { const c = calc(t), v = sum(c.events.filter(e => e.date === d).map(evV));
-          return `<div class="pr" onclick="rowOpen(event,'${t.id}')"><span class="dt ${c.status}"></span><span><b>${esc(t.name)}</b><small>${esc(t.setup || '')} · ${stName[c.status]}</small></span><span class="${cls(v)}" style="font-weight:700">${v ? fw(v) : ''}</span></div>`; }).join('')
+          return `<div class="pr" onclick="ppOpen('${t.id}')" title="이날 매매일지 안의 이 매매 장으로"><span class="dt ${c.status}"></span><span><b>${esc(t.name)}</b><small>${esc(t.setup || '')} · ${stName[c.status]}</small></span><span class="${cls(v)}" style="font-weight:700">${v ? fw(v) : ''}</span></div>`; }).join('')
           : '<div class="empty">이날 체결이 없습니다.</div>'}</div>
-        <button onclick="newTrade(dayD)">＋ 이날 매매 기록하기</button></div>`)}
+        <button onclick="ppOpen('new')">＋ 이날 매매 기록하기 <kbd>N</kbd></button></div>`)}
     <div class="book"><div class="bkbar">${daySeg()}<button onclick="dayGo(-1)">◀ 이전 거래일<kbd>A</kbd></button><span class="ttl">${dFull(d)}</span><button onclick="dayGo(1)">다음 거래일 ▶<kbd>D</kbd></button>
         <button onclick="dayGo(0)">오늘<kbd>T</kbd></button><span class="sp"></span><button onclick="focusToggle()">⛶ 집중 보기<kbd>F</kbd></button></div>
-      <div class="bkdesk" id="desk"><div class="spread" id="spread"><div class="sheetbox left">${dayPre(d)}</div><div class="sheetbox right">${dayPost(d, fl)}</div></div></div>
-      <div class="bkfoot"><button onclick="dayGo(-1)">◀</button><span id="bkInfo" style="font-weight:700">${dDot(d)}</span><button onclick="dayGo(1)">▶</button><span class="keyhint">종이에 바로 쓰면 자동 저장 · A D(← →) 하루씩 · W S 한 달씩 · T 오늘 · V 주간 복기 · F 집중 보기</span></div></div></div>`;
+      <div class="bkdesk" id="desk" onwheel="dkWheel(event)"><div class="spread" id="spread"><div class="sheetbox left">${sp.l()}</div><div class="sheetbox right">${sp.r()}</div></div></div>
+      <div class="bkfoot"><button onclick="dkGo(${dk - 1})" ${dk <= 0 ? 'disabled' : ''}>◀ 이전 장</button><span class="pg">${SP.map((x, i) => `<button class="${i === dk ? 'on' : ''}${x.add ? ' padd' : ''}" onclick="dkGo(${i})">${esc(x.label)}</button>`).join('')}</span><button onclick="dkGo(${dk + 1})" ${dk >= SP.length - 1 ? 'disabled' : ''}>다음 장 ▶</button>
+        <span class="keyhint">종이에 바로 쓰면 자동 저장 · PgUp PgDn 장 넘기기 · A D 하루씩 · N 새 매매 · F 집중 보기</span></div></div></div>`;
 }
 const dayObj = d => db.days[d] = db.days[d] || {};
 function dayIn(d, k, v){ dayObj(d)[k] = v; save(); }
@@ -988,8 +1012,184 @@ function dayPost(d, fl){
     ${bsec('내일 할 일 · 고칠 것')}${lt(3, o.next, `dayIn('${d}','next',this.value)`)}
     <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;color:#555;font-size:13px"><span>오늘 과정 점수 ${pdots(o.score || 0, 5, 'dayScore')} <span class="m">(돈이 아니라 과정)</span></span><span>작성자 : ${esc(OWNER) || '______________'}</span></div>`, `${dDot(d)} · 장 마감`, '오른쪽');
 }
+/* =====================================================================
+   2-1. 매매일지 안의 매매 장 (2026-10-10 사용자: '매매 기록 쓰기 내용을 매매일지 다음 장에 종이에 쓰듯') —
+   그날 매매마다 두 펼침: [매매 계획서 | 체결 · 차트] [매매 복기 | 판단 기록], 맨 끝은 [＋ 새 매매] (종목명을 적는 순간 매매가 생긴다).
+   쓰는 대로 그 매매에 바로 저장 (쓰기 화면 editV 의 draft 를 거치지 않는다). 지키는 규칙은 같다:
+   첫 체결이 들어가는 순간 계획 봉인 · 봉인된 계획(가격 · 근거 · 재료 · 시나리오)을 고치면 사유를 받아 수정 이력(revs)으로.
+   ===================================================================== */
+let dk = 0, dkDay = null, ppNew = null;
+const ppBlank = () => ({id: uid(), no: 0, name: '', code: '', market: 'KOSPI', setup: '', tf: '단타', tags: [], created: dayD,
+  plan: {entry: '', target: '', stop: '', qty: '', why: '', catalyst: '', scenario: '', checks: {}, sc: {}, conf: 3, emo: ''}, fills: [], revs: [], lo: '', hi: '',
+  review: {grade: '', follow: 0, emo: '', mistakes: [], good: '', bad: '', lesson: '', next: ''}, images: [], memo: ''});
+const ppT = id => id === 'new' ? (ppNew = ppNew || ppBlank()) : tradeById(id);
+function dayTrades(d){   // 그날 체결이 있거나 그날 계획만 세운 매매 — 그날 첫 체결 시각 순
+  const first = t => (t.fills.filter(f => f.date === d).map(f => f.time || '99').sort()[0]) || '98';
+  return db.trades.filter(t => t.fills.some(f => f.date === d) || (t.created === d && !t.fills.some(f => f.date && n0(f.qty) > 0)))
+    .sort((a, b) => first(a).localeCompare(first(b)) || n0(a.no) - n0(b.no));
+}
+function daySpreads(d, fl){
+  const L = [{label: '장전 · 장 마감', l: () => dayPre(d), r: () => dayPost(d, fl)}];
+  dayTrades(d).forEach(t => { const nm = t.name || '(이름 없음)';
+    L.push({label: `${nm} — 계획 · 체결`, id: t.id, l: () => ppPlan(t, t.id), r: () => ppFills(t, t.id)}, {label: `${nm} — 복기 · 판단`, id: t.id, l: () => ppReview(t, t.id), r: () => ppJudge(t, t.id)}); });
+  L.push({label: '＋ 새 매매', add: true, id: 'new', l: () => ppPlan(ppT('new'), 'new'), r: () => ppFills(ppT('new'), 'new')});
+  return L;
+}
+function dkGo(i){ const n = daySpreads(dayD, dayFills(dayD)).length; const j = clip(i, 0, n - 1); if (j !== dk){ dk = j; render(); } }
+let _dkWheel = 0;
+function dkWheel(e){ if (e.target.closest('textarea,input,select') || Date.now() - _dkWheel < 280) return; _dkWheel = Date.now(); dkGo(dk + (e.deltaY > 0 ? 1 : -1)); }
+function ppOpen(id){   // 매매일지에서 그 매매의 첫 장으로 ('new' = 새 매매 장)
+  if (view !== 'day' || dayMode !== 'day'){ dayMode = 'day'; go('day'); }
+  const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, id === 'new' ? SP.length - 1 : SP.findIndex(x => x.id === id)); render();
+  if (id === 'new') setTimeout(() => $('pp_name')?.focus(), 40);
+}
+function ppCur(){ if (view !== 'day' || dayMode !== 'day') return null; const x = daySpreads(dayD, dayFills(dayD))[dk]; return x && x.id && x.id !== 'new' ? tradeById(x.id) : null; }
+const ppTouch = (t, id) => { if (id !== 'new'){ t.updated = new Date().toISOString(); save(); } };
+function ppSet(id, path, v){   // 글 · 숫자 칸 (봉인 안 된 계획 · 복기 · 메모)
+  const t = ppT(id); if (!t) return; const ks = path.split('.'); let o = t; ks.slice(0, -1).forEach(k => o = o[k]); o[ks.at(-1)] = v; ppTouch(t, id);
+  if (path.startsWith('plan.')) ppRefresh(t, id);
+}
+function ppRefresh(t, id){ const c = calc(t, true), a = $('pp_rr_' + id), b = $('pp_fs_' + id), r = $('pp_r_' + id); if (a) a.innerHTML = rrLine(t, c); if (b) b.innerHTML = ppFillSum(t, c); if (r) r.innerHTML = rLine(t, c); }
+function ppName(id, v, by){   // 종목명 · 코드 — 아는 종목이면 코드 · 시장을 채운다. 새 매매 장에서 종목명을 적으면 매매가 생긴다
+  const t = ppT(id); if (!t) return; v = String(v || '').trim();
+  if (by === 'name'){ const m = v.match(/^(.*?)\s*\((\d{6})\)$/); t.name = m ? m[1] : v; if (m) t.code = m[2]; } else t.code = v.replace(/^A(?=\d{6}$)/, '');
+  const look = Object.entries(db.names).map(([c, x]) => [c, x.name, x.market]).concat(KNOWN);
+  const hit = by === 'name' ? look.find(x => (t.code && x[0] === t.code) || x[1] === t.name) : look.find(x => x[0] === t.code);
+  if (hit){ t.name = t.name || hit[1]; if (by === 'code' || !t.code) t.code = hit[0]; if (hit[2]) t.market = hit[2]; }
+  if (id === 'new'){
+    if (!t.name) return;
+    t.no = ++db.seq; db.trades.push(t); ppNew = null; if (t.code) db.names[t.code] = {name: t.name, market: t.market};
+    save(); fillNameList(); const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => x.id === t.id)); render();
+    toast(`No. ${t.no} ${t.name} — 이 장에 쓰는 대로 저장됩니다`); return;
+  }
+  if (t.code) db.names[t.code] = {name: t.name, market: t.market};
+  ppTouch(t, id); fillNameList(); render();
+}
+function ppSeal(id, k, el){   // 봉인된 계획 칸을 고칠 때: 사유를 받아 이력으로 (돌아가기 = 원래대로)
+  const t = ppT(id), f = SEAL_F.find(x => x[0] === k); if (!t || !f) return; const from = t.plan[k] ?? '', to = el.value;
+  if ((f[2] ? n0(from) === n0(to) : String(from).trim() === String(to).trim())) return;
+  modal(`<h3>🔒 봉인된 계획을 고칩니다 — 사유를 남겨 주세요</h3>
+    <div class="note">원래 계획은 지워지지 않습니다. <b>${f[1]}</b> ${f[2] ? `${from ? fmt(from) : '없음'} → <b>${to ? fmt(to) : '없음'}</b>` : '내용 수정'} — 시각 · 사유와 함께 수정 이력에 남습니다.</div>
+    ${k === 'stop' && n0(to) < n0(from) ? '<div class="note" style="color:var(--danger)"><b>손절가를 내리고 있습니다.</b> R 은 계속 처음 손절가 기준으로 계산됩니다.</div>' : ''}
+    <input id="rsn" placeholder="왜 바꾸나요? (예: 지지선을 다시 그어서)" onkeydown="if(event.key==='Enter')ppSealOk('${id}','${k}')">
+    <div class="bt"><button onclick="ppSealNo('${id}','${k}')">돌아가기</button><button class="primary" onclick="ppSealOk('${id}','${k}')">이력에 남기고 저장</button></div>`);
+  ppSealTo = to; setTimeout(() => $('rsn')?.focus(), 30);
+}
+let ppSealTo = '';
+function ppSealOk(id, k){
+  const v = $('rsn').value.trim(); if (!v){ toast('사유를 적어 주세요'); return; }
+  const t = ppT(id), f = SEAL_F.find(x => x[0] === k), from = t.plan[k] ?? '';
+  t.revs.push({at: nowL(), k, l: f[1], num: !!f[2], from: f[2] ? n0(from) : from, to: f[2] ? n0(ppSealTo) : ppSealTo, reason: v});
+  t.plan[k] = ppSealTo; ppTouch(t, id); closeModal(); render(); toast('수정 이력에 남기고 저장했습니다');
+}
+function ppSealNo(id, k){ closeModal(); render(); }
+function ppSealCheck(t, id){   // 첫 체결이 들어가는 순간 계획 봉인 (쓰기 화면 commitDraft 와 같은 규칙)
+  if (id === 'new' || t.seal) return; const ok = t.fills.filter(f => f.date && n0(f.price) > 0 && n0(f.qty) > 0).sort(byDT); if (!ok.length) return;
+  const p = t.plan; t.seal = {at: nowL(), late: ok[0].date < today(), entry: n0(p.entry), target: n0(p.target), stop: n0(p.stop), qty: n0(p.qty), why: p.why || '', catalyst: p.catalyst || '', scenario: p.scenario || '', setup: t.setup};
+  toast(t.seal.late ? '첫 체결 — 계획이 진입 뒤에 적혀 "사후 작성"으로 봉인됐습니다' : '첫 체결 — 🔒 계획이 봉인됐습니다');
+  const el = $('pp_seal_' + id); if (el) el.innerHTML = ppSealNote(t);
+}
+function ppFill(id, i, k, v){ const t = ppT(id); if (!t || !t.fills[i]) return; t.fills[i][k] = v; ppTouch(t, id); ppRefresh(t, id); }
+function ppFillDone(id){ const t = ppT(id); if (t) ppSealCheck(t, id); }
+function ppFillSide(id, i){ const t = ppT(id), f = t && t.fills[i]; if (!f) return; f.side = f.side === 'B' ? 'S' : 'B'; if (f.side === 'B') f.tax = ''; ppTouch(t, id); render(); }
+function ppFillDel(id, i){ const t = ppT(id); if (!t || !confirm('이 체결 줄을 지울까요?')) return; t.fills.splice(i, 1); ppTouch(t, id); render(); }
+function ppFillAdd(id, side){
+  const t = ppT(id); if (!t) return; if (id === 'new'){ toast('종목명을 먼저 적어 주세요 — 적는 순간 이 매매가 만들어집니다'); $('pp_name')?.focus(); return; }
+  const c = calc(t, true), last = t.fills.at(-1);
+  t.fills.push({id: uid(), date: last?.date || dayD, time: side === 'S' ? (last?.time || '') : '', side,   /* 매도 줄은 앞 체결 시각으로 시작 — 시각이 비면 매수보다 앞에 놓여 계산이 틀어진다 */ price: side === 'B' ? (t.plan.entry || last?.price || '') : (last?.price || ''), qty: side === 'S' ? (c.qty || '') : (t.plan.qty || ''), fee: '', tax: ''});
+  ppTouch(t, id); render(); const rows = document.querySelectorAll('.ppf tbody tr.fr'); rows[rows.length - 1]?.querySelectorAll('input')[1]?.focus();
+}
+function ppToggle(id, kind, x){   // 누르는 칸들
+  const t = ppT(id); if (!t) return; const p = t.plan, r = t.review;
+  if (kind === 'grade') r.grade = r.grade === x ? '' : x;
+  else if (kind === 'emoPre') p.emo = p.emo === db.emotions[x] ? '' : db.emotions[x];
+  else if (kind === 'emoPost') r.emo = r.emo === db.emotions[x] ? '' : db.emotions[x];
+  else if (kind === 'mis'){ const m = db.mistakes[x]; r.mistakes = r.mistakes.includes(m) ? r.mistakes.filter(y => y !== m) : [...r.mistakes, m]; }
+  else if (kind === 'again') r.again = r.again === x ? '' : x;
+  else if (kind === 'conf') p.conf = n0(p.conf) === x ? 0 : x;
+  else if (kind === 'follow') r.follow = n0(r.follow) === x ? 0 : x;
+  else if (kind === 'chk') p.checks[x] = !p.checks[x];
+  else if (kind === 'sc'){ const k = checksOf(t.setup)[x]; p.sc[k] = !p.sc[k]; }
+  ppTouch(t, id); render();
+}
+const ppIn = (id, path, v, ph = '', attrs = '') => `<input class="pin" value="${esc(v ?? '')}" placeholder="${esc(ph)}" oninput="ppSet('${id}','${path}',this.value)" ${attrs}>`;
+const ppLt = (id, path, n, v, ph = '') => lt(n, v, `ppSet('${id}','${path}',this.value)`, ph);
+const ppPlanLt = (t, id, k, n, ph) => t.seal ? `<textarea class="lines" style="height:${n * 26}px" spellcheck="false" placeholder="${esc(ph || '')}" onchange="ppSeal('${id}','${k}',this)">${esc(t.plan[k] || '')}</textarea>` : ppLt(id, 'plan.' + k, n, t.plan[k], ph);
+const ppPlanNum = (t, id, k) => t.seal ? `<input class="pin r" type="number" step="any" value="${esc(t.plan[k] ?? '')}" onchange="ppSeal('${id}','${k}',this)">` : `<input class="pin r" type="number" step="any" value="${esc(t.plan[k] ?? '')}" oninput="ppSet('${id}','plan.${k}',this.value)">`;
+const ppSelect = (id, path, v, opts, blank, after = '') => `<select class="pin" onchange="ppSet('${id}','${path}',this.value);${after}">${blank ? `<option value="">${blank}</option>` : ''}${opts.map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+const ppChips = (id, kind, v, list) => `<span class="pchips clk">${list.map((x, i) => `<span class="${v === x ? 'on' : ''}" onclick="ppToggle('${id}','${kind}',${i})">${v === x ? '☑' : '☐'} ${esc(x)}</span>`).join('')}</span>`;
+const ppDots = (id, kind, v) => `<span class="pdots clk">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= v ? 'on' : ''}" onclick="ppToggle('${id}','${kind}',${i})">●</i>`).join('')}</span>`;
+const ppSealNote = t => t.seal ? `<span class="stamp ${t.seal.late ? 'late' : ''}">${t.seal.late ? '사후 작성' : '🔒 봉인'}</span> <span class="m">${dtFmt(t.seal.at)} — 고치면 사유와 함께 이력으로 남습니다${t.revs.length ? ` · 수정 ${t.revs.length}건` : ''}</span>`
+  : '<span class="m">첫 체결을 적는 순간 이 계획이 봉인됩니다 — 계획은 들어가기 전에</span>';
+const ppFoot = t => t.name ? `No. ${t.no} · ${esc(t.name)}${t.code ? ' (' + esc(t.code) + ')' : ''}` : '새 매매';
+function ppFillSum(t, c){
+  if (!c.fills.length) return '<span class="m">체결을 적으면 평균단가 · 잔량 · 결과가 계산됩니다.</span>';
+  return `<table>${f4('평균 매수가', `${fmt(c.avgBuy)} <span class="m">매수 ${fmt(c.buyQty)}주 · 매도 ${fmt(c.sellQty)}주 · 잔량 ${fmt(c.qty)}주</span>`, RES(), `<b class="${cls(c.realized)}">${c.sellQty ? tv(c) : '–'}</b>${c.status === 'closed' ? ` <span class="m">${pc(c.ret)}</span>` : ''} <span class="m">${stName[c.status]}</span>`)}</table>`;
+}
+function ppPlan(t, id){
+  const p = t.plan, c = calc(t, true), sc = checksOf(t.setup), isNewP = id === 'new';
+  return pSheet('매매 계획서', '매매 기록 · Plan', `
+    ${isNewP ? '<div class="focusbox"><b>새 매매</b><span>종목명을 적고 Enter — 그 순간 이 매매가 만들어지고, 이 장에 쓰는 대로 저장됩니다.</span></div>' : ''}
+    <table>${f4('종목명', `<input class="pin" id="pp_name" list="nameList" value="${esc(t.name)}" placeholder="예) 삼성전자" onchange="ppName('${id}',this.value,'name')" onkeydown="if(event.key==='Enter')this.blur()">`, '종목코드', `<input class="pin" value="${esc(t.code)}" maxlength="7" placeholder="005930" onchange="ppName('${id}',this.value,'code')">`)}
+      ${f4('시장', ppSelect(id, 'market', t.market, MARKETS), '전략 (셋업)', ppSelect(id, 'setup', t.setup, db.setups, '선택', 'render()'))}
+      ${f4('시간 프레임', ppSelect(id, 'tf', t.tf, TFS), '태그', `<input class="pin" value="${esc((t.tags || []).join(', '))}" placeholder="반도체, 실적" oninput="ppSet('${id}','tags',this.value.split(',').map(s=>s.trim()).filter(Boolean))">`)}
+      ${f2('계획 봉인', `<span id="pp_seal_${id}">${ppSealNote(t)}</span>`)}</table>
+    ${bsec('계획 가격', '진입 전에 정한 숫자')}
+    <table class="ptab"><thead><tr><th>진입 계획가</th><th>목표가</th><th>손절가</th><th>계획 수량</th></tr></thead><tbody><tr><td>${ppPlanNum(t, id, 'entry')}</td><td>${ppPlanNum(t, id, 'target')}</td><td>${ppPlanNum(t, id, 'stop')}</td><td>${ppPlanNum(t, id, 'qty')}</td></tr></tbody></table>
+    <div class="m" id="pp_rr_${id}" style="margin-top:4px;line-height:1.6">${rrLine(t, c)}</div>
+    ${bsec('진입 근거', '왜 이 종목, 왜 지금인가')}${ppPlanLt(t, id, 'why', 4, '차트 · 수급 · 재료 중 무엇을 봤는지')}
+    ${bsec('재료 · 시장 상황')}${ppPlanLt(t, id, 'catalyst', 2)}
+    ${bsec('시나리오', '이렇게 되면 → 이렇게 한다')}${ppPlanLt(t, id, 'scenario', 3, '예) 전고점 돌파 안착 시 보유 / 시가 이탈 시 절반 정리')}
+    ${sc.length ? bsec('셋업 체크리스트', '플레이북 — ' + esc(t.setup)) + `<div>${sc.slice(0, 8).map((x, i) => `<span class="ck clk" onclick="ppToggle('${id}','sc',${i})">${p.sc[x] ? '☑' : '☐'} ${esc(x)}</span>`).join('')}</div>`
+      : bsec('진입 전 원칙 점검', t.setup ? '' : '셋업을 고르면 그 플레이북 체크리스트로') + `<div>${db.rules.slice(0, 8).map(r => `<span class="ck clk" onclick="ppToggle('${id}','chk','${r.id}')">${p.checks[r.id] ? '☑' : '☐'} ${esc(r.text)}</span>`).join('')}</div>`}
+    ${bsec('진입할 때의 마음')}<table>${f4('확신도', ppDots(id, 'conf', n0(p.conf)), '감정', ppChips(id, 'emoPre', p.emo, db.emotions))}</table>`, ppFoot(t), '왼쪽');
+}
+function ppFills(t, id){
+  const c = calc(t, true), im = t.images || [], dis = id === 'new';
+  const rows = t.fills.map((f, i) => `<tr class="fr"><td><input class="pin" type="date" value="${esc(f.date)}" oninput="ppFill('${id}',${i},'date',this.value)" onchange="ppFillDone('${id}')"></td>
+      <td><input class="pin" type="time" step="1" value="${esc(f.time || '')}" oninput="ppFill('${id}',${i},'time',this.value)"></td>
+      <td class="c"><span class="pside ${f.side === 'B' ? 'side-b' : 'side-s'}" onclick="ppFillSide('${id}',${i})" title="누르면 매수 ↔ 매도">${f.side === 'B' ? '매수' : '매도'}</span></td>
+      <td><input class="pin r" type="number" step="any" value="${esc(f.price)}" oninput="ppFill('${id}',${i},'price',this.value)" onchange="ppFillDone('${id}')"></td>
+      <td><input class="pin r" type="number" step="1" value="${esc(f.qty)}" oninput="ppFill('${id}',${i},'qty',this.value)" onchange="ppFillDone('${id}')"></td>
+      <td><input class="pin r" type="number" value="${esc(f.fee ?? '')}" placeholder="자동" oninput="ppFill('${id}',${i},'fee',this.value)"></td>
+      <td><input class="pin r" type="number" value="${esc(f.tax ?? '')}" placeholder="${f.side === 'S' ? '자동' : ''}" ${f.side === 'B' ? 'disabled' : ''} oninput="ppFill('${id}',${i},'tax',this.value)"></td>
+      <td class="c"><span class="pdel" onclick="ppFillDel('${id}',${i})" title="이 줄 지우기">✕</span></td></tr>`).join('');
+  return pSheet('체결 · 차트', '매매 기록 · Fills', `
+    ${bsec('체결', '증권사 체결 내역 그대로 — 수수료 · 세금을 비우면 설정의 비율로')}
+    <table class="ptab ppf"><thead><tr><th style="width:118px">일자</th><th style="width:92px">시각</th><th style="width:48px">구분</th><th>단가</th><th style="width:70px">수량</th><th style="width:66px">수수료</th><th style="width:66px">세금</th><th style="width:24px"></th></tr></thead><tbody>
+      ${rows || `<tr><td colspan="8" style="height:40px;color:#999;text-align:center">${dis ? '종목명을 먼저 적으면 체결을 적을 수 있습니다' : '아직 체결이 없습니다 — 계획만 세운 매매'}</td></tr>`}</tbody></table>
+    <div class="row" style="margin:6px 0"><span class="pbtn side-b" onclick="ppFillAdd('${id}','B')">＋ 매수 체결</span><span class="pbtn side-s" onclick="ppFillAdd('${id}','S')">＋ 매도 체결</span></div>
+    <div id="pp_fs_${id}">${ppFillSum(t, c)}</div>
+    ${bsec('보유 중 최저 · 최고', '청산한 뒤 차트를 보고 (MAE · MFE)')}<table>${f4('최저가', ppIn(id, 'lo', t.lo, '얼마나 버텨야 했나', 'type="number" step="any"'), '최고가', ppIn(id, 'hi', t.hi, '얼마나 갈 수 있었나', 'type="number" step="any"'))}</table>
+    ${bsec('차트 캡처', dis ? '' : 'Ctrl+V 로 붙여 넣기 · 그림 파일 끌어다 놓기')}
+    ${im.length ? `<div class="ppimgs">${im.slice(0, 4).map((x, i) => `<figure><img src="${imgSrc(x)}" onclick="showImg(${i})" alt=""><figcaption>${esc(IMG_KIND[x.kind] || '')}${x.cap ? ' · ' + esc(x.cap) : ''}</figcaption></figure>`).join('')}</div>${im.length > 4 ? `<div class="m">외 ${im.length - 4}장 — 종이 기록부에서</div>` : ''}`
+      : `<div class="capempty" style="height:170px">${dis ? '종목명을 적은 뒤에 붙일 수 있습니다' : '<b>진입 · 청산 시점 차트</b>Ctrl+V 로 붙여 넣거나 그림 파일을 끌어다 놓으세요'}${dis ? '' : ` <span class="pbtn" onclick="$('imgIn').click()">파일 고르기</span>`}</div>`}
+    ${dis ? '' : `<div class="row" style="margin-top:8px;justify-content:flex-end"><span class="pbtn" onclick="openTrade('${t.id}')">종이 기록부로 보기 ▸</span></div>`}`, ppFoot(t), '오른쪽');
+}
+function ppReview(t, id){
+  const r = t.review, c = calc(t, true);
+  return pSheet('매매 복기', '매매 기록 · Review', `
+    <table>${f2('결정 등급', `<span class="pchips clk">${Object.entries(GRADES).map(([g, l]) => `<span class="${r.grade === g ? 'on' : ''}" onclick="ppToggle('${id}','grade','${g}')">${r.grade === g ? '☑' : '☐'} <b>${g}</b> ${esc(l)}</span>`).join('')}</span><div class="m">결과(수익 · 손실)와 상관없이, 결정만 평가</div>`)}
+      ${f4(RES(), `<b class="${cls(c.realized)}">${c.sellQty ? tv(c) : '–'}</b>`, '보유', c.open ? holdTxt(c) : '–')}
+      ${f2('원칙 준수', ppDots(id, 'follow', n0(r.follow)) + ' <span class="m">1 = 원칙 무시 · 5 = 완벽히 지킴</span>')}
+      ${f2('청산할 때 감정', ppChips(id, 'emoPost', r.emo, db.emotions))}</table>
+    ${bsec('실수 점검', '누르면 ☒')}<div>${db.mistakes.slice(0, 12).map((m, i) => `<span class="ck clk ${r.mistakes.includes(m) ? 'x' : ''}" style="width:33.3%" onclick="ppToggle('${id}','mis',${i})">${r.mistakes.includes(m) ? '☒' : '☐'} ${esc(m)}</span>`).join('')}</div>
+    ${bsec('잘한 결정')}${ppLt(id, 'review.good', 3, r.good)}
+    ${bsec('아쉬운 결정')}${ppLt(id, 'review.bad', 3, r.bad)}
+    ${bsec('교훈', '한 문장으로')}${ppLt(id, 'review.lesson', 2, r.lesson)}
+    ${bsec('다음에는 이렇게')}${ppLt(id, 'review.next', 3, r.next)}`, ppFoot(t), '왼쪽');
+}
+function ppJudge(t, id){
+  const r = t.review, c = calc(t, true);
+  return pSheet('판단 기록', '매매 기록 · Judgment', `
+    ${REVIEW_Q.map(([k, l, ph], i) => bsec(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph)).join('')}
+    ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
+    ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
+    <table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
+    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`, ppFoot(t), '오른쪽');
+}
 function tradingStep(d, dir){ let x = addDays(d, dir); while (isWe(x) && !db.days[x] && !dayFills(x).length) x = addDays(x, dir); return x; }
-function dayGo(dir){ dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
+function dayGo(dir){ dk = 0; dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
 function dayMonth(dir){ dayD = addMonths(dayD, dir); render(); }
 function dayPick(d){ dayD = d; render(); }
 
@@ -1546,7 +1746,7 @@ function delTrade(){
 }
 
 /* ---------- 차트 캡처 (붙여 넣기 · 끌어 놓기 · 파일) ---------- */
-const curTrade = () => tradeObj() || (view === 'trades' && tSub === 'stock' && !sel && skTid ? tradeById(skTid) : null);   // 그림을 붙일 매매 (종이 기록부 · 쓰기 · 종목 차트)
+const curTrade = () => tradeObj() || (view === 'trades' && tSub === 'stock' && !sel && skTid ? tradeById(skTid) : null) || ppCur();   // 그림을 붙일 매매 (종이 기록부 · 쓰기 · 종목 차트)
 const imgSrc = im => im.file ? WEB.img(im.file) : im.data || '';
 const readURL = f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(f); });
 async function addImage(file){
@@ -1562,14 +1762,14 @@ async function addImage(file){
   if (tMode === 'book' && sel){ const ps = tradePages(t), j = ps.findIndex(p => p.label.startsWith('차트')); bookGo(Math.floor((j + Math.floor((t.images.length - 1) / 2)) / 2)); }
 }
 document.addEventListener('paste', e => {
-  if (view !== 'trades' || !curTrade() || $('modal')) return;
+  if (!curTrade() || $('modal')) return;
   const files = [...e.clipboardData.items].filter(i => i.type.startsWith('image/')).map(i => i.getAsFile());
   if (!files.length) return;
   e.preventDefault(); files.forEach(addImage);
 });
-document.addEventListener('dragover', e => { if (view === 'trades' && curTrade()){ e.preventDefault(); document.querySelector('.drop')?.classList.add('over'); } });
+document.addEventListener('dragover', e => { if (curTrade()){ e.preventDefault(); document.querySelector('.drop')?.classList.add('over'); } });
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.querySelector('.drop')?.classList.remove('over'); });
-document.addEventListener('drop', e => { if (view === 'trades' && curTrade()){ e.preventDefault(); [...e.dataTransfer.files].forEach(addImage); } });
+document.addEventListener('drop', e => { if (curTrade()){ e.preventDefault(); [...e.dataTransfer.files].forEach(addImage); } });
 function showImg(i, tid){
   const t = tid ? tradeById(tid) : curTrade(), im = t?.images[i]; if (!im) return;
   const ro = !!tid;   // 플레이북 · 훈련에서 열면 보기만
@@ -3089,7 +3289,7 @@ document.addEventListener('keydown', e => {
   if (/^[0-9]$/.test(k)){ const nv = NAV[(+k + 9) % 10]; if (nv) return hit(() => goTab(nv[0])); return; }
   if (k === '/') return hit(() => $('q').focus());
   if (k === '?') return hit(showHelp);
-  if (k === 'n') return hit(() => newTrade(view === 'day' ? dayD : undefined));
+  if (k === 'n') return hit(() => view === 'day' && dayMode === 'day' ? ppOpen('new') : newTrade(view === 'day' ? dayD : undefined));
   if (k === 'm' && tMode !== 'edit') return hit(toggleMoney);
   if (k === 'l') return hit(toggleTheme);
   if (k === 'f' && isBook()) return hit(() => focusToggle());
@@ -3102,6 +3302,7 @@ document.addEventListener('keydown', e => {
   }
   if (isTT() && k === 'v') return hit(() => { ttMode = ttMode === 'week' ? 'day' : 'week'; render(); });
   if (view === 'appt' && k === 'v') return hit(() => { apMode = apMode === 'week' ? 'day' : 'week'; render(); });
+  if (view === 'day' && dayMode === 'day' && (k === 'PageUp' || k === 'PageDown')) return hit(() => dkGo(dk + (k === 'PageDown' ? 1 : -1)));
   if (view === 'day' || isTT() || view === 'appt'){
     if (k === 'a' || k === 'ArrowLeft') return hit(() => dateKey('day-'));
     if (k === 'd' || k === 'ArrowRight') return hit(() => dateKey('day+'));
