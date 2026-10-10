@@ -867,6 +867,7 @@ function render(){
   if (view === 'trades' && !OLD('trades')){ view = 'day'; sel = null; }
   if (view === 'stats' && !OLD('statsTab')) view = 'day';
   if (view === 'play' && !OLD('play')) view = 'day';
+  if (view === 'day' && dayMode === 'week' && !OLD('dayFull')) dayMode = 'day';
   document.documentElement.classList.toggle('mini', !OLD('trades'));   // 숨긴 화면에 머물러 있었으면 옮긴다
   if (view === 'appt' && !OLD('appt')) view = 'day';
   if (view === 'trades' && tSub === 'time' && !OLD('time')) tSub = 'stock';
@@ -1003,11 +1004,11 @@ function dateKey(act){
 /* =====================================================================
    2. 매매일지 — 하루 = 한 펼침 (왼쪽 장전 계획 · 오른쪽 장 마감 복기) / 주간 복기 = 한 펼침
    ===================================================================== */
-const daySeg = () => `<div class="seg"><button class="${dayMode === 'day' ? 'on' : ''}" onclick="dayMode='day';render()">하루</button><button class="${dayMode === 'week' ? 'on' : ''}" onclick="dayMode='week';render()">주간 복기<kbd>V</kbd></button></div>`;
+const daySeg = () => JUDGE_ONLY() ? '' : `<div class="seg"><button class="${dayMode === 'day' ? 'on' : ''}" onclick="dayMode='day';render()">하루</button><button class="${dayMode === 'week' ? 'on' : ''}" onclick="dayMode='week';render()">주간 복기<kbd>V</kbd></button></div>`;
 const daySide = (d, body) => `<div class="bkside"><div class="card"><div class="mhead"><button class="sm" onclick="dayMonth(-1)" title="지난달 (W)">◀</button><b>${d.slice(0, 4)}년 ${+d.slice(5, 7)}월</b><button class="sm" onclick="dayMonth(1)" title="다음 달 (S)">▶</button></div>${miniCal(d.slice(0, 7), d, 'dayPick', weekish() ? monday(d) : null)}
     <div class="muted" style="font-size:var(--t-2);margin-top:6px;text-align:center">아래 점: <span class="up">●</span> 수익 · <span class="dn">●</span> 손실 · <span style="opacity:.6">●</span> 일지만</div>${mcKeys()}</div>${body}</div>`;
 function dayV(){
-  const d = dayD, fl = dayFills(d), ts = [...new Set(fl.map(x => x.t))];
+  const d = dayD, fl = dayFills(d), ts = JUDGE_ONLY() ? dayTrades(d) : [...new Set(fl.map(x => x.t))];   // 판단 기록만일 때는 체결이 없어도 그날 적은 매매
   if (dkDay !== d){ dkDay = d; dk = 0; ppNew = null; }
   const SP = daySpreads(d, fl); dk = clip(dk, 0, SP.length - 1); const sp = SP[dk];
   return `<div class="bkwrap">${daySide(d, `<div class="card" style="flex:1"><h3>이날 매매한 종목 <small>${ts.length}종목 · 체결 ${fl.length}건</small></h3>
@@ -1077,7 +1078,18 @@ function dayTrades(d){   // 그날 체결이 있거나 그날 계획만 세운 �
   return db.trades.filter(t => t.fills.some(f => f.date === d) || (t.created === d && !t.fills.some(f => f.date && n0(f.qty) > 0)))
     .sort((a, b) => first(a).localeCompare(first(b)) || n0(a.no) - n0(b.no));
 }
+const JUDGE_ONLY = () => !OLD('dayFull');
+const spHas = (x, id) => !!x && (x.id === id || (x.ids || []).includes(id));
 function daySpreads(d, fl){
+  if (JUDGE_ONLY()){   // 판단 기록만: 그날 매매 + 새 매매를 두 장씩
+    const ts = dayTrades(d).map(t => ({t, id: t.id})).concat([{t: ppT('new'), id: 'new'}]), L = [];
+    for (let i = 0; i < ts.length; i += 2){
+      const a = ts[i], b = ts[i + 1], nm = x => x.id === 'new' ? '＋ 새 매매' : (x.t.name || '(이름 없음)');
+      L.push({label: b ? `${nm(a)} · ${nm(b)}` : nm(a), add: (b || a).id === 'new', ids: [a.id, b && b.id].filter(Boolean),
+        l: () => ppJudge(a.t, a.id, '왼쪽'), r: () => b ? ppJudge(b.t, b.id, '오른쪽') : pSheet('', '', '<div class="m" style="margin-top:40px;text-align:center">이 날의 기록 끝</div>', '', '오른쪽')});
+    }
+    return L;
+  }
   const L = [{label: '장전 · 장 마감', l: () => dayPre(d), r: () => dayPost(d, fl)}];
   dayTrades(d).forEach(t => { const nm = t.name || '(이름 없음)';
     L.push({label: `${nm} — 계획 · 체결`, id: t.id, l: () => ppPlan(t, t.id), r: () => ppFills(t, t.id)}, {label: `${nm} — 판단 · 복기`, id: t.id, l: () => ppJudge(t, t.id), r: () => ppReview(t, t.id)}); });
@@ -1117,10 +1129,10 @@ let _dkWheel = 0;
 function dkWheel(e){ if (e.target.closest('textarea,input,select') || Date.now() - _dkWheel < 280) return; _dkWheel = Date.now(); dkGo(dk + (e.deltaY > 0 ? 1 : -1)); }
 function ppOpen(id){   // 매매일지에서 그 매매의 첫 장으로 ('new' = 새 매매 장)
   if (view !== 'day' || dayMode !== 'day'){ dayMode = 'day'; go('day'); }
-  const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => x.id === id)); render();
+  const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => spHas(x, id))); render();
   if (id === 'new') setTimeout(() => $('pp_name')?.focus(), 40);
 }
-function ppCur(){ if (view !== 'day' || dayMode !== 'day') return null; const x = daySpreads(dayD, dayFills(dayD))[dk]; return x && x.id && x.id !== 'new' ? tradeById(x.id) : null; }
+function ppCur(){ if (view !== 'day' || dayMode !== 'day' || JUDGE_ONLY()) return null; const x = daySpreads(dayD, dayFills(dayD))[dk]; return x && x.id && x.id !== 'new' ? tradeById(x.id) : null; }
 const ppTouch = (t, id) => { if (id !== 'new'){ t.updated = new Date().toISOString(); save(); } };
 function ppSet(id, path, v){   // 글 · 숫자 칸 (봉인 안 된 계획 · 복기 · 메모)
   const t = ppT(id); if (!t) return; const ks = path.split('.'); let o = t; ks.slice(0, -1).forEach(k => o = o[k]); o[ks.at(-1)] = v; ppTouch(t, id);
@@ -1136,7 +1148,7 @@ function ppName(id, v, by){   // 종목명 · 코드 — 아는 종목이면 코
   if (id === 'new'){
     if (!t.name) return;
     t.no = ++db.seq; db.trades.push(t); ppNew = null; if (t.code) db.names[t.code] = {name: t.name, market: t.market};
-    save(); fillNameList(); const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => x.id === t.id)); render();
+    save(); fillNameList(); const SP = daySpreads(dayD, dayFills(dayD)); dk = Math.max(0, SP.findIndex(x => spHas(x, t.id))); render();
     toast(`No. ${t.no} ${t.name} — 이 장에 쓰는 대로 저장됩니다`); return;
   }
   if (t.code) db.names[t.code] = {name: t.name, market: t.market};
@@ -1256,16 +1268,18 @@ function ppReview(t, id){
     ${bsec('교훈', '한 문장으로')}${ppLt(id, 'review.lesson', 2, r.lesson)}
     ${bsec('다음에는 이렇게')}${ppLt(id, 'review.next', 3, r.next)}`, ppFoot(t), '오른쪽');
 }
-function ppJudge(t, id){
-  const r = t.review, c = calc(t, true);
+function ppJudge(t, id, side = '왼쪽'){
+  const r = t.review, c = calc(t, true), only = JUDGE_ONLY();
   return pSheet('판단 기록', '복기 · 끝난 뒤에 — 돈이 아니라 결정', `
-    ${id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>먼저 앞 장(계획서)에 종목명을 적으면 이 매매가 만들어집니다 — 여기 쓴 것도 함께 들어갑니다.</span></div>' : ''}
+    ${only ? `${id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>종목명을 적고 Enter — 그 순간 이 매매가 만들어집니다. 아래를 먼저 써도 함께 들어갑니다.</span></div>' : ''}
+      <table>${f4('종목명', `<input class="pin" ${id === 'new' ? 'id="pp_name"' : ''} list="nameList" value="${esc(t.name)}" placeholder="예) 삼성전자" onchange="ppName('${id}',this.value,'name')" onkeydown="if(event.key==='Enter')this.blur()">`, '날짜', dDot(t.created || dayD))}</table>`
+      : id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>먼저 앞 장(계획서)에 종목명을 적으면 이 매매가 만들어집니다 — 여기 쓴 것도 함께 들어갑니다.</span></div>' : ''}
     ${bsec('다섯 가지 질문', '돈이 아니라 결정을 돌아봅니다')}
     ${REVIEW_Q.map(([k, l, ph], i) => bsec(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph)).join('')}
     ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
     ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
     <table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
-    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`, ppFoot(t), '왼쪽');
+    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`, ppFoot(t), side);
 }
 function tradingStep(d, dir){ let x = addDays(d, dir); while (isWe(x) && !db.days[x] && !dayFills(x).length) x = addDays(x, dir); return x; }
 function dayGo(dir){ dk = 0; dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
@@ -1883,7 +1897,7 @@ function editTrade(){ const t = tradeById(sel); if (!t) return; if (!OLD('form')
 function ppEdit(id, page){   // 그 매매를 매매일지의 그날(첫 체결일, 없으면 만든 날) 매매 장으로 — page 'judge' = 판단 · 복기 펼침
   const t = tradeById(id); if (!t) return; const days = t.fills.filter(f => f.date && n0(f.qty) > 0).map(f => f.date).sort();
   dayD = days[0] || t.created || today(); dkDay = dayD; dayMode = 'day'; sel = null; tMode = 'book'; go('day');
-  const SP = daySpreads(dayD, dayFills(dayD)), i = SP.findIndex(x => x.id === id); dk = Math.max(0, i < 0 ? 0 : i + (page === 'judge' ? 1 : 0)); render();
+  const SP = daySpreads(dayD, dayFills(dayD)), i = SP.findIndex(x => spHas(x, id)); dk = Math.max(0, i < 0 ? 0 : i + (page === 'judge' && !JUDGE_ONLY() ? 1 : 0)); render();
 }
 function confirmLeave(){ if (!draft) return true; const t = tradeById(draft.id); const changed = isNew ? !!(draft.name || draft.fills.length) : JSON.stringify(t) !== JSON.stringify(draft); return !changed || confirm('저장하지 않은 내용이 있습니다. 버리고 나갈까요?'); }
 function cancelEdit(){ if (!confirmLeave()) return; draft = null; tMode = 'book'; if (isNew) sel = null; isNew = false; render(); }
@@ -2669,7 +2683,7 @@ function setV(){
       <div class="note">가상의 매매 60건(봉인된 계획 · 수정 이력 · 결정 등급 · 연습용 차트), 매매일지, 주간 복기, 안 한 매매를 만듭니다. ‘샘플’ 표시가 붙고 [샘플 지우기]로 한 번에 지웁니다.</div>
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
       <h3 style="margin-top:12px">숨긴 기능 <small>잘 쓰지 않아 숨긴 옛 화면 — 켜면 다시 보입니다 (자료는 그대로 남아 있음)</small></h3>
-      <div class="row">${[['trades', '매매 기록 탭 (한 매매 목록 · 종목 차트 · 종이 기록부 · 찾기)'], ['statsTab', '통계 탭 (질문 다섯 개)'], ['play', '플레이북 탭 (작전 카드)'], ['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
+      <div class="row">${[['dayFull', '매매일지 전체 장 (장전 · 장 마감 · 계획서 · 체결 · 복기 · 안 한 매매 · 주간 복기)'], ['trades', '매매 기록 탭 (한 매매 목록 · 종목 차트 · 종이 기록부 · 찾기)'], ['statsTab', '통계 탭 (질문 다섯 개)'], ['play', '플레이북 탭 (작전 카드)'], ['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
       <div class="note" style="margin-top:12px">트레이딩 차트 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
