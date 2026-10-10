@@ -2444,7 +2444,7 @@ let qzTab = 'today', dr = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0
 const DR_KIND = {pick: '고르기', num: '숫자', ox: 'O · X'}, DR_LV = ['', '쉬움', '보통', '어려움'], DR_CONF = ['', '낮음', '보통', '높음'];
 const DR_ST = {draft: '승인 대기', ok: '승인', off: '끔'};
 const caseById = id => db.cases.find(c => c.id === id);
-const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '오늘의 훈련'], ['bank', '문제은행'], ['grow', '성장']].map(([k, l]) =>
+const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '오늘의 훈련'], ['bank', '문제은행'], ['grow', '성적표']].map(([k, l]) =>
   `<button class="${qzTab === k ? 'on' : ''}" onclick="qzTab='${k}';${k === 'today' ? 'drillNext();' : ''}render()">${l}${k === 'bank' && db.cases.some(c => c.status === 'draft') ? ` <span class="needn">${db.cases.filter(c => c.status === 'draft').length}</span>` : ''}</button>`).join('')}</div></div>`;
 function drillNext(){
   const q = JC.drillQueue(db.cases, db.caseLog, today()).filter(id => id !== dr.cid || dr.a == null);
@@ -2482,7 +2482,7 @@ function drillV(){
       <div class="kv"><span>이번에 푼 것</span><b>${dr.sess}문제 · 맞힘 ${dr.sessOk}</b><span>오늘 정답률</span><b>${S.today ? Math.round(S.todayOk / S.today * 100) + '%' : '–'}</b>
         <span>연속 훈련</span><b>${S.streak}일</b><span>승인된 문제</span><b>${S.cases}개 · 익힘 ${S.mastered}</b></div>
       ${S.byTopic.length ? `<h3 style="margin-top:var(--s3)">약한 유형</h3>${S.byTopic.slice(0, 3).map(x => `<div class="row"><span>${esc(x.key)}</span><span class="sp"></span><b class="${x.rate < 70 ? 'needn' : ''}">${Math.round(x.rate)}%</b><span class="muted">${x.n}번</span></div>`).join('')}` : ''}
-      <span class="sp"></span><div class="note">정답 기준은 <b>노트의 원칙</b>입니다 — 앞으로의 가격을 맞히는 문제가 아닙니다. 답하기 전에 확신도를 고르면 [성장]에서 과신 · 소심을 볼 수 있어요.</div></div>`;
+      <span class="sp"></span><div class="note">정답 기준은 <b>노트의 원칙</b>입니다 — 앞으로의 가격을 맞히는 문제가 아닙니다. 답하기 전에 확신도를 고르면 [성적표]에서 과신 · 소심을 볼 수 있어요.</div></div>`;
   if (!c) return qzBar() + `<div class="drill"><div class="card dmain" style="align-items:center;justify-content:center;text-align:center">
       ${S.cases ? `<h3 style="font-size:var(--t2)">오늘 낼 문제를 다 풀었어요</h3><div class="note">맞힌 문제는 1 · 3 · 7 · 16일 … 뒤에 다시 나옵니다. 내일 다시 오세요.</div>`
         : `<h3 style="font-size:var(--t2)">아직 승인된 문제가 없어요</h3><div class="note">[문제은행]에서 초안을 읽고 승인하면 여기서 나옵니다.${wait ? ` 승인 대기 <b>${wait}</b>개.` : ' [⇪ 문제 파일 불러오기]로 초안을 넣으세요.'}</div>
@@ -2564,7 +2564,7 @@ async function bankImport(f){
   toast(`초안 ${add}개를 승인 대기에 넣었어요${skip ? ` · 이미 있는 ${skip}개는 건너뜀` : ''}${bad ? ` · 모양이 맞지 않는 ${bad}개는 뺌` : ''}`);
 }
 
-/* 성장 — 유형별 정답률(약한 것부터) · 확신도와 정답률(과신 · 소심) · 익힌 문제 */
+/* 성적표 (2026-10-10 사용자: '성장' → '성적표') — 유형별 정답률(약한 것부터) · 확신도와 정답률(과신 · 소심) · 익힌 문제 */
 function growV(){
   const S = JC.drillStats(db.cases, db.caseLog, today());
   const conf = S.byConf.map(x => `<tr><td>${DR_CONF[x.conf]}</td><td class="num">${x.n}</td><td class="num">${x.rate == null ? '–' : Math.round(x.rate) + '%'}</td>
