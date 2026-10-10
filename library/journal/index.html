@@ -1278,8 +1278,8 @@ function ppJudge(t, id, side = '왼쪽'){
     ${REVIEW_Q.map(([k, l, ph], i) => bsec(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph)).join('')}
     ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
     ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
-    <table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
-    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`, ppFoot(t), side);
+    ${only ? '' : `<table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
+    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`}`, ppFoot(t), side);   // 판단 기록만일 때는 손절가 · R 줄과 감정 메모도 뺌 (2026-10-10 사용자)
 }
 function tradingStep(d, dir){ let x = addDays(d, dir); while (isWe(x) && !db.days[x] && !dayFills(x).length) x = addDays(x, dir); return x; }
 function dayGo(dir){ dk = 0; dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
