@@ -451,7 +451,7 @@ function weekV(m){
   m.onclick = e => { const b = e.target.closest('[data-dots] button'); if (!b) return; const o2 = obj(), i = +b.dataset.i; o2.score = o2.score === i ? 0 : i; save(); b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', n0(o2.score) >= +x.dataset.i)); };
 }
 
-/* 훈련 — 큰 화면의 [오늘의 훈련]과 같은 문제은행 · 같은 출제 순서(JC.drillQueue). 승인 · 고치기는 큰 화면에서. */
+/* 훈련 — 큰 화면의 훈련 › [문제]와 같은 문제은행 · 같은 출제 순서(JC.drillQueue). 승인 · 고치기는 큰 화면에서. */
 let DR = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0, sessOk: 0};
 const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const cases = () => (DB.cases || []).filter(c => c && typeof c === 'object'), caseLog = () => (DB.caseLog || []).filter(l => l && typeof l === 'object');

@@ -2444,7 +2444,7 @@ let qzTab = 'today', dr = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0
 const DR_KIND = {pick: '고르기', num: '숫자', ox: 'O · X'}, DR_LV = ['', '쉬움', '보통', '어려움'], DR_CONF = ['', '낮음', '보통', '높음'];
 const DR_ST = {draft: '승인 대기', ok: '승인', off: '끔'};
 const caseById = id => db.cases.find(c => c.id === id);
-const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '오늘의 훈련'], ['bank', '문제은행'], ['grow', '성적표']].map(([k, l]) =>
+const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '문제'], ['bank', '문제은행'], ['grow', '성적표']].map(([k, l]) =>
   `<button class="${qzTab === k ? 'on' : ''}" onclick="qzTab='${k}';${k === 'today' ? 'drillNext();' : ''}render()">${l}${k === 'bank' && db.cases.some(c => c.status === 'draft') ? ` <span class="needn">${db.cases.filter(c => c.status === 'draft').length}</span>` : ''}</button>`).join('')}</div></div>`;
 function drillNext(){
   const q = JC.drillQueue(db.cases, db.caseLog, today()).filter(id => id !== dr.cid || dr.a == null);
@@ -2458,7 +2458,7 @@ function drillAns(a){
   save(); render();
 }
 const drAnsTxt = c => c.kind === 'pick' ? `${'①②③④⑤⑥'[c.ans] || ''} ${esc((c.choices || [])[c.ans] ?? '')}` : c.kind === 'ox' ? (c.ans === 'o' ? 'O — 맞다' : 'X — 아니다') : `${fmt(c.ans)}${esc(c.unit || '')}${n0(c.tol) ? ` (± ${c.tol})` : ''}`;
-function drillCard(c, done){   // 문제 한 장 (오늘의 훈련 · 문제은행 미리 보기 같이 씀). done = 답을 보여 줄 때
+function drillCard(c, done){   // 문제 한 장 ([문제] · 문제은행 미리 보기 같이 씀). done = 답을 보여 줄 때
   const pickBtn = (i, l) => {
     const st = !done ? '' : i === n0(c.ans) ? 'right' : String(dr.a) === String(i) && dr.cid === c.id ? 'wrong' : 'dim';
     return `<button class="dch ${st}" ${done ? 'disabled' : ''} onclick="drillAns(${i})"><kbd>${i + 1}</kbd><span>${esc(l)}</span></button>`;
@@ -2517,7 +2517,7 @@ function bankShow(id){
       ${c.status !== 'ok' ? `<button class="primary" onclick="bankSet('${c.id}','ok')">승인</button>` : ''}</div>`, 'wide');
   dr = sv;
 }
-function bankSet(id, status){ const c = caseById(id); if (!c) return; c.status = status; c.updated = new Date().toISOString(); save(); closeModal(); render(); toast(status === 'ok' ? '승인했어요 — 오늘의 훈련에 나옵니다' : status === 'off' ? '껐어요 (기록은 남아 있어요)' : '승인 대기로 돌렸어요'); }
+function bankSet(id, status){ const c = caseById(id); if (!c) return; c.status = status; c.updated = new Date().toISOString(); save(); closeModal(); render(); toast(status === 'ok' ? '승인했어요 — [문제]에 나옵니다' : status === 'off' ? '껐어요 (기록은 남아 있어요)' : '승인 대기로 돌렸어요'); }
 function bankAll(){
   const L = db.cases.filter(c => c.status === 'draft'); if (!L.length || !confirm(`승인 대기 ${L.length}개를 모두 승인할까요?\n하나씩 읽어 보고 승인하는 것을 권합니다 (노트를 잘못 읽은 문제가 섞일 수 있어요).`)) return;
   const at = new Date().toISOString(); L.forEach(c => { c.status = 'ok'; c.updated = at; }); save(); render(); toast(`${L.length}개를 승인했어요`);
@@ -3340,7 +3340,7 @@ document.addEventListener('mousemove', e => {
 });
 const KEYS = [['1 2', '화면 이동 (매매일지 · 훈련) — 숨긴 탭을 켜면 번호가 늘어납니다'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 (매매일지 하루도) · 주간 복기는 한 주씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
-  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
+  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련 › 문제: O · X 문제 답 (1~6 고르기 · Q W E 확신도 · Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
 
