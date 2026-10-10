@@ -300,6 +300,9 @@ html[data-theme=dark] .spread{filter:brightness(.93)}
 .pbtn:hover{background:rgba(47,111,178,.07)}
 .pside{cursor:pointer;user-select:none}
 .pdel{cursor:pointer;color:#b0b7bf}.pdel:hover{color:#c8102e}
+.skp{border-bottom:1px dashed #c3cad3;padding-bottom:8px;margin-bottom:10px}
+.skp:last-of-type{border-bottom:none}
+.skpl span{display:block;font-size:12px;color:#6b7580;margin-top:4px}
 .ppimgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ppimgs figure{margin:0;border:1px solid #c9ced4;padding:4px;background:#fff}
 .ppimgs img{display:block;width:100%;height:150px;object-fit:contain;background:#f4f5f6;cursor:zoom-in}
@@ -832,6 +835,7 @@ function render(){
   if (view === 'home' && !OLD('home')) view = 'trades';   // 숨긴 화면에 머물러 있었으면 옮긴다
   if (view === 'appt' && !OLD('appt')) view = 'day';
   if (view === 'trades' && tSub === 'time' && !OLD('time')) tSub = 'stock';
+  if (view === 'trades' && tSub === 'skip' && !OLD('skip')) tSub = 'stock';
   document.documentElement.classList.toggle('focus', focusOn && isBook());
   $('nav').innerHTML = navList().map(([k, l], i) => `<button class="${navOn(k) ? 'on' : ''}${k === 'quiz' ? ' navtr' : ''}" ${NAV_TIP[k] ? `data-tip="${esc(NAV_TIP[k])}"` : ''} onclick="goTab('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
@@ -1042,11 +1046,37 @@ function daySpreads(d, fl){
   const L = [{label: '장전 · 장 마감', l: () => dayPre(d), r: () => dayPost(d, fl)}];
   dayTrades(d).forEach(t => { const nm = t.name || '(이름 없음)';
     L.push({label: `${nm} — 계획 · 체결`, id: t.id, l: () => ppPlan(t, t.id), r: () => ppFills(t, t.id)}, {label: `${nm} — 판단 · 복기`, id: t.id, l: () => ppJudge(t, t.id), r: () => ppReview(t, t.id)}); });
+  const sk = db.skips.filter(x => x.date === d), per = 3, nsp = Math.max(1, Math.ceil((sk.length + 1) / (per * 2)));   // 안 한 매매 — 한 쪽에 셋, 맨 끝에 [＋ 적기] 자리
+  for (let i = 0; i < nsp; i++) L.push({label: `안 한 매매${sk.length ? ' ' + sk.length : ''}${nsp > 1 ? ` (${i + 1})` : ''}`, skip: true,
+    l: () => skpPage(d, sk.slice(i * per * 2, i * per * 2 + per), i === nsp - 1 && sk.length - i * per * 2 < per, '왼쪽'),
+    r: () => skpPage(d, sk.slice(i * per * 2 + per, i * per * 2 + per * 2), i === nsp - 1 && sk.length - i * per * 2 >= per, '오른쪽', !sk.length && i === 0)});
   // 새 매매도 두 펼침 — 판단 기록(다섯 질문)까지 미리 보이게 (2026-10-10 사용자). 종목명을 적기 전에 쓴 것도 ppNew 에 담겼다가 함께 들어간다
   L.push({label: '＋ 새 매매 — 계획 · 체결', add: true, id: 'new', l: () => ppPlan(ppT('new'), 'new'), r: () => ppFills(ppT('new'), 'new')},
     {label: '＋ 새 매매 — 판단 · 복기', add: true, id: 'new', l: () => ppJudge(ppT('new'), 'new'), r: () => ppReview(ppT('new'), 'new')});
   return L;
 }
+/* 매매일지 안의 [안 한 매매] 장 (2026-10-10 사용자) — 놓친 매매 · 참은 매매 · 망설인 매매를 그날 종이에 바로. 매매하지 않은 결정도 복기 대상 */
+function skpPage(d, L, addHere, side, guide){
+  const blk = s => `<div class="skp">
+      <table>${f4('종목', `<input class="pin" list="nameList" value="${esc(s.name)}" placeholder="예) 삼성전자" onchange="skpSet('${s.id}','name',this.value.replace(/\\s*\\(\\d{6}\\)$/, '').trim())">`, '셋업', `<select class="pin" onchange="skpSet('${s.id}','setup',this.value)"><option value="">선택</option>${db.setups.map(x => `<option ${x === s.setup ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`)}
+        ${f2('구분', `<span class="pchips clk">${Object.entries(SKIP_KINDS).map(([k, l]) => `<span class="${s.kind === k ? 'on' : ''}" onclick="skpKind('${s.id}','${k}')">${s.kind === k ? '☑' : '☐'} ${l}</span>`).join('')}</span><span class="pdel" style="float:right" onclick="skpDel('${s.id}')" title="이 기록 지우기">✕</span>`)}</table>
+      <div class="skpl"><span>왜 안 했나 · 못 했나</span>${lt(2, s.why, `skpSet('${s.id}','why',this.value)`)}</div>
+      <div class="skpl"><span>그 뒤 어떻게 됐나</span>${lt(1, s.after, `skpSet('${s.id}','after',this.value)`)}</div>
+      <div class="skpl"><span>교훈</span>${lt(1, s.lesson, `skpSet('${s.id}','lesson',this.value)`)}</div></div>`;
+  return pSheet('안 한 매매', '매매일지 · 하지 않은 결정', `
+    ${guide ? '<div class="focusbox"><b>안 한 매매</b><span>계획했는데 놓친 매매, 참아서 잘한 매매, 망설이다 못 들어간 매매 — 매매하지 않은 결정도 복기 대상입니다.</span></div>' : ''}
+    ${L.map(blk).join('')}
+    ${addHere ? `<div class="row" style="margin-top:10px"><span class="pbtn" onclick="skpAdd()">＋ 안 한 매매 적기</span></div>` : ''}
+    ${!L.length && !addHere ? '<div class="m" style="margin-top:12px">오늘 참은 매매가 있었다면 왼쪽에 적어 두세요. 어떤 자리에서 망설이고, 어떤 자리를 잘 피하는지 보입니다.</div>' : ''}`, `${dDot(d)} · 안 한 매매`, side);
+}
+function skpAdd(){
+  db.skips.push({id: uid(), date: dayD, name: '', setup: '', kind: 'missed', why: '', after: '', lesson: ''}); save();
+  const SP = daySpreads(dayD, dayFills(dayD)), idx = SP.map((x, i) => x.skip ? i : -1).filter(i => i >= 0); dk = idx.at(-1) ?? dk; render();
+  setTimeout(() => { const ins = document.querySelectorAll('.skp input.pin[list]'); ins[ins.length - 1]?.focus(); }, 40);
+}
+function skpSet(id, k, v){ const s = db.skips.find(x => x.id === id); if (!s) return; s[k] = v; save(); if (k === 'name') fillNameList(); }
+function skpKind(id, k){ const s = db.skips.find(x => x.id === id); if (!s) return; s.kind = k; save(); render(); }
+function skpDel(id){ const s = db.skips.find(x => x.id === id); if (!s || ((s.name || s.why || s.after || s.lesson) && !confirm('이 안 한 매매 기록을 지울까요?'))) return; db.skips = db.skips.filter(x => x.id !== id); save(); render(); }
 function dkGo(i){ const n = daySpreads(dayD, dayFills(dayD)).length; const j = clip(i, 0, n - 1); if (j !== dk){ dk = j; render(); } }
 let _dkWheel = 0;
 function dkWheel(e){ if (e.target.closest('textarea,input,select') || Date.now() - _dkWheel < 280) return; _dkWheel = Date.now(); dkGo(dk + (e.deltaY > 0 ? 1 : -1)); }
@@ -1451,7 +1481,7 @@ function listItems(){
 const ROWS = () => Math.max(5, Math.floor((STAGE.h - 60 - 48 - 56 - 40 - 60) / 51));
 // 매매 기록 탭 안의 화면들: 한 매매 · 종목 차트 · 시간표 · 매매일지 · 예약 · 안 한 매매
 const subSeg = () => { const on = (v, t) => view === v && (!t || tSub === t) ? 'on' : '', tb = (t, l) => `<button class="${on('trades', t)}" onclick="tSub='${t}';go('trades')">${l}</button>`;
-  return `<div class="seg">${tb('done', '한 매매')}${tb('stock', '종목 차트')}${OLD('time') ? tb('time', '시간표') : ''}<button class="${on('day')} trj" onclick="go('day')">매매일지</button>${OLD('appt') ? `<button class="${on('appt')}" onclick="go('appt')">예약</button>` : ''}${tb('skip', `안 한 매매 <span class="muted">${db.skips.length}</span>`)}</div>`; };
+  return `<div class="seg">${tb('done', '한 매매')}${tb('stock', '종목 차트')}${OLD('time') ? tb('time', '시간표') : ''}<button class="${on('day')} trj" onclick="go('day')">매매일지</button>${OLD('appt') ? `<button class="${on('appt')}" onclick="go('appt')">예약</button>` : ''}${OLD('skip') ? tb('skip', `안 한 매매 <span class="muted">${db.skips.length}</span>`) : ''}</div>`; };
 const trBar = () => `<div class="lbar trsub">${subSeg()}</div>`;
 function listV(){
   const all = listItems(), per = ROWS(), pages = Math.max(1, Math.ceil(all.length / per)); lpage = clip(lpage, 0, pages - 1);
@@ -2563,7 +2593,7 @@ function setV(){
       <div class="note">가상의 매매 60건(봉인된 계획 · 수정 이력 · 결정 등급 · 연습용 차트), 매매일지, 주간 복기, 안 한 매매를 만듭니다. ‘샘플’ 표시가 붙고 [샘플 지우기]로 한 번에 지웁니다.</div>
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
       <h3 style="margin-top:12px">숨긴 기능 <small>잘 쓰지 않아 숨긴 옛 화면 — 켜면 다시 보입니다 (자료는 그대로 남아 있음)</small></h3>
-      <div class="row">${[['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
+      <div class="row">${[['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
       <div class="note" style="margin-top:12px">트레이딩 차트 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
