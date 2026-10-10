@@ -477,7 +477,7 @@ function drillV(m){
     : c.kind === 'ox' ? `<div class="dchs ox2">${[['o', 'O — 맞다'], ['x', 'X — 아니다']].map(([v, l]) => `<button class="dch ${cls2(v)}" ${done ? 'disabled' : ''} data-a="${v}"><span>${l}</span></button>`).join('')}</div>`
     : `<div class="dnum"><input id="drNum" inputmode="decimal" placeholder="숫자" ${done ? 'disabled' : ''} value="${done ? esc(DR.a) : ''}"><span style="color:var(--sub)">${esc(c.unit || '')}</span>${done ? '' : '<button id="drGo">확인</button>'}</div>`;
   const right = c.kind === 'pick' ? `${'①②③④⑤⑥'[c.ans] || ''} ${esc((c.choices || [])[c.ans] ?? '')}` : c.kind === 'ox' ? (c.ans === 'o' ? 'O — 맞다' : 'X — 아니다') : `${fmt(c.ans)}${esc(c.unit || '')}${n0(c.tol) ? ` (± ${c.tol})` : ''}`;
-  m.innerHTML = head + `<div class="dmeta">${c.topic ? `<span class="badge">${esc(c.topic)}</span>` : ''}<span class="badge">${['', '쉬움', '보통', '어려움'][n0(c.level)] || ''}</span><span style="color:var(--muted);font-size:12px">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ''}</span></div>
+  m.innerHTML = head + `<div class="dmeta">${c.topic ? `<span class="badge">${esc(c.topic)}</span>` : ''}<span class="badge">${['', '쉬움', '보통', '어려움'][n0(c.level)] || ''}</span><span style="color:var(--muted);font-size:12px">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ' · 실제 장면'}</span></div>
     ${c.stem ? `<div class="dstem">${esc(c.stem)}</div>` : ''}<div class="dq">${esc(c.q)}</div>
     ${done ? '' : `<div class="tools" style="margin:0 0 10px"><div class="seg">${[1, 2, 3].map(i => `<button class="${DR.conf === i ? 'on' : ''}" data-conf="${i}">확신 ${['', '낮음', '보통', '높음'][i]}</button>`).join('')}</div></div>`}
     ${ansHtml}

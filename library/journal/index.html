@@ -68,6 +68,12 @@ header>*{flex-shrink:0}
 header>.sp{flex-shrink:1;min-width:0}
 /* 검색창 (왼쪽 위) — 결과가 바로 아래에 펼쳐진다 */
 .sw{position:relative;width:340px}
+/* 훈련 탭: 파란 계열 (앱의 파란 버튼과 한 가족) */
+#nav button.navtr{color:var(--accent);background:var(--accent-weak);font-weight:600}
+#nav button.navtr kbd{background:rgba(var(--accent-rgb),.16);color:var(--accent)}
+#nav button.navtr:hover{background:rgba(var(--accent-rgb),.2)}
+#nav button.navtr.on{color:#fff;background:var(--accent);box-shadow:0 1px 3px rgba(var(--accent-rgb),.45)}
+#nav button.navtr.on kbd{background:rgba(255,255,255,.22);color:#fff}
 #themeBtn{width:108px;text-align:center}          /* '☾ 다크' ↔ '☀ 라이트' */
 #unitBtn{width:94px;text-align:center}            /* 'R 단위' ↔ '₩ 금액' */
 #syncInd{width:168px;overflow:hidden;text-overflow:ellipsis;text-align:right}
@@ -520,8 +526,6 @@ svg text{fill:var(--sub);font-size:12px;font-family:inherit}
     <div class="logo" onclick="go('home')"><i>R</i>트레이딩 차트</div>
     <div class="sw"><input id="q" placeholder="매매 검색 — 종목명 · 코드 · 전략 · 태그" autocomplete="off" oninput="sIdx=0;searchDraw()" onfocus="searchDraw()" onblur="setTimeout(()=>$('sres').hidden=true,180)" onkeydown="searchKey(event)"><kbd>/</kbd><div id="sres" hidden></div></div>
     <div class="seg" id="nav"></div>
-    <button class="primary" onclick="newTrade()" style="border-radius:var(--r-pill)">＋ 새 매매<kbd>N</kbd></button>
-    <div class="seg" id="nav2"></div>
     <span class="sp"></span>
     <span id="saved">✓ 저장됨</span>
     <span id="bkWarn" class="bkwarn" onclick="bkOpen()" hidden></span>
@@ -766,7 +770,8 @@ let pbSel = 0, pbI = 0, qz = {id: null, ans: null};
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
 const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['tt', '매매기록2'], ['appt', '예약'], ['cal', '달력'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련'], ['set', '원칙 · 설정']];
-const NAV_SPLIT = 5;   // 머리글에서 앞 5개 탭 | [＋ 새 매매] | 뒤 5개 탭
+// 머리글 탭은 한 줄 (2026-10-10 사용자: 가운데 [＋ 새 매매] 버튼은 빼고 — 새 매매는 매매 기록 · 매매일지 화면의 버튼과 N 키로).
+// 훈련 탭은 파란 계열로 눈에 띄게 (.navtr — 고르면 [＋ 새 매매]였던 파란 버튼과 같은 색)
 const weekish = () => (view === 'day' && dayMode === 'week') || (view === 'tt' && ttMode === 'week') || (view === 'appt' && apMode === 'week');
 const tradeById = id => db.trades.find(t => t.id === id);
 const tradeObj = () => tMode === 'edit' && draft && draft.id === sel ? draft : tradeById(sel);
@@ -782,8 +787,7 @@ function go(v){
 const isBook = () => view === 'day' || view === 'play' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
 function render(){
   document.documentElement.classList.toggle('focus', focusOn && isBook());
-  const nb = NAV.map(([k, l], i) => `<button class="${view === k ? 'on' : ''}" onclick="go('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`);
-  $('nav').innerHTML = nb.slice(0, NAV_SPLIT).join(''); $('nav2').innerHTML = nb.slice(NAV_SPLIT).join('');
+  $('nav').innerHTML = NAV.map(([k, l], i) => `<button class="${view === k ? 'on' : ''}${k === 'quiz' ? ' navtr' : ''}" onclick="go('${k}')">${l}<kbd>${(i + 1) % 10}</kbd></button>`).join('');
   $('unitBtn').innerHTML = (HM() ? 'R 단위' : '₩ 금액') + '<kbd>M</kbd>';
   $('main').innerHTML = view === 'home' ? homeV() : view === 'day' ? (dayMode === 'week' ? weekV() : dayV())
     : view === 'trades' ? (sel && tradeObj() ? (tMode === 'edit' ? editV() : tradeBookV()) : tSub === 'skip' ? skipV() : tSub === 'stock' ? stockV() : listV())
@@ -2133,7 +2137,7 @@ function drillCard(c, done){   // 문제 한 장 (오늘의 훈련 · 문제은�
     : c.kind === 'ox' ? `<div class="dchs ox2">${[['o', 'O — 맞다'], ['x', 'X — 아니다']].map(([v, l], i) => `<button class="dch ${!done ? '' : v === c.ans ? 'right' : dr.a === v && dr.cid === c.id ? 'wrong' : 'dim'}" ${done ? 'disabled' : ''} onclick="drillAns('${v}')"><kbd>${v.toUpperCase()}</kbd><span>${l}</span></button>`).join('')}</div>`
     : `<div class="row dnum"><input id="drNum" inputmode="decimal" placeholder="숫자" ${done ? 'disabled' : ''} value="${done && dr.cid === c.id ? esc(dr.a) : ''}" onkeydown="if(event.key==='Enter'){event.preventDefault();drillAns(this.value)}"><span class="muted">${esc(c.unit || '')}</span>${done ? '' : '<button class="primary" onclick="drillAns($(\'drNum\').value)">확인 <kbd>Enter</kbd></button>'}</div>`;
   return `<div class="dmeta">${c.topic ? `<span class="badge">${esc(c.topic)}</span>` : ''}<span class="badge">${DR_KIND[c.kind] || ''}</span><span class="badge">${DR_LV[n0(c.level)] || ''}</span>
-      <span class="sp"></span><span class="muted">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ''}</span></div>
+      <span class="sp"></span><span class="muted">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ' · 실제 장면'}</span></div>
     ${c.stem ? `<div class="dstem">${nl(c.stem)}</div>` : ''}<div class="dq">${nl(c.q)}</div>${ans}
     ${done ? `<div class="dwhy"><div><b>정답</b> ${drAnsTxt(c)}</div>${c.why ? `<p>${nl(c.why)}</p>` : ''}${c.ref ? `<div class="muted">근거 — ${esc(c.ref)}</div>` : ''}</div>` : ''}`;
 }
