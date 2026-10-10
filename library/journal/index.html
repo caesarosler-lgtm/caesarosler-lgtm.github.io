@@ -1072,14 +1072,10 @@ function dayTrades(d){   // 그날 체결이 있거나 그날 계획만 세운 �
 const JUDGE_ONLY = () => !OLD('dayFull');
 const spHas = (x, id) => !!x && (x.id === id || (x.ids || []).includes(id));
 function daySpreads(d, fl){
-  if (JUDGE_ONLY()){   // 판단 기록만: 그날 매매 + 새 매매를 두 장씩
-    const ts = dayTrades(d).map(t => ({t, id: t.id})).concat([{t: ppT('new'), id: 'new'}]), L = [];
-    for (let i = 0; i < ts.length; i += 2){
-      const a = ts[i], b = ts[i + 1], nm = x => x.id === 'new' ? '＋ 새 매매' : (x.t.name || '(이름 없음)');
-      L.push({label: b ? `${nm(a)} · ${nm(b)}` : nm(a), add: (b || a).id === 'new', ids: [a.id, b && b.id].filter(Boolean),
-        l: () => ppJudge(a.t, a.id, '왼쪽'), r: () => b ? ppJudge(b.t, b.id, '오른쪽') : pSheet('', '', '<div class="m" style="margin-top:40px;text-align:center">이 날의 기록 끝</div>', '', '오른쪽')});
-    }
-    return L;
+  if (JUDGE_ONLY()){   // 판단 기록만: 매매 하나 = 펼침 하나 — 왼쪽 매매일지, 오른쪽 그 매매의 메모 (2026-10-10 사용자). 맨 끝은 새 매매
+    return dayTrades(d).map(t => ({t, id: t.id})).concat([{t: ppT('new'), id: 'new'}]).map(({t, id}) => ({
+      label: id === 'new' ? '＋ 새 매매' : (t.name || '(이름 없음)'), add: id === 'new', ids: [id],
+      l: () => ppJudge(t, id, '왼쪽'), r: () => ppMemo(t, id)}));
   }
   const L = [{label: '장전 · 장 마감', l: () => dayPre(d), r: () => dayPost(d, fl)}];
   dayTrades(d).forEach(t => { const nm = t.name || '(이름 없음)';
@@ -1268,6 +1264,10 @@ function ppReview(t, id){
     ${bsec('교훈', '한 문장으로')}${ppLt(id, 'review.lesson', 2, r.lesson)}
     ${bsec('다음에는 이렇게')}${ppLt(id, 'review.next', 3, r.next)}`, ppFoot(t), '오른쪽');
 }
+function ppMemo(t, id){   // 메모 장 — 줄 공책. 자료는 매매의 memo 칸 (원래 있던 칸, 종이 기록부의 '메모' 쪽과 같은 것)
+  return pSheet('메모', '자유롭게', ppLt(id, 'memo', MEMO_LINES, t.memo, '차트에서 본 것 · 떠오른 생각 · 다음에 확인할 것 …'), ppFoot(t), '오른쪽');
+}
+const MEMO_LINES = 36;
 function ppJudge(t, id, side = '왼쪽'){
   const r = t.review, c = calc(t, true), only = JUDGE_ONLY();
   // 판단 기록만일 때 장 제목 = 매매일지 (2026-10-10 사용자)
