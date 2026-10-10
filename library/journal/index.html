@@ -252,6 +252,7 @@ html[data-theme=dark] .spread{filter:brightness(.93)}
 .sf{display:flex;justify-content:space-between;border-top:1px solid #aaa;padding-top:6px;font-size:11px;color:#777;margin-top:8px}
 .sec{font-weight:700;margin:12px 0 4px;font-size:13.5px;display:flex;align-items:baseline;gap:8px}
 .sec::before{content:"■";color:#2f6fb2}
+.sec.plain::before{content:none}
 .sec small{font-weight:400;color:#888;font-size:11.5px}
 .lines{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#c8d2de 25px,#c8d2de 26px);line-height:26px;padding:0 4px;color:#16348a;white-space:pre-wrap}
 .sheet textarea.lines{display:block;width:100%;border:none;border-radius:0;resize:none;outline:none;font:inherit;font-size:13.5px;line-height:26px;background-color:transparent;box-shadow:none;overflow:hidden;color:#16348a;padding:0 4px}
@@ -890,7 +891,7 @@ function focusToggle(on){
   setupBook(); if (focusOn) toast('집중 보기 — 나가려면 Esc');
 }
 addEventListener('resize', () => { fit(); setupBook(); });
-const pSheet = (title, sub, body, foot, pn = '%PN%') => `<div class="sheet"><div class="sh"><b>${title}</b><span>${OWNER ? esc(OWNER) + ' · ' : ''}${sub}</span></div><div class="sbody">${body}</div><div class="sf"><span>${foot}</span><span>${pn}</span></div></div>`;
+const pSheet = (title, sub, body, foot, pn = '%PN%') => `<div class="sheet"><div class="sh"><b>${title}</b><span>${OWNER ? esc(OWNER) + ' · ' : ''}${sub}</span></div><div class="sbody">${body}</div>${foot === null ? '' : `<div class="sf"><span>${foot}</span><span>${pn}</span></div>`}</div>`;   // foot = null → 꼬리말 없음
 const f4 = (a, av, b, bv) => `<tr><th>${a}</th><td>${av || '&nbsp;'}</td><th>${b}</th><td>${bv || '&nbsp;'}</td></tr>`;
 const f2 = (a, av) => `<tr><th>${a}</th><td colspan="3">${av || '&nbsp;'}</td></tr>`;
 const lined = (txt, n) => `<div class="lines" style="height:${(n || 3) * 26}px;overflow:hidden">${txt ? nl(txt) : ''}</div>`;
@@ -1265,20 +1266,22 @@ function ppReview(t, id){
     ${bsec('다음에는 이렇게')}${ppLt(id, 'review.next', 3, r.next)}`, ppFoot(t), '오른쪽');
 }
 function ppMemo(t, id){   // 메모 장 — 줄 공책. 자료는 매매의 memo 칸 (원래 있던 칸, 종이 기록부의 '메모' 쪽과 같은 것)
-  return pSheet('메모', '자유롭게', ppLt(id, 'memo', MEMO_LINES, t.memo, '차트에서 본 것 · 떠오른 생각 · 다음에 확인할 것 …'), ppFoot(t), '오른쪽');
+  return pSheet('메모', '자유롭게', ppLt(id, 'memo', MEMO_LINES, t.memo), null);   // 설명 글 · 꼬리말 없이 (2026-10-11 사용자)
 }
 const MEMO_LINES = 36;
 function ppJudge(t, id, side = '왼쪽'){
   const r = t.review, c = calc(t, true), only = JUDGE_ONLY();
-  // 판단 기록만일 때 장 제목 = 매매일지 (2026-10-10 사용자)
+  // 판단 기록만일 때 장 제목 = 매매일지 (2026-10-10 사용자). 2026-10-11 사용자: 질문만 — 파란 네모 · 칸 안 설명 글 · 꼬리말(새 매매 · 왼쪽) 없이
+  const q = l => only ? `<div class="sec plain">${l}</div>` : bsec(l), ph = x => only ? '' : x;
+  const del = id === 'new' ? '' : `<span class="pdel ppdel" onclick="ppDel('${id}')" title="이 매매 기록을 지웁니다 (묻고 나서)">이 매매 지우기</span>`;
   return pSheet(only ? '매매일지' : '판단 기록', '복기 · 끝난 뒤에 — 돈이 아니라 결정', `
     ${only ? '' : `${id === 'new' ? '<div class="focusbox"><b>새 매매</b><span>먼저 앞 장(계획서)에 종목명을 적으면 이 매매가 만들어집니다 — 여기 쓴 것도 함께 들어갑니다.</span></div>' : ''}
     ${bsec('다섯 가지 질문', '돈이 아니라 결정을 돌아봅니다')}`}
-    ${REVIEW_Q.map(([k, l, ph], i) => bsec(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph)).join('')}
-    ${bsec('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
-    ${ppLt(id, 'review.againWhy', 2, r.againWhy, r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나')}
+    ${REVIEW_Q.map(([k, l, p], i) => q(`${i + 1}. ${l}`) + ppLt(id, 'review.' + k, 3, r[k], ph(p))).join('')}
+    ${q('5. 다시 돌아가도 같은 매매를 할 것인가')}<span class="pchips clk">${[['y', '예 — 같은 매매를 한다'], ['n', '아니오 — 하지 않는다']].map(([v, l]) => `<span class="${r.again === v ? 'on' : ''}" onclick="ppToggle('${id}','again','${v}')">${r.again === v ? '☑' : '☐'} ${l}</span>`).join('')}</span>
+    ${ppLt(id, 'review.againWhy', 2, r.againWhy, ph(r.again === 'n' ? '무엇이 달라야 했나' : '무엇이 맞았나'))}
     ${only ? '' : `<table style="margin-top:8px">${f2('계획했던 손절가 · R', `<span id="pp_r_${id}">${rLine(t, c)}</span>`)}</table>
-    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`}`, ppFoot(t) + (id === 'new' ? '' : `<span class="pdel ppdel" onclick="ppDel('${id}')" title="이 매매 기록을 지웁니다 (묻고 나서)">이 매매 지우기</span>`), side);   // 판단 기록만일 때는 손절가 · R 줄과 감정 메모도 뺌 (2026-10-10 사용자)
+    ${bsec('감정 메모', '매매 전 · 후')}${ppLt(id, 'review.emoPreNote', 1, r.emoPreNote, '전: ')}${ppLt(id, 'review.emoPostNote', 1, r.emoPostNote, '후: ')}`}`, only ? (del ? del.replace('pdel ppdel', 'pdel') : null) : ppFoot(t) + del, only ? '' : side);   // 판단 기록만: 꼬리말엔 [이 매매 지우기]만 (새 매매 장은 꼬리말 없음)   // 판단 기록만일 때는 손절가 · R 줄과 감정 메모도 뺌 (2026-10-10 사용자)
 }
 function tradingStep(d, dir){ let x = addDays(d, dir); while (isWe(x) && !db.days[x] && !dayFills(x).length) x = addDays(x, dir); return x; }
 function dayGo(dir){ dk = 0; dayD = !dir ? today() : weekish() ? addDays(dayD, dir * 7) : view === 'appt' ? addDays(dayD, dir) : tradingStep(dayD, dir); render(); }
