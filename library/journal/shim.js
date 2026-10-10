@@ -11,7 +11,7 @@
 'use strict';
 const CLIENT_ID = "400009441617-5v78t237a461c2bhp74s4b72a5a1g05m.apps.googleusercontent.com";
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const ROOM = {"stores": {"data": {"prefix": "journal:", "sync": {"top": false, "lists": ["trades", "rules", "skips", "quiz", "appts", "brokers", "imports"], "dicts": ["days", "weeks", "names", "mrules"], "local": ["seq"], "strip": []}}}, "title": "트레이딩 차트", "desc": "나의 도서관의 트레이딩 차트 — 기록은 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
+const ROOM = {"stores": {"data": {"prefix": "journal:", "sync": {"top": false, "lists": ["trades", "rules", "skips", "quiz", "appts", "brokers", "imports", "cases", "caseLog"], "dicts": ["days", "weeks", "names", "mrules"], "local": ["seq"], "strip": []}}}, "title": "트레이딩 차트", "desc": "나의 도서관의 트레이딩 차트 — 기록은 내 구글 드라이브에만 있습니다."};   // {stores: {저장소: {prefix: 'journal:', sync: 나의도서관.pyw ROOM_SYNC[…]}}, title, desc}
 // 시험: 이 PC 의 시험 주소(localhost)에서만 ?folder=… 로 다른 동기화 폴더 (PC 쪽은 ML_SYNC_FOLDER) — 공개 주소에서는 늘 진짜 폴더
 const FOLDER = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('folder')) || '나의도서관 동기화';
 const ST = name => { const st = ROOM.stores[name]; if (!st) throw new Error('저장소 없음: ' + name); return st; };

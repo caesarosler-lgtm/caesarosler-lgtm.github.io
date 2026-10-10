@@ -472,6 +472,36 @@ svg text{fill:var(--sub);font-size:12px;font-family:inherit}
 .qres{border-radius:var(--r3);padding:14px 16px;font-size:var(--t1);font-weight:700}
 .qres.ok{background:rgba(36,138,61,.14);color:var(--ok)}
 .qres.no{background:rgba(199,125,0,.16);color:var(--warn)}
+/* 훈련 문제은행 (2026-10-10) */
+.drill{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:var(--s5)}
+.dmain{gap:var(--s4);overflow:auto;padding:var(--s5) var(--s6)}
+.dmain>*{width:100%;max-width:1240px;margin-left:auto;margin-right:auto}   /* 넓은 화면에서도 읽기 좋은 폭 */
+.dside{gap:var(--s3)}
+.dmeta{display:flex;gap:var(--s2);align-items:center;font-size:var(--t-1)}
+.dstem{font-size:var(--t1);line-height:1.75;padding:16px 20px;border-radius:var(--r3);background:rgba(128,128,128,.08)}
+.dq{font-size:var(--t2);font-weight:600;line-height:1.5}
+.dchs{display:grid;gap:var(--s2)}
+.dchs.ox2{grid-template-columns:1fr 1fr}
+.dch{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r3);background:var(--panel);font-size:var(--t1);line-height:1.45}
+.dch:not(:disabled):hover{border-color:var(--accent);background:var(--accent-weak)}
+.dch kbd{flex-shrink:0}
+.dch.right{border-color:var(--ok);background:rgba(36,138,61,.12)}
+.dch.wrong{border-color:var(--warn);background:rgba(199,125,0,.14)}
+.dch.dim{opacity:.5}
+.dch:disabled{cursor:default;color:inherit}
+.dnum input{width:240px;font-size:var(--t1)}
+.dwhy{border-left:3px solid var(--accent);padding:6px 0 6px 16px;display:flex;flex-direction:column;gap:6px;line-height:1.7}
+.dwhy p{margin:0}
+.dres{display:flex;align-items:center;gap:var(--s2);border-radius:var(--r3);padding:12px 16px;font-size:var(--t1);font-weight:700}
+.dres.ok{background:rgba(36,138,61,.14);color:var(--ok)}
+.dres.no{background:rgba(199,125,0,.16);color:var(--warn)}
+.dres button{font-weight:400}
+.dprog{height:8px;border-radius:4px;background:rgba(128,128,128,.18);overflow:hidden}
+.dprog i{display:block;height:100%;background:var(--accent)}
+.dside .kv,.grow .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;align-items:baseline}
+.dside .kv b,.grow .kv b{text-align:right}
+.dprev{display:flex;flex-direction:column;gap:var(--s3)}
+.grow{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--s5)}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:var(--t0);line-height:1.6}
 .kv span{color:var(--sub);font-size:var(--t-1);padding-top:2px}
 
@@ -601,9 +631,9 @@ const RES = () => HM() ? '결과' : '실현손익';
 /* ---------- 데이터 ---------- */
 let db = null, serverOK = false, CFG = {theme: 'light', owner: ''}, saveT = null, pushing = null, dirty = false, OWNER = '';
 function blankDb(){
-  return {v: 4, seq: 0, trades: [], days: {}, weeks: {}, skips: [], quiz: [], appts: [], mrules: {}, playbooks: JSON.parse(JSON.stringify(DEFAULT_PLAYBOOKS)), brokers: [], imports: [],
+  return {v: 5, seq: 0, trades: [], days: {}, weeks: {}, skips: [], quiz: [], appts: [], mrules: {}, playbooks: JSON.parse(JSON.stringify(DEFAULT_PLAYBOOKS)), brokers: [], imports: [], cases: [], caseLog: [],
     rules: DEFAULT_RULES.map(text => ({id: uid(), text})), setups: [...SETUPS], mistakes: [...MISTAKES], emotions: [...EMOTIONS],
-    settings: {feeRate: 0.015, taxKospi: 0.20, taxKosdaq: 0.20, taxEtf: 0, capital: 10000000, hideMoney: true, riskPct: 1}, names: {}, sampleDays: [], sampleWeeks: []};
+    settings: {feeRate: 0.015, taxKospi: 0.20, taxKosdaq: 0.20, taxEtf: 0, capital: 10000000, hideMoney: true, riskPct: 1, drillGoal: 20}, names: {}, sampleDays: [], sampleWeeks: []};
 }
 function normDb(d){
   const b = blankDb(); d = d && typeof d === 'object' && !Array.isArray(d) ? d : {};
@@ -624,6 +654,11 @@ function migrate(d){
     d.v = 3;
   }
   if (n0(d.v) < 4) d.v = 4;   // v4 (3단계): 복기의 판단 기록 칸 — 매매마다 필요할 때 생긴다 (REVIEW_Q · again · againWhy · emoPreNote · emoPostNote)
+  if (n0(d.v) < 5){   // v5 (2026-10-10 훈련 문제은행): cases(문제) · caseLog(풀이 기록) · settings.drillGoal — 되돌리기: tools/journal_migrate.py down5
+    if (!Array.isArray(d.cases)) d.cases = [];
+    if (!Array.isArray(d.caseLog)) d.caseLog = [];
+    d.v = 5;
+  }
   return d;
 }
 /* 판단 기록 — 다섯 가지 질문 (단타 · 스캘핑 복기 도구 3단계). 다섯째는 예/아니오(review.again) + 이유(review.againWhy) */
@@ -741,6 +776,7 @@ function go(v){
   if (tMode === 'edit'){ draft = null; isNew = false; tMode = 'book'; }
   view = v; if (v !== 'trades') sel = null; focusOn = false;
   if (v === 'quiz' && !qz.id) quizNext();
+  if (v === 'quiz' && qzTab === 'today' && dr.a == null) drillNext();
   render();
 }
 const isBook = () => view === 'day' || view === 'play' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
@@ -755,6 +791,7 @@ function render(){
   if (isBook()) setupBook();
   if (view === 'trades' && sel && tMode === 'book') document.querySelector('.pr.on')?.scrollIntoView({block: 'nearest'});
   if (view === 'trades' && !sel && tSub === 'stock') document.querySelectorAll('#skList .pr.on, #skTl .tl.on').forEach(el => el.scrollIntoView({block: 'nearest'}));
+  if (view === 'quiz' && qzTab === 'today' && dr.a == null) $('drNum')?.focus();   // 숫자 문제는 바로 적을 수 있게
   $('tip').hidden = true;
 }
 
@@ -2036,6 +2073,12 @@ function quizAns(enter){
   qz.ans = enter; qz.ok = enter === good; db.quiz.push({tid: t.id, at: new Date().toISOString(), enter, ok: qz.ok}); save(); render();
 }
 function quizV(){
+  if (qzTab === 'today') return drillV();
+  if (qzTab === 'bank') return bankV();
+  if (qzTab === 'grow') return growV();
+  return qzBar() + blindV();
+}
+function blindV(){
   const pool = quizPool(), t = tradeById(qz.id), done = db.quiz.length, okN = db.quiz.filter(q => q.ok).length;
   if (!t || !t.images.length) return `<div class="card" style="flex:1;align-items:center;justify-content:center;text-align:center"><h3 style="font-size:var(--t2)">블라인드 복기</h3>
     <div class="note" style="font-size:var(--t0);max-width:760px">내 매매의 <b>진입 시점 차트</b>만 보고 “지금이라면 들어가겠는가?”를 답하는 훈련입니다. 결과를 모르는 상태에서 판단해야 결정의 질을 연습할 수 있습니다.<br><br>
@@ -2056,6 +2099,149 @@ function quizV(){
         <div class="row"><button onclick="openTrade('${t.id}')">종이 기록부 열기</button><span class="sp"></span><button class="primary" onclick="quizNext();render()">다음 문제<kbd>Space</kbd></button></div>`}
       <span class="sp"></span><div class="note">정답 기준은 돈이 아니라 <b>결정 등급</b>입니다: A·B 였던 매매는 ‘들어간다’, C·D 였던 매매는 ‘안 들어간다’가 일치. 같은 문제는 한참 뒤에 다시 나옵니다.</div>
     </div></div>`;
+}
+
+/* =====================================================================
+   9-2. 훈련 문제은행 (2026-10-10) — 노트(드림로드부터)에서 만든 '실제 있을 법한 상황' 문제를 날마다 푼다.
+   정답 기준은 '앞으로 오를까'가 아니라 '노트의 원칙대로라면' (예측 문제는 만들지 않는다). AI 가 만든 초안은 내가 승인해야 나온다.
+   계산(출제 순서 · 간격 반복 · 통계)은 journal_calc.js 의 JC.drill… — 휴대폰 화면(m.html)과 같은 코드.
+   ===================================================================== */
+let qzTab = 'today', dr = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0, sessOk: 0}, bkF = 'draft';
+const DR_KIND = {pick: '고르기', num: '숫자', ox: 'O · X'}, DR_LV = ['', '쉬움', '보통', '어려움'], DR_CONF = ['', '낮음', '보통', '높음'];
+const DR_ST = {draft: '승인 대기', ok: '승인', off: '끔'};
+const caseById = id => db.cases.find(c => c.id === id);
+const qzBar = () => `<div class="lbar"><div class="seg">${[['today', '오늘의 훈련'], ['bank', '문제은행'], ['grow', '성장'], ['blind', '블라인드 복기']].map(([k, l]) =>
+  `<button class="${qzTab === k ? 'on' : ''}" onclick="qzTab='${k}';${k === 'today' ? 'drillNext();' : ''}render()">${l}${k === 'bank' && db.cases.some(c => c.status === 'draft') ? ` <span class="needn">${db.cases.filter(c => c.status === 'draft').length}</span>` : ''}</button>`).join('')}</div></div>`;
+function drillNext(){
+  const q = JC.drillQueue(db.cases, db.caseLog, today()).filter(id => id !== dr.cid || dr.a == null);
+  dr = {...dr, cid: q[0] || null, a: null, ok: null, t0: Date.now()};
+}
+function drillAns(a){
+  const c = caseById(dr.cid); if (!c || dr.a != null) return;
+  if (c.kind === 'num' && String(a ?? '').trim() === ''){ toast('숫자를 적어 주세요'); return; }
+  dr.a = a; dr.ok = JC.drillCheck(c, a); dr.sess++; if (dr.ok) dr.sessOk++;
+  db.caseLog.push({id: uid(), cid: c.id, at: new Date().toISOString(), day: today(), a, ok: dr.ok, conf: dr.conf, ms: Date.now() - dr.t0});
+  save(); render();
+}
+const drAnsTxt = c => c.kind === 'pick' ? `${'①②③④⑤⑥'[c.ans] || ''} ${esc((c.choices || [])[c.ans] ?? '')}` : c.kind === 'ox' ? (c.ans === 'o' ? 'O — 맞다' : 'X — 아니다') : `${fmt(c.ans)}${esc(c.unit || '')}${n0(c.tol) ? ` (± ${c.tol})` : ''}`;
+function drillCard(c, done){   // 문제 한 장 (오늘의 훈련 · 문제은행 미리 보기 같이 씀). done = 답을 보여 줄 때
+  const pickBtn = (i, l) => {
+    const st = !done ? '' : i === n0(c.ans) ? 'right' : String(dr.a) === String(i) && dr.cid === c.id ? 'wrong' : 'dim';
+    return `<button class="dch ${st}" ${done ? 'disabled' : ''} onclick="drillAns(${i})"><kbd>${i + 1}</kbd><span>${esc(l)}</span></button>`;
+  };
+  const ans = c.kind === 'pick' ? `<div class="dchs">${(c.choices || []).map((l, i) => pickBtn(i, l)).join('')}</div>`
+    : c.kind === 'ox' ? `<div class="dchs ox2">${[['o', 'O — 맞다'], ['x', 'X — 아니다']].map(([v, l], i) => `<button class="dch ${!done ? '' : v === c.ans ? 'right' : dr.a === v && dr.cid === c.id ? 'wrong' : 'dim'}" ${done ? 'disabled' : ''} onclick="drillAns('${v}')"><kbd>${v.toUpperCase()}</kbd><span>${l}</span></button>`).join('')}</div>`
+    : `<div class="row dnum"><input id="drNum" inputmode="decimal" placeholder="숫자" ${done ? 'disabled' : ''} value="${done && dr.cid === c.id ? esc(dr.a) : ''}" onkeydown="if(event.key==='Enter'){event.preventDefault();drillAns(this.value)}"><span class="muted">${esc(c.unit || '')}</span>${done ? '' : '<button class="primary" onclick="drillAns($(\'drNum\').value)">확인 <kbd>Enter</kbd></button>'}</div>`;
+  return `<div class="dmeta">${c.topic ? `<span class="badge">${esc(c.topic)}</span>` : ''}<span class="badge">${DR_KIND[c.kind] || ''}</span><span class="badge">${DR_LV[n0(c.level)] || ''}</span>
+      <span class="sp"></span><span class="muted">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ''}</span></div>
+    ${c.stem ? `<div class="dstem">${nl(c.stem)}</div>` : ''}<div class="dq">${nl(c.q)}</div>${ans}
+    ${done ? `<div class="dwhy"><div><b>정답</b> ${drAnsTxt(c)}</div>${c.why ? `<p>${nl(c.why)}</p>` : ''}${c.ref ? `<div class="muted">근거 — ${esc(c.ref)}</div>` : ''}</div>` : ''}`;
+}
+function drillV(){
+  const goal = n0(db.settings.drillGoal) || 20, S = JC.drillStats(db.cases, db.caseLog, today()), wait = db.cases.filter(c => c.status === 'draft').length;
+  if (dr.cid && !caseById(dr.cid)) dr.cid = null;
+  if (!dr.cid && dr.a == null) drillNext();
+  const c = caseById(dr.cid), pct = Math.min(100, S.today / goal * 100);
+  const side = `<div class="card dside"><h3>오늘 <small>${dShort(today())}</small></h3>
+      <div class="dprog"><i style="width:${pct}%"></i></div><div class="row"><b style="font-size:var(--t2)">${S.today}</b><span class="muted">/ ${goal}문제</span><span class="sp"></span>
+        <span class="muted">목표</span><input type="number" min="5" max="200" step="5" value="${goal}" style="width:90px" onchange="db.settings.drillGoal=Math.max(5,Math.min(200,Math.round(n0(this.value))||20));save();render()"></div>
+      <div class="kv"><span>이번에 푼 것</span><b>${dr.sess}문제 · 맞힘 ${dr.sessOk}</b><span>오늘 정답률</span><b>${S.today ? Math.round(S.todayOk / S.today * 100) + '%' : '–'}</b>
+        <span>연속 훈련</span><b>${S.streak}일</b><span>승인된 문제</span><b>${S.cases}개 · 익힘 ${S.mastered}</b></div>
+      ${S.byTopic.length ? `<h3 style="margin-top:var(--s3)">약한 유형</h3>${S.byTopic.slice(0, 3).map(x => `<div class="row"><span>${esc(x.key)}</span><span class="sp"></span><b class="${x.rate < 70 ? 'needn' : ''}">${Math.round(x.rate)}%</b><span class="muted">${x.n}번</span></div>`).join('')}` : ''}
+      <span class="sp"></span><div class="note">정답 기준은 <b>노트의 원칙</b>입니다 — 앞으로의 가격을 맞히는 문제가 아닙니다. 답하기 전에 확신도를 고르면 [성장]에서 과신 · 소심을 볼 수 있어요.</div></div>`;
+  if (!c) return qzBar() + `<div class="drill"><div class="card dmain" style="align-items:center;justify-content:center;text-align:center">
+      ${S.cases ? `<h3 style="font-size:var(--t2)">오늘 낼 문제를 다 풀었어요</h3><div class="note">맞힌 문제는 1 · 3 · 7 · 16일 … 뒤에 다시 나옵니다. 내일 다시 오세요.</div>`
+        : `<h3 style="font-size:var(--t2)">아직 승인된 문제가 없어요</h3><div class="note">[문제은행]에서 초안을 읽고 승인하면 여기서 나옵니다.${wait ? ` 승인 대기 <b>${wait}</b>개.` : ' [⇪ 문제 파일 불러오기]로 초안을 넣으세요.'}</div>
+          <div class="row" style="justify-content:center;margin-top:var(--s3)"><button class="primary" onclick="qzTab='bank';bkF='draft';render()">문제은행 열기</button></div>`}</div>${side}</div>`;
+  const done = dr.a != null;
+  return qzBar() + `<div class="drill"><div class="card dmain">${drillCard(c, done)}
+      <span class="sp"></span>
+      ${done ? `<div class="dres ${dr.ok ? 'ok' : 'no'}">${dr.ok ? '맞았어요' : '틀렸어요 — 오늘 조금 뒤에 한 번 더 나옵니다'}<span class="sp"></span><button onclick="bankEdit('${c.id}')">문제 고치기</button><button class="primary" onclick="drillNext();render()">다음 문제 <kbd>Space</kbd></button></div>`
+        : `<div class="row dconf"><span class="muted">확신도</span><div class="seg">${[1, 2, 3].map(i => `<button class="${dr.conf === i ? 'on' : ''}" onclick="dr.conf=${i};render()">${DR_CONF[i]}</button>`).join('')}</div><span class="sp"></span><span class="keyhint">${c.kind === 'pick' ? '1 ~ ' + (c.choices || []).length + ' 고르기' : c.kind === 'ox' ? 'O · X' : '숫자를 적고 Enter'} · 확신도 Q W E</span></div>`}
+    </div>${side}</div>`;
+}
+
+/* 문제은행 — 초안 검수(승인 · 고치기 · 끄기) · 문제 파일 불러오기. 지우지 않고 '끔'으로 (풀이 기록이 남아 있을 수 있어서) */
+function bankV(){
+  const st = JC.drillState(db.caseLog), cnt = k => db.cases.filter(c => k === 'all' || c.status === k).length;
+  const L = db.cases.filter(c => bkF === 'all' || c.status === bkF);
+  return qzBar() + `<div class="lbar" style="margin-top:calc(-1 * var(--s2))"><div class="seg">${[['draft', '승인 대기'], ['ok', '승인'], ['off', '끔'], ['all', '전체']].map(([k, l]) => `<button class="${bkF === k ? 'on' : ''}" onclick="bkF='${k}';render()">${l} <span class="${k === 'draft' && cnt(k) ? 'needn' : 'muted'}">${cnt(k)}</span></button>`).join('')}</div>
+      <span class="muted" style="font-size:var(--t-1)">초안을 읽고 노트와 맞는지 확인한 뒤 승인하세요 — 승인한 문제만 훈련에 나옵니다.</span><span class="sp"></span>
+      ${bkF === 'draft' && L.length ? `<button onclick="bankAll()">보이는 ${L.length}개 모두 승인</button>` : ''}<button onclick="$('caseIn').click()" title="문제 초안 파일(.json)을 불러옵니다 — 이미 있는 문제(같은 id)는 건너뜁니다">⇪ 문제 파일 불러오기</button><button class="primary" onclick="bankEdit()">＋ 새 문제</button></div>
+    <input type="file" id="caseIn" accept=".json,application/json" hidden onchange="bankImport(this.files[0]);this.value=''">
+    <div class="card" style="flex:1;padding:8px 16px;overflow:auto"><table class="ltab"><thead><tr><th>상태</th><th>유형</th><th>종류</th><th>난이도</th><th style="width:52%">질문</th><th>출처</th><th class="num">푼 횟수</th><th class="num">정답률</th></tr></thead><tbody>
+      ${L.map(c => { const s = st[c.id]; return `<tr class="click" onclick="bankShow('${c.id}')"><td><span class="badge ${c.status === 'draft' ? 'plan' : c.status === 'ok' ? 'open' : ''}">${DR_ST[c.status] || ''}</span></td><td>${esc(c.topic || '')}</td><td>${DR_KIND[c.kind] || ''}</td><td>${DR_LV[n0(c.level)] || ''}</td>
+        <td>${esc((c.q || '').slice(0, 90))}</td><td class="muted">${esc(c.src || '')}</td><td class="num">${s ? s.tries : ''}</td><td class="num">${s ? Math.round(s.oks / s.tries * 100) + '%' : ''}</td></tr>`; }).join('')
+        || `<tr><td colspan="8" class="empty" style="height:120px;text-align:center">${bkF === 'draft' ? '승인을 기다리는 초안이 없습니다.' : '문제가 없습니다.'} [⇪ 문제 파일 불러오기]로 초안을 넣거나 [＋ 새 문제]로 직접 만드세요.</td></tr>`}</tbody></table></div>`;
+}
+function bankShow(id){
+  const c = caseById(id); if (!c) return; const sv = dr; dr = {...dr, cid: null};
+  modal(`<div class="row"><h3 style="flex:1">문제 미리 보기 <span class="badge ${c.status === 'draft' ? 'plan' : c.status === 'ok' ? 'open' : ''}">${DR_ST[c.status]}</span></h3></div>
+    <div class="dprev">${drillCard(c, true)}</div>
+    <div class="bt"><button onclick="closeModal()">닫기</button><button onclick="closeModal();bankEdit('${c.id}')">고치기</button>
+      ${c.status !== 'off' ? `<button class="danger" onclick="bankSet('${c.id}','off')">끄기</button>` : `<button onclick="bankSet('${c.id}','draft')">되살리기</button>`}
+      ${c.status !== 'ok' ? `<button class="primary" onclick="bankSet('${c.id}','ok')">승인</button>` : ''}</div>`, 'wide');
+  dr = sv;
+}
+function bankSet(id, status){ const c = caseById(id); if (!c) return; c.status = status; c.updated = new Date().toISOString(); save(); closeModal(); render(); toast(status === 'ok' ? '승인했어요 — 오늘의 훈련에 나옵니다' : status === 'off' ? '껐어요 (기록은 남아 있어요)' : '승인 대기로 돌렸어요'); }
+function bankAll(){
+  const L = db.cases.filter(c => c.status === 'draft'); if (!L.length || !confirm(`승인 대기 ${L.length}개를 모두 승인할까요?\n하나씩 읽어 보고 승인하는 것을 권합니다 (노트를 잘못 읽은 문제가 섞일 수 있어요).`)) return;
+  const at = new Date().toISOString(); L.forEach(c => { c.status = 'ok'; c.updated = at; }); save(); render(); toast(`${L.length}개를 승인했어요`);
+}
+function bankEdit(id){
+  const c = id ? caseById(id) : {id: '', src: '내가 만듦', ref: '', topic: '', level: 1, kind: 'pick', stem: '', q: '', choices: ['', '', '', ''], ans: 0, tol: 0, unit: '', why: '', status: 'draft', virtual: true};
+  if (!c) return;
+  modal(`<h3>${id ? '문제 고치기' : '새 문제'}</h3>
+    <div class="grid4">${fld('유형 (예: 가유포 · 손절)', `<input id="ce_topic" value="${esc(c.topic)}">`)}${fld('종류', `<select id="ce_kind">${Object.entries(DR_KIND).map(([k, l]) => `<option value="${k}" ${c.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}
+      ${fld('난이도', `<select id="ce_level">${[1, 2, 3].map(i => `<option value="${i}" ${n0(c.level) === i ? 'selected' : ''}>${DR_LV[i]}</option>`).join('')}</select>`)}${fld('출처', `<input id="ce_src" value="${esc(c.src)}">`)}</div>
+    ${fld('상황', `<textarea id="ce_stem" rows="3">${esc(c.stem)}</textarea>`)}${fld('질문', `<textarea id="ce_q" rows="2">${esc(c.q)}</textarea>`)}
+    ${fld('고르기 — 한 줄에 하나 (고르기 문제만)', `<textarea id="ce_ch" rows="4">${esc((c.choices || []).join('\n'))}</textarea>`)}
+    <div class="grid4">${fld('정답 — 고르기: 번호(1부터) · 숫자 · O 또는 X', `<input id="ce_ans" value="${esc(c.kind === 'pick' ? n0(c.ans) + 1 : c.ans)}">`)}${fld('숫자 허용 오차 (±)', `<input id="ce_tol" type="number" step="any" value="${esc(c.tol || 0)}">`)}${fld('단위 (원 · % 등)', `<input id="ce_unit" value="${esc(c.unit || '')}">`)}${fld('근거 (노트의 어느 곳)', `<input id="ce_ref" value="${esc(c.ref)}">`)}</div>
+    ${fld('해설', `<textarea id="ce_why" rows="3">${esc(c.why)}</textarea>`)}
+    <div class="bt"><button onclick="closeModal()">취소</button><button class="primary" onclick="bankSave('${c.id}')">저장</button></div>`, 'wide');
+}
+function bankSave(id){
+  const kind = $('ce_kind').value, choices = $('ce_ch').value.split('\n').map(x => x.trim()).filter(Boolean), raw = $('ce_ans').value.trim();
+  const q = $('ce_q').value.trim(); if (!q){ toast('질문을 적어 주세요'); return; }
+  let ans;
+  if (kind === 'pick'){ ans = Math.round(n0(raw)) - 1; if (choices.length < 2 || ans < 0 || ans >= choices.length){ toast('고르기는 두 줄 이상, 정답은 그중 번호(1부터)로'); return; } }
+  else if (kind === 'ox'){ ans = raw.toLowerCase(); if (!['o', 'x'].includes(ans)){ toast('정답은 O 또는 X'); return; } }
+  else { ans = Number(raw.replace(/,/g, '')); if (!Number.isFinite(ans) || raw === ''){ toast('정답은 숫자로'); return; } }
+  const o = {topic: $('ce_topic').value.trim(), kind, level: n0($('ce_level').value) || 1, src: $('ce_src').value.trim(), stem: $('ce_stem').value.trim(), q, choices: kind === 'pick' ? choices : [],
+    ans, tol: kind === 'num' ? Math.abs(n0($('ce_tol').value)) : 0, unit: $('ce_unit').value.trim(), ref: $('ce_ref').value.trim(), why: $('ce_why').value.trim(), updated: new Date().toISOString()};
+  const c = caseById(id); if (c) Object.assign(c, o); else db.cases.push({id: uid(), status: 'draft', virtual: true, created: today(), ...o});
+  save(); closeModal(); render(); toast(c ? '고쳤어요' : '새 문제를 승인 대기에 넣었어요');
+}
+async function bankImport(f){
+  if (!f) return; let d;
+  try { d = JSON.parse(await f.text()); } catch(e){ toast('⚠ 문제 파일(.json)을 읽지 못했어요'); return; }
+  const L = Array.isArray(d) ? d : Array.isArray(d.cases) ? d.cases : null; if (!L){ toast('⚠ 문제 목록이 없는 파일이에요'); return; }
+  const have = new Set(db.cases.map(c => c.id)), at = today(); let add = 0, skip = 0, bad = 0;
+  for (const x of L){
+    const kind = ['pick', 'num', 'ox'].includes(x && x.kind) ? x.kind : null;
+    if (!kind || !x.q || (kind === 'pick' && !(Array.isArray(x.choices) && x.choices[x.ans] != null))){ bad++; continue; }
+    const id = String(x.id || uid()); if (have.has(id)){ skip++; continue; }
+    db.cases.push({id, src: String(x.src || d.src || ''), ref: String(x.ref || ''), topic: String(x.topic || ''), level: Math.min(3, Math.max(1, n0(x.level) || 1)), kind, stem: String(x.stem || ''), q: String(x.q),
+      choices: kind === 'pick' ? x.choices.map(String) : [], ans: kind === 'num' ? Number(x.ans) : kind === 'ox' ? String(x.ans).toLowerCase() : n0(x.ans), tol: n0(x.tol), unit: String(x.unit || ''), why: String(x.why || ''),
+      status: 'draft', virtual: x.virtual !== false, created: at});
+    have.add(id); add++;
+  }
+  if (add) save(); bkF = 'draft'; render();
+  toast(`초안 ${add}개를 승인 대기에 넣었어요${skip ? ` · 이미 있는 ${skip}개는 건너뜀` : ''}${bad ? ` · 모양이 맞지 않는 ${bad}개는 뺌` : ''}`);
+}
+
+/* 성장 — 유형별 정답률(약한 것부터) · 확신도와 정답률(과신 · 소심) · 익힌 문제 */
+function growV(){
+  const S = JC.drillStats(db.cases, db.caseLog, today());
+  const conf = S.byConf.map(x => `<tr><td>${DR_CONF[x.conf]}</td><td class="num">${x.n}</td><td class="num">${x.rate == null ? '–' : Math.round(x.rate) + '%'}</td>
+    <td class="muted">${x.n < 5 ? '아직 적어요' : x.conf === 3 && x.rate < 80 ? '<b class="needn">과신</b> — 확신할 때도 다섯 번에 한 번 넘게 틀립니다' : x.conf === 1 && x.rate > 75 ? '<b style="color:var(--ok)">소심</b> — 생각보다 잘 압니다' : '확신과 실력이 맞습니다'}</td></tr>`).join('');
+  return qzBar() + `<div class="grow"><div class="card"><h3>지금까지</h3><div class="kv">
+      <span>승인된 문제</span><b>${S.cases}개</b><span>한 번이라도 푼 문제</span><b>${S.seen}개</b><span>익힌 문제 <small class="muted">(연속 3번 맞힘)</small></span><b>${S.mastered}개</b>
+      <span>푼 횟수</span><b>${S.tries}번</b><span>정답률</span><b>${S.rate == null ? '–' : Math.round(S.rate) + '%'}</b><span>연속 훈련</span><b>${S.streak}일</b></div>
+      <h3 style="margin-top:var(--s4)">확신도와 정답률</h3><table class="ltab"><thead><tr><th>확신도</th><th class="num">푼 횟수</th><th class="num">정답률</th><th>뜻</th></tr></thead><tbody>${conf}</tbody></table>
+      <div class="note" style="margin-top:var(--s2)">확신이 높을 때 정답률도 높아야 합니다. '높음'에서 자주 틀리면 실전에서 비중을 너무 크게 싣기 쉽습니다.</div></div>
+    <div class="card" style="overflow:auto"><h3>유형별 — 약한 것부터</h3><table class="ltab"><thead><tr><th>유형</th><th class="num">문제</th><th class="num">푼 횟수</th><th class="num">정답률</th></tr></thead><tbody>
+      ${S.byTopic.map(x => `<tr><td>${esc(x.key)}</td><td class="num">${x.cases}</td><td class="num">${x.n}</td><td class="num"><b class="${x.rate < 70 ? 'needn' : ''}">${Math.round(x.rate)}%</b></td></tr>`).join('') || '<tr><td colspan="4" class="empty">아직 푼 문제가 없습니다.</td></tr>'}</tbody></table></div></div>`;
 }
 
 /* =====================================================================
@@ -2816,7 +3002,7 @@ document.addEventListener('mousemove', e => {
 });
 const KEYS = [['1 ~ 0', '화면 이동 (홈 · 매매일지 · 매매 기록 · 매매기록2 · 예약 · 달력 · 통계 · 플레이북 · 훈련 · 설정)'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '매매 기록 쓰기 (계획 · 체결 · 복기)'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
-  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매기록2/예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
+  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매기록2/예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
 
@@ -2846,6 +3032,14 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = KO[e.key] || (e.key.length === 1 ? e.key.toLowerCase() : e.key);
   const hit = fn => { e.preventDefault(); fn(); };
+  if (view === 'quiz' && qzTab === 'today' && dr.cid){   // 훈련 문제를 푸는 중에는 숫자 = 고르기 (화면 이동 단축키보다 먼저)
+    const c = caseById(dr.cid);
+    if (c && dr.a == null){
+      if (c.kind === 'pick' && /^[1-6]$/.test(k) && +k <= (c.choices || []).length) return hit(() => drillAns(+k - 1));
+      if (c.kind === 'ox' && (k === 'o' || k === 'x')) return hit(() => drillAns(k));
+      if (['q', 'w', 'e'].includes(k)) return hit(() => { dr.conf = {q: 1, w: 2, e: 3}[k]; render(); });
+    } else if (c && (k === ' ' || k === 'Enter')) return hit(() => { drillNext(); render(); });
+  }
   if (/^[0-9]$/.test(k)) return hit(() => go(NAV[(+k + 9) % 10][0]));
   if (k === '/') return hit(() => $('q').focus());
   if (k === '?') return hit(showHelp);
@@ -2899,7 +3093,7 @@ document.addEventListener('keydown', e => {
     if (k === 'ArrowLeft') return hit(() => { pbI--; render(); });
     if (k === 'ArrowRight') return hit(() => { pbI++; render(); });
   }
-  if (view === 'quiz' && qz.id){
+  if (view === 'quiz' && qzTab === 'blind' && qz.id){
     if (k === 'o' && qz.ans == null) return hit(() => quizAns(true));
     if (k === 'x' && qz.ans == null) return hit(() => quizAns(false));
     if ((k === ' ' || k === 'Enter') && qz.ans != null) return hit(() => { quizNext(); render(); });

@@ -145,6 +145,19 @@ main.form{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .report{white-space:pre-wrap;font-size:15px}
 .viewer{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .viewer img{max-width:100%;max-height:100%;object-fit:contain}
+/* 훈련 (2026-10-10) */
+.prog{height:6px;border-radius:3px;background:var(--line2);overflow:hidden;margin:4px 0 14px}.prog i{display:block;height:100%;background:var(--accent)}
+.dmeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.dstem{font-size:16px;line-height:1.7;padding:14px 16px;border-radius:var(--r3);background:var(--panel);white-space:pre-wrap}
+.dq{font-size:18px;font-weight:600;line-height:1.5;margin:16px 2px 12px;white-space:pre-wrap}
+.dchs{display:grid;gap:8px}.dchs.ox2{grid-template-columns:1fr 1fr}
+.dch{display:flex;align-items:flex-start;gap:12px;text-align:left;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r3);background:var(--panel);font-size:16px;line-height:1.45}
+.dch i{font-style:normal;color:var(--muted);font-weight:600;flex-shrink:0}
+.dch.right{border-color:#248a3d;background:rgba(36,138,61,.12)}.dch.wrong{border-color:var(--warn);background:var(--warn-weak)}.dch.dim{opacity:.5}
+.dnum{display:flex;gap:8px;align-items:center}.dnum input{flex:1}.dnum button{height:46px;padding:0 18px;border-radius:var(--r2);background:var(--accent);color:#fff;font-weight:600}
+.dres{margin-top:14px;padding:12px 14px;border-radius:var(--r3);font-weight:600}.dres.ok{background:rgba(36,138,61,.12);color:#248a3d}.dres.no{background:var(--warn-weak);color:var(--warn)}
+.dwhy{margin-top:10px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 var(--r2) var(--r2) 0;font-size:15px;line-height:1.65}
+.dwhy p{margin:6px 0 0;white-space:pre-wrap}.dwhy .ref{color:var(--muted);font-size:13px;margin-top:6px}
 .viewer p{position:absolute;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));color:#fff;font-size:14px;text-align:center;margin:0}
 </style>
 </head>
@@ -155,6 +168,7 @@ main.form{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
   <button data-t="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>매매</button>
   <button data-t="day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>오늘</button>
   <button data-t="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V11M12 19V5M19 19v-6"/></svg>주간</button>
+  <button data-t="drill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>훈련</button>
 </div></nav>
 <div class="saved" id="saved"></div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -271,6 +285,7 @@ function render(){
   if (V.k === 'review') return reviewV(m);
   if (TAB === 'day') return dayV(m);
   if (TAB === 'week') return weekV(m);
+  if (TAB === 'drill') return drillV(m);
   return listV(m);
 }
 
@@ -434,6 +449,50 @@ function weekV(m){
   const obj = () => (DB.weeks = DB.weeks || {})[mon] = (DB.weeks[mon] || {});
   m.oninput = e => { const k = e.target.dataset.k; if (k){ obj()[k] = e.target.value; save(); } };
   m.onclick = e => { const b = e.target.closest('[data-dots] button'); if (!b) return; const o2 = obj(), i = +b.dataset.i; o2.score = o2.score === i ? 0 : i; save(); b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', n0(o2.score) >= +x.dataset.i)); };
+}
+
+/* 훈련 — 큰 화면의 [오늘의 훈련]과 같은 문제은행 · 같은 출제 순서(JC.drillQueue). 승인 · 고치기는 큰 화면에서. */
+let DR = {cid: null, a: null, ok: null, conf: 2, t0: 0, sess: 0, sessOk: 0};
+const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const cases = () => (DB.cases || []).filter(c => c && typeof c === 'object'), caseLog = () => (DB.caseLog || []).filter(l => l && typeof l === 'object');
+function drillNext(){ const q = JC.drillQueue(cases(), caseLog(), today()).filter(id => id !== DR.cid || DR.a == null); DR = {...DR, cid: q[0] || null, a: null, ok: null, t0: Date.now()}; }
+function drillAns(a){
+  const c = cases().find(x => x.id === DR.cid); if (!c || DR.a != null) return;
+  if (c.kind === 'num' && String(a ?? '').trim() === ''){ flash('숫자를 적어 주세요'); return; }
+  DR.a = a; DR.ok = JC.drillCheck(c, a); DR.sess++; if (DR.ok) DR.sessOk++;
+  (DB.caseLog = DB.caseLog || []).push({id: rid(), cid: c.id, at: new Date().toISOString(), day: today(), a, ok: DR.ok, conf: DR.conf, ms: Date.now() - DR.t0});
+  save(true); render(); setTimeout(() => $('drres')?.scrollIntoView({block: 'nearest', behavior: 'smooth'}), 30);
+}
+function drillV(m){
+  bar('훈련', '', `<a class="nav" href="${esc(fullUrl())}">큰 화면</a>`);
+  const goal = n0(S().drillGoal) || 20, st = JC.drillStats(cases(), caseLog(), today()), wait = cases().filter(c => c.status === 'draft').length;
+  if (DR.cid && !cases().some(x => x.id === DR.cid)) DR.cid = null;
+  if (!DR.cid && DR.a == null) drillNext();
+  const c = cases().find(x => x.id === DR.cid), done = DR.a != null;
+  const head = `<div class="card sum"><div><small>오늘</small><b>${st.today} / ${goal}</b></div><div><small>오늘 정답률</small><b>${st.today ? Math.round(st.todayOk / st.today * 100) + '%' : '–'}</b></div><div><small>연속 훈련</small><b>${st.streak}일</b></div></div>
+    <div class="prog"><i style="width:${Math.min(100, st.today / goal * 100)}%"></i></div>`;
+  if (!c){ m.innerHTML = head + `<div class="empty">${st.cases ? '오늘 낼 문제를 다 풀었어요.<br>맞힌 문제는 1 · 3 · 7 · 16일 … 뒤에 다시 나옵니다.' : `아직 승인된 문제가 없어요.<br>큰 화면의 [훈련] → [문제은행]에서 초안을 승인하면 여기서 나옵니다.${wait ? `<br>승인 대기 ${wait}개` : ''}`}</div>`; return; }
+  const cls2 = (v, sel) => !done ? '' : String(v) === String(c.ans) ? 'right' : String(DR.a) === String(v) ? 'wrong' : 'dim';
+  const ansHtml = c.kind === 'pick' ? `<div class="dchs">${(c.choices || []).map((l, i) => `<button class="dch ${cls2(i)}" ${done ? 'disabled' : ''} data-a="${i}"><i>${'①②③④⑤⑥'[i] || i + 1}</i><span>${esc(l)}</span></button>`).join('')}</div>`
+    : c.kind === 'ox' ? `<div class="dchs ox2">${[['o', 'O — 맞다'], ['x', 'X — 아니다']].map(([v, l]) => `<button class="dch ${cls2(v)}" ${done ? 'disabled' : ''} data-a="${v}"><span>${l}</span></button>`).join('')}</div>`
+    : `<div class="dnum"><input id="drNum" inputmode="decimal" placeholder="숫자" ${done ? 'disabled' : ''} value="${done ? esc(DR.a) : ''}"><span style="color:var(--sub)">${esc(c.unit || '')}</span>${done ? '' : '<button id="drGo">확인</button>'}</div>`;
+  const right = c.kind === 'pick' ? `${'①②③④⑤⑥'[c.ans] || ''} ${esc((c.choices || [])[c.ans] ?? '')}` : c.kind === 'ox' ? (c.ans === 'o' ? 'O — 맞다' : 'X — 아니다') : `${fmt(c.ans)}${esc(c.unit || '')}${n0(c.tol) ? ` (± ${c.tol})` : ''}`;
+  m.innerHTML = head + `<div class="dmeta">${c.topic ? `<span class="badge">${esc(c.topic)}</span>` : ''}<span class="badge">${['', '쉬움', '보통', '어려움'][n0(c.level)] || ''}</span><span style="color:var(--muted);font-size:12px">${esc(c.src || '')}${c.virtual !== false ? ' · 가상 상황' : ''}</span></div>
+    ${c.stem ? `<div class="dstem">${esc(c.stem)}</div>` : ''}<div class="dq">${esc(c.q)}</div>
+    ${done ? '' : `<div class="tools" style="margin:0 0 10px"><div class="seg">${[1, 2, 3].map(i => `<button class="${DR.conf === i ? 'on' : ''}" data-conf="${i}">확신 ${['', '낮음', '보통', '높음'][i]}</button>`).join('')}</div></div>`}
+    ${ansHtml}
+    ${done ? `<div class="dres ${DR.ok ? 'ok' : 'no'}" id="drres">${DR.ok ? '맞았어요' : '틀렸어요 — 오늘 조금 뒤에 한 번 더 나와요'}</div>
+      <div class="dwhy"><b>정답</b> ${right}${c.why ? `<p>${esc(c.why)}</p>` : ''}${c.ref ? `<div class="ref">근거 — ${esc(c.ref)}</div>` : ''}</div>
+      <button class="cta" data-next>다음 문제</button>` : ''}
+    <p style="color:var(--muted);font-size:12px;margin:14px 4px">정답 기준은 노트의 원칙입니다 — 앞으로의 가격을 맞히는 문제가 아니에요.${DR.sess ? ` 이번에 ${DR.sess}문제 · 맞힘 ${DR.sessOk}.` : ''}</p>`;
+  m.onclick = e => {
+    const cf = e.target.closest('[data-conf]'); if (cf){ DR.conf = +cf.dataset.conf; render(); return; }
+    const b = e.target.closest('button[data-a]'); if (b && !b.disabled){ drillAns(c.kind === 'pick' ? +b.dataset.a : b.dataset.a); return; }
+    if (e.target.closest('#drGo')){ drillAns($('drNum').value); return; }
+    if (e.target.closest('[data-next]')){ drillNext(); render(); scrollTo(0, 0); }
+  };
+  m.oninput = null;
+  const ni = $('drNum'); if (ni && !done) ni.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); drillAns(ni.value); } };
 }
 
 /* ---------- 시작: shim 이 로그인 · 드라이브를 맡는다 ---------- */

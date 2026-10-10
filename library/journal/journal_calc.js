@@ -298,7 +298,56 @@ function weekFacts(items){
   return L.join('\n');
 }
 
+/* ---------- 9. 훈련 문제은행 (2026-10-10, 드림로드 노트부터) ----------
+   문제 case = {id, src, ref(노트의 어느 곳), topic, level 1~3, kind 'pick'|'num'|'ox', stem(상황), q(질문), choices[], ans, tol, unit, why(해설), status 'draft'|'ok'|'off', virtual, created}
+     ans: pick = 고른 번호(0부터) · num = 숫자(± tol 까지 정답) · ox = 'o' | 'x'.  정답은 '앞으로 오를까'가 아니라 '노트의 원칙대로라면' 이다.
+   풀이 log = {id, cid, at(ISO), day(YYYY-MM-DD), a, ok, conf 1~3, ms}
+   간격 반복: 연속으로 맞힌 횟수 n → 다음 출제는 마지막 날 + DRILL_IV[n-1] 일. 틀리면 같은 날 한 번 더(맨 뒤에), 하루 두 번까지. */
+const DRILL_IV = [1, 3, 7, 16, 35, 75];
+const addDaysIso = (d, n) => { const [y, m, dd] = d.split('-').map(Number); return new Date(Date.UTC(y, m - 1, dd + n)).toISOString().slice(0, 10); };
+function drillCheck(c, a){
+  if (c.kind === 'num'){ const v = Number(String(a ?? '').replace(/[,\s원%주]/g, '')); return String(a ?? '').trim() !== '' && Number.isFinite(v) && Math.abs(v - Number(c.ans)) <= (Number(c.tol) || 0); }
+  return String(a) === String(c.ans);
+}
+function drillState(log){   // cid → {n 연속 정답, tries, oks, last 마지막 날, lastOk, today 오늘 푼 횟수는 drillQueue 에서, due 다음 출제일}
+  const m = {};
+  [...log].filter(l => l && l.cid).sort((a, b) => String(a.at).localeCompare(String(b.at))).forEach(l => {
+    const s = m[l.cid] || (m[l.cid] = {n: 0, tries: 0, oks: 0, last: '', lastOk: false, days: {}});
+    s.tries++; if (l.ok){ s.oks++; s.n++; } else s.n = 0; s.last = l.day; s.lastOk = !!l.ok; s.days[l.day] = (s.days[l.day] || 0) + 1;
+  });
+  for (const k in m){ const s = m[k]; s.due = s.lastOk ? addDaysIso(s.last, DRILL_IV[Math.min(s.n, DRILL_IV.length) - 1]) : s.last; }
+  return m;
+}
+function drillQueue(cases, log, day){   // 오늘 낼 문제 id 순서: 다시 볼 때가 된 것 → 새 문제(쉬운 것부터) → 오늘 틀린 것(맨 뒤)
+  const st = drillState(log), ok = cases.filter(c => c && c.status === 'ok');
+  const due = [], fresh = [], wrong = [];
+  ok.forEach((c, i) => {
+    const s = st[c.id];
+    if (!s) fresh.push([c, i]);
+    else if (s.last === day){ if (!s.lastOk && (s.days[day] || 0) < 2) wrong.push([c, i]); }
+    else if (s.due <= day) due.push([c, i, s]);
+  });
+  due.sort((a, b) => a[2].due.localeCompare(b[2].due) || a[1] - b[1]);
+  fresh.sort((a, b) => (Number(a[0].level) || 1) - (Number(b[0].level) || 1) || a[1] - b[1]);
+  return [...due, ...fresh, ...wrong].map(x => x[0].id);
+}
+function drillStats(cases, log, day){
+  const ok = cases.filter(c => c && c.status === 'ok'), byId = Object.fromEntries(ok.map(c => [c.id, c])), L = log.filter(l => l && byId[l.cid]), st = drillState(L);
+  const rate = (n, k) => n ? k / n * 100 : null;
+  const grp = (keyOf, order) => { const g = {}; L.forEach(l => { const k = keyOf(l); const x = g[k] || (g[k] = {key: k, n: 0, ok: 0}); x.n++; if (l.ok) x.ok++; });
+    const out = Object.values(g).map(x => ({...x, rate: rate(x.n, x.ok)})); return order ? out.sort(order) : out; };
+  const days = new Set(L.map(l => l.day)); let streak = 0, d = days.has(day) ? day : addDaysIso(day, -1);
+  while (days.has(d)){ streak++; d = addDaysIso(d, -1); }
+  const topicCases = {}; ok.forEach(c => { const k = c.topic || '(유형 없음)'; topicCases[k] = (topicCases[k] || 0) + 1; });
+  return {cases: ok.length, tries: L.length, oks: L.filter(l => l.ok).length, rate: rate(L.length, L.filter(l => l.ok).length),
+    today: L.filter(l => l.day === day).length, todayOk: L.filter(l => l.day === day && l.ok).length, streak,
+    seen: Object.keys(st).length, mastered: Object.values(st).filter(s => s.n >= 3).length,
+    byTopic: grp(l => byId[l.cid].topic || '(유형 없음)', (a, b) => (a.rate ?? 101) - (b.rate ?? 101) || b.n - a.n).map(x => ({...x, cases: topicCases[x.key] || 0})),
+    byConf: [1, 2, 3].map(c => { const xs = L.filter(l => Number(l.conf) === c), k = xs.filter(l => l.ok).length; return {conf: c, n: xs.length, ok: k, rate: rate(xs.length, k)}; })};
+}
+
 const JC = {FIELDS, GUESS, isAccountCol, findHeader, headerSig, guessMap, toInt, toDate, toTime, toSide, toCode, parseRows, baseKey, fillKeys, planImport, byDT,
-  rateUnits, pctOf, feeOf, taxOf, tradeCalc, minutesOf, stats, groupBy, slotOf, holdBucket, analyze, dowOf, weekFacts};
+  rateUnits, pctOf, feeOf, taxOf, tradeCalc, minutesOf, stats, groupBy, slotOf, holdBucket, analyze, dowOf, weekFacts,
+  DRILL_IV, addDaysIso, drillCheck, drillState, drillQueue, drillStats};
 if (typeof module !== 'undefined' && module.exports) module.exports = JC; else root.JC = JC;
 })(typeof window !== 'undefined' ? window : globalThis);
