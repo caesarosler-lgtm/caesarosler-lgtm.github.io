@@ -823,7 +823,7 @@ let dayD = today(), dayMode = 'day', stRange = '3m', stTab = 'proc', lf = {q: ''
 let pbSel = 0, pbI = 0;
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
-const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련']];   // 원칙 · 설정은 머리글 오른쪽 ⚙
+const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '시험']];   // 원칙 · 설정은 머리글 오른쪽 ⚙
 // 머리글 탭은 한 줄 (2026-10-10 사용자: 가운데 [＋ 새 매매] 버튼은 빼고 — 새 매매는 매매 기록 · 매매일지 화면의 버튼과 N 키로).
 // 훈련 탭은 파란 계열로 눈에 띄게 (.navtr — 고르면 [＋ 새 매매]였던 파란 버튼과 같은 색)
 // 매매 기록 탭 = 매매일지(day) · 매매 기록(trades) · 예약(appt) 를 한 탭으로 (2026-10-10 사용자). 세 화면(view)은 안에서 그대로 쓰고, 탭은 마지막에 보던 곳으로 간다.
@@ -2480,7 +2480,7 @@ function drillV(){
       <div class="dprog"><i style="width:${pct}%"></i></div><div class="row"><b style="font-size:var(--t2)">${S.today}</b><span class="muted">/ ${goal}문제</span><span class="sp"></span>
         <span class="muted">목표</span><input type="number" min="5" max="200" step="5" value="${goal}" style="width:90px" onchange="db.settings.drillGoal=Math.max(5,Math.min(200,Math.round(n0(this.value))||20));save();render()"></div>
       <div class="kv"><span>이번에 푼 것</span><b>${dr.sess}문제 · 맞힘 ${dr.sessOk}</b><span>오늘 정답률</span><b>${S.today ? Math.round(S.todayOk / S.today * 100) + '%' : '–'}</b>
-        <span>연속 훈련</span><b>${S.streak}일</b><span>승인된 문제</span><b>${S.cases}개 · 익힘 ${S.mastered}</b></div>
+        <span>연속 시험</span><b>${S.streak}일</b><span>승인된 문제</span><b>${S.cases}개 · 익힘 ${S.mastered}</b></div>
       ${S.byTopic.length ? `<h3 style="margin-top:var(--s3)">약한 유형</h3>${S.byTopic.slice(0, 3).map(x => `<div class="row"><span>${esc(x.key)}</span><span class="sp"></span><b class="${x.rate < 70 ? 'needn' : ''}">${Math.round(x.rate)}%</b><span class="muted">${x.n}번</span></div>`).join('')}` : ''}
       <span class="sp"></span><div class="note">정답 기준은 <b>노트의 원칙</b>입니다 — 앞으로의 가격을 맞히는 문제가 아닙니다. 답하기 전에 확신도를 고르면 [성적표]에서 과신 · 소심을 볼 수 있어요.</div></div>`;
   if (!c) return qzBar() + `<div class="drill"><div class="card dmain" style="align-items:center;justify-content:center;text-align:center">
@@ -2500,7 +2500,7 @@ function bankV(){
   const st = JC.drillState(db.caseLog), cnt = k => db.cases.filter(c => k === 'all' || c.status === k).length;
   const L = db.cases.filter(c => bkF === 'all' || c.status === bkF);
   return qzBar() + `<div class="lbar" style="margin-top:calc(-1 * var(--s2))"><div class="seg">${[['draft', '승인 대기'], ['ok', '승인'], ['off', '끔'], ['all', '전체']].map(([k, l]) => `<button class="${bkF === k ? 'on' : ''}" onclick="bkF='${k}';render()">${l} <span class="${k === 'draft' && cnt(k) ? 'needn' : 'muted'}">${cnt(k)}</span></button>`).join('')}</div>
-      <span class="muted" style="font-size:var(--t-1)">초안을 읽고 노트와 맞는지 확인한 뒤 승인하세요 — 승인한 문제만 훈련에 나옵니다.</span><span class="sp"></span>
+      <span class="muted" style="font-size:var(--t-1)">초안을 읽고 노트와 맞는지 확인한 뒤 승인하세요 — 승인한 문제만 시험에 나옵니다.</span><span class="sp"></span>
       ${bkF === 'draft' && L.length ? `<button onclick="bankAll()">보이는 ${L.length}개 모두 승인</button>` : ''}<button onclick="$('caseIn').click()" title="문제 초안 파일(.json)을 불러옵니다 — 이미 있는 문제(같은 id)는 건너뜁니다">⇪ 문제 파일 불러오기</button><button class="primary" onclick="bankEdit()">＋ 새 문제</button></div>
     <input type="file" id="caseIn" accept=".json,application/json" hidden onchange="bankImport(this.files[0]);this.value=''">
     <div class="card" style="flex:1;padding:8px 16px;overflow:auto"><table class="ltab"><thead><tr><th>상태</th><th>유형</th><th>종류</th><th>난이도</th><th style="width:52%">질문</th><th>출처</th><th class="num">푼 횟수</th><th class="num">정답률</th></tr></thead><tbody>
@@ -2571,7 +2571,7 @@ function growV(){
     <td class="muted">${x.n < 5 ? '아직 적어요' : x.conf === 3 && x.rate < 80 ? '<b class="needn">과신</b> — 확신할 때도 다섯 번에 한 번 넘게 틀립니다' : x.conf === 1 && x.rate > 75 ? '<b style="color:var(--ok)">소심</b> — 생각보다 잘 압니다' : '확신과 실력이 맞습니다'}</td></tr>`).join('');
   return qzBar() + `<div class="grow"><div class="card"><h3>지금까지</h3><div class="kv">
       <span>승인된 문제</span><b>${S.cases}개</b><span>한 번이라도 푼 문제</span><b>${S.seen}개</b><span>익힌 문제 <small class="muted">(연속 3번 맞힘)</small></span><b>${S.mastered}개</b>
-      <span>푼 횟수</span><b>${S.tries}번</b><span>정답률</span><b>${S.rate == null ? '–' : Math.round(S.rate) + '%'}</b><span>연속 훈련</span><b>${S.streak}일</b></div>
+      <span>푼 횟수</span><b>${S.tries}번</b><span>정답률</span><b>${S.rate == null ? '–' : Math.round(S.rate) + '%'}</b><span>연속 시험</span><b>${S.streak}일</b></div>
       <h3 style="margin-top:var(--s4)">확신도와 정답률</h3><table class="ltab"><thead><tr><th>확신도</th><th class="num">푼 횟수</th><th class="num">정답률</th><th>뜻</th></tr></thead><tbody>${conf}</tbody></table>
       <div class="note" style="margin-top:var(--s2)">확신이 높을 때 정답률도 높아야 합니다. '높음'에서 자주 틀리면 실전에서 비중을 너무 크게 싣기 쉽습니다.</div></div>
     <div class="card" style="overflow:auto"><h3>유형별 — 약한 것부터</h3><table class="ltab"><thead><tr><th>유형</th><th class="num">문제</th><th class="num">푼 횟수</th><th class="num">정답률</th></tr></thead><tbody>
@@ -3338,9 +3338,9 @@ document.addEventListener('mousemove', e => {
   if (x + tp.offsetWidth > STAGE.w - 8) x -= tp.offsetWidth + 32; if (y + tp.offsetHeight > STAGE.h - 8) y -= tp.offsetHeight + 32;
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
-const KEYS = [['1 2', '화면 이동 (매매일지 · 훈련) — 숨긴 탭을 켜면 번호가 늘어납니다'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
+const KEYS = [['1 2', '화면 이동 (매매일지 · 시험) — 숨긴 탭을 켜면 번호가 늘어납니다'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 (매매일지 하루도) · 주간 복기는 한 주씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
-  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련 › 문제: O · X 문제 답 (1~6 고르기 · Q W E 확신도 · Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
+  ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '시험 › 문제: O · X 문제 답 (1~6 고르기 · Q W E 확신도 · Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
 function showHelp(){ modal(`<h3>단축키</h3><div class="keys">${KEYS.map(([k, t]) => `<span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${t}</span>`).join('')}</div><div class="note">한글 자판에서도 동작합니다. 입력 칸 안에서는 동작하지 않습니다.</div><div class="bt"><button onclick="closeModal()">닫기</button></div>`); }
 
