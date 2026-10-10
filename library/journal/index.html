@@ -68,6 +68,7 @@ header>*{flex-shrink:0}
 header>.sp{flex-shrink:1;min-width:0}
 /* 검색창 (왼쪽 위) — 결과가 바로 아래에 펼쳐진다 */
 .sw{position:relative;width:340px}
+html.mini .sw,html.mini #unitBtn,html.mini #themeBtn{display:none}   /* 최소판: 매매 찾기 · R 단위 · 테마 단추는 숨김 (M · L 키는 그대로) */
 /* 훈련 탭: 파란 계열 (앱의 파란 버튼과 한 가족) */
 #nav button.navtr{color:var(--accent);background:var(--accent-weak);font-weight:600}
 #nav button.navtr kbd{background:rgba(var(--accent-rgb),.16);color:var(--accent)}
@@ -592,6 +593,7 @@ svg text{fill:var(--sub);font-size:12px;font-family:inherit}
     <span id="bkWarn" class="bkwarn" onclick="bkOpen()" hidden></span>
     <button class="gh" onclick="toggleMoney()" id="unitBtn" title="금액 숨기기: 모든 손익을 R(손절 폭 대비 배수)과 %로만 보기 / 금액 보기  (M)"></button>
     <button class="gh" onclick="toggleTheme()" id="themeBtn" title="라이트 모드 / 다크 모드 (L)">☾ 다크<kbd>L</kbd></button>
+    <button class="gh" onclick="go('set')" title="원칙 · 설정 — 수수료 · 계좌 · 원칙 · 셋업 · 숨긴 기능">⚙ 설정</button>
     <button class="gh" onclick="bkOpen()" title="도서관 백업 센터: 구글 드라이브 · 외부 폴더 · 복원">백업</button>
     <button class="gh" onclick="showHelp()" title="단축키 (?)">?</button>
   </header>
@@ -825,24 +827,26 @@ const checksOf = s => ((db.playbooks[s] || {}).checks || '').split('\n').map(x =
 const focusFor = d => (db.weeks[addDays(monday(d), -7)] || {}).focus || '';   // 그 주의 과제 = 지난주 주간 복기에서 정한 것
 
 /* ---------- 화면 상태 ---------- */
-let view = 'trades', sel = null, tMode = 'book', draft = null, isNew = false, focusOn = false;
+let view = 'day', sel = null, tMode = 'book', draft = null, isNew = false, focusOn = false;
 let dayD = today(), dayMode = 'day', stRange = '3m', stTab = 'proc', lf = {q: '', st: 'all', setup: ''}, lpage = 0, tSub = 'stock';   // 켜면 첫 화면 = 매매 기록 › 종목 차트 (2026-10-10 사용자 요청)
 let pbSel = 0, pbI = 0, qz = {id: null, ans: null};
 const bk = {id: null, i: 0, pages: [], n: 1};
 let ttMode = 'day', apMode = 'day', sIdx = 0, sList = [], BK = null;
-const NAV = [['home', '홈'], ['trades', '매매 기록'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련'], ['set', '원칙 · 설정']];
+const NAV = [['home', '홈'], ['day', '매매일지'], ['trades', '매매 기록'], ['stats', '통계'], ['play', '플레이북'], ['quiz', '훈련']];   // 원칙 · 설정은 머리글 오른쪽 ⚙
 // 머리글 탭은 한 줄 (2026-10-10 사용자: 가운데 [＋ 새 매매] 버튼은 빼고 — 새 매매는 매매 기록 · 매매일지 화면의 버튼과 N 키로).
 // 훈련 탭은 파란 계열로 눈에 띄게 (.navtr — 고르면 [＋ 새 매매]였던 파란 버튼과 같은 색)
 // 매매 기록 탭 = 매매일지(day) · 매매 기록(trades) · 예약(appt) 를 한 탭으로 (2026-10-10 사용자). 세 화면(view)은 안에서 그대로 쓰고, 탭은 마지막에 보던 곳으로 간다.
 const OLD = k => !!(db.settings.oldViews || {})[k];   // 숨긴 옛 화면 다시 켜기: home 홈 · appt 예약 · time 시간표 (원칙 · 설정 맨 아래)
-const navList = () => NAV.filter(([k]) => k !== 'home' || OLD('home'));
+// 최소판 (2026-10-10 사용자: '매매일지와 훈련만 남기고 다 지워줘 — 화면에서만'): 탭 = 매매일지 · 훈련. 나머지는 원칙 · 설정 › 숨긴 기능에서 하나씩 다시 켠다
+const TAB_FLAG = {home: 'home', trades: 'trades', stats: 'statsTab', play: 'play'};
+const navList = () => NAV.filter(([k]) => !TAB_FLAG[k] || OLD(TAB_FLAG[k]));
 function oldToggle(k){ const o = db.settings.oldViews = {...(db.settings.oldViews || {})}; o[k] = !o[k]; if (!o[k]) delete o[k]; save(); render(); }
 const TR_VIEWS = ['trades', 'day', 'appt'];
 // 탭에 마우스를 올리면 뜨는 설명 (2026-10-10 사용자: '플레이북'이라는 말이 낯설어서 — 이름은 두고 뜻을 보여 준다)
 const NAV_TIP = {play: '<b>플레이북 — 나의 매매 작전집</b><br>원래는 미식축구 팀이 상황별 작전을 미리 그려 둔 책입니다.<br>경기 중에는 새로 생각하지 않고, 책에 있는 작전을 골라 실행합니다.<br><br>여기서는 셋업(기법)마다 한 장씩 —<br>정의 · 진입 조건 체크리스트 · 손절 · 청산 · 피할 상황을 미리 적고,<br>잘한 매매(결정 등급 A)의 진입 차트가 모범 사례로 저절로 모입니다.<br><br>장중에 즉흥으로 판단하지 않고, 차분할 때 정해 둔 작전을 따르기 위한 책.'};
 let trLast = 'trades';
-const navOn = k => view === k || (k === 'trades' && TR_VIEWS.includes(view));
-const goTab = k => go(k === 'trades' ? (trLast === 'appt' && !OLD('appt') ? 'day' : trLast === 'trades' && tSub === 'time' && !OLD('time') ? (tSub = 'stock', 'trades') : trLast) : k);
+const navOn = k => view === k || (k === 'trades' && OLD('trades') && TR_VIEWS.includes(view) && view !== 'day') || (k === 'day' && view === 'day');
+const goTab = k => k === 'day' ? (dayMode = dayMode || 'day', go('day')) : go(k === 'trades' ? (trLast === 'appt' && !OLD('appt') ? 'day' : trLast === 'trades' && tSub === 'time' && !OLD('time') ? (tSub = 'stock', 'trades') : trLast) : k);
 const isTT = () => view === 'trades' && !sel && tSub === 'time';   // 매매 기록 › 시간표 (2026-10-10 사용자: '매매기록2' 탭을 매매 기록 안으로 합침)
 const weekish = () => (view === 'day' && dayMode === 'week') || (isTT() && ttMode === 'week') || (view === 'appt' && apMode === 'week');
 const tradeById = id => db.trades.find(t => t.id === id);
@@ -859,7 +863,11 @@ function go(v){
 }
 const isBook = () => view === 'day' || (view === 'trades' && sel && tMode === 'book' && !!tradeObj());
 function render(){
-  if (view === 'home' && !OLD('home')) view = 'trades';   // 숨긴 화면에 머물러 있었으면 옮긴다
+  if (view === 'home' && !OLD('home')) view = 'day';
+  if (view === 'trades' && !OLD('trades')){ view = 'day'; sel = null; }
+  if (view === 'stats' && !OLD('statsTab')) view = 'day';
+  if (view === 'play' && !OLD('play')) view = 'day';
+  document.documentElement.classList.toggle('mini', !OLD('trades'));   // 숨긴 화면에 머물러 있었으면 옮긴다
   if (view === 'appt' && !OLD('appt')) view = 'day';
   if (view === 'trades' && tSub === 'time' && !OLD('time')) tSub = 'stock';
   if (view === 'trades' && tSub === 'skip' && !OLD('skip')) tSub = 'stock';
@@ -1233,7 +1241,7 @@ function ppFills(t, id){
     ${bsec('차트 캡처', dis ? '' : 'Ctrl+V 로 붙여 넣기 · 그림 파일 끌어다 놓기')}
     ${im.length ? `<div class="ppimgs">${im.slice(0, 4).map((x, i) => `<figure><img src="${imgSrc(x)}" onclick="showImg(${i})" alt=""><figcaption>${esc(IMG_KIND[x.kind] || '')}${x.cap ? ' · ' + esc(x.cap) : ''}</figcaption></figure>`).join('')}</div>${im.length > 4 ? `<div class="m">외 ${im.length - 4}장 — 종이 기록부에서</div>` : ''}`
       : `<div class="capempty" style="height:170px">${dis ? '종목명을 적은 뒤에 붙일 수 있습니다' : '<b>진입 · 청산 시점 차트</b>Ctrl+V 로 붙여 넣거나 그림 파일을 끌어다 놓으세요'}${dis ? '' : ` <span class="pbtn" onclick="$('imgIn').click()">파일 고르기</span>`}</div>`}
-    ${dis ? '' : `<div class="row" style="margin-top:8px;justify-content:flex-end"><span class="pbtn" onclick="openTrade('${t.id}')">종이 기록부로 보기 ▸</span></div>`}`, ppFoot(t), '오른쪽');
+    ${dis || !OLD('trades') ? '' : `<div class="row" style="margin-top:8px;justify-content:flex-end"><span class="pbtn" onclick="openTrade('${t.id}')">종이 기록부로 보기 ▸</span></div>`}`, ppFoot(t), '오른쪽');
 }
 function ppReview(t, id){
   const r = t.review, c = calc(t, true);
@@ -1509,7 +1517,7 @@ const ROWS = () => Math.max(5, Math.floor((STAGE.h - 60 - 48 - 56 - 40 - 60) / 5
 // 매매 기록 탭 안의 화면들: 한 매매 · 종목 차트 · 시간표 · 매매일지 · 예약 · 안 한 매매
 const subSeg = () => { const on = (v, t) => view === v && (!t || tSub === t) ? 'on' : '', tb = (t, l) => `<button class="${on('trades', t)}" onclick="tSub='${t}';go('trades')">${l}</button>`;
   return `<div class="seg">${tb('done', '한 매매')}${tb('stock', '종목 차트')}${OLD('time') ? tb('time', '시간표') : ''}<button class="${on('day')} trj" onclick="go('day')">매매일지</button>${OLD('appt') ? `<button class="${on('appt')}" onclick="go('appt')">예약</button>` : ''}${OLD('skip') ? tb('skip', `안 한 매매 <span class="muted">${db.skips.length}</span>`) : ''}</div>`; };
-const trBar = () => `<div class="lbar trsub">${subSeg()}</div>`;
+const trBar = () => OLD('trades') ? `<div class="lbar trsub">${subSeg()}</div>` : '';
 function listV(){
   const all = listItems(), per = ROWS(), pages = Math.max(1, Math.ceil(all.length / per)); lpage = clip(lpage, 0, pages - 1);
   const rows = all.slice(lpage * per, lpage * per + per), cl = all.filter(x => x.c.status === 'closed'), k = kpis(cl), pr = proc(cl);
@@ -1532,6 +1540,7 @@ function listV(){
 }
 function onSearch(v){ lf.q = v; lpage = 0; if (view !== 'trades' || sel || tSub !== 'done'){ if (tMode === 'edit') return; view = 'trades'; sel = null; tSub = 'done'; } render(); }
 function openTrade(id, toReview){
+  if (!OLD('trades')) return ppEdit(id, toReview ? 'judge' : undefined);   // 매매 기록(종이 기록부)을 숨겼으면 매매일지의 그 매매 장으로
   if (tMode === 'edit' && !confirmLeave()) return;
   draft = null; isNew = false; view = 'trades'; sel = id; tMode = 'book';
   if (bk.id !== id){ bk.id = id; bk.i = 0; }
@@ -2660,7 +2669,7 @@ function setV(){
       <div class="note">가상의 매매 60건(봉인된 계획 · 수정 이력 · 결정 등급 · 연습용 차트), 매매일지, 주간 복기, 안 한 매매를 만듭니다. ‘샘플’ 표시가 붙고 [샘플 지우기]로 한 번에 지웁니다.</div>
       <div class="row"><button onclick="loadSample()">샘플 불러오기</button><button class="danger" onclick="clearSample()" ${db.trades.some(t => t.sample) ? '' : 'disabled'}>샘플 지우기 (${db.trades.filter(t => t.sample).length}건)</button></div>
       <h3 style="margin-top:12px">숨긴 기능 <small>잘 쓰지 않아 숨긴 옛 화면 — 켜면 다시 보입니다 (자료는 그대로 남아 있음)</small></h3>
-      <div class="row">${[['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
+      <div class="row">${[['trades', '매매 기록 탭 (한 매매 목록 · 종목 차트 · 종이 기록부 · 찾기)'], ['statsTab', '통계 탭 (질문 다섯 개)'], ['play', '플레이북 탭 (작전 카드)'], ['home', '홈 (요약 화면)'], ['appt', '예약 (매매기록 › 예약)'], ['time', '시간표 (매매기록 › 시간표)'], ['form', '전체 쓰기 화면 (✏ 기록 · 복기 쓰기)'], ['skip', '안 한 매매 목록 (매매기록 › 안 한 매매)'], ['stats', '자세한 통계 (옛 화면: 과정 · 성과 · 단타 분석)']].map(([k, l]) => `<label class="chip"><input type="checkbox" ${OLD(k) ? 'checked' : ''} onchange="oldToggle('${k}')">${l}</label>`).join('')}</div>
       <div class="note" style="margin-top:12px">트레이딩 차트 v${VERSION} · 데이터: data/journal.json ${serverOK ? '' : '<b style="color:var(--danger)">· 지금은 파일 저장이 꺼져 있습니다(브라우저 안에만 저장). 나의도서관.pyw 로 실행하세요.</b>'}</div>
     </div>
   </div>`;
@@ -3362,7 +3371,7 @@ document.addEventListener('mousemove', e => {
   if (x + tp.offsetWidth > STAGE.w - 8) x -= tp.offsetWidth + 32; if (y + tp.offsetHeight > STAGE.h - 8) y -= tp.offsetHeight + 32;
   tp.style.left = x + 'px'; tp.style.top = y + 'px';
 });
-const KEYS = [['1 ~ 5', '화면 이동 (매매 기록 · 통계 · 플레이북 · 훈련 · 설정) — 매매일지는 매매 기록 안'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
+const KEYS = [['1 2', '화면 이동 (매매일지 · 훈련) — 숨긴 탭을 켜면 번호가 늘어납니다'], ['N', '새 매매'], ['/', '종목 검색'], ['M', '금액 숨기기(R 단위) ↔ 금액'], ['L', '라이트 모드 ↔ 다크 모드'], ['F', '종이 집중 보기 (Esc 나가기)'],
   ['← →', '종이 장 넘기기 · 매매일지는 하루(주간은 한 주)씩'], ['↑ ↓', '이전 · 다음 매매 / 셋업'], ['E', '종이 기록부에서: 이 매매를 매매일지에서 쓰기'], ['Ctrl+Enter', '쓰기 저장'], ['Ctrl+V', '차트 캡처 붙여 넣기'], ['← → ↑ ↓', '종목 차트: 종목 · 그 종목의 매매 (Enter 종이 기록부)'],
   ['A D', '어제 · 내일 (매매일지)'], ['W S', '지난달 · 다음 달'], ['T', '오늘 · 이번 달'], ['V', '매매일지: 하루 ↔ 주간 복기 · 매매 기록 › 시간표 · 예약: 일간 ↔ 주간'], ['O X', '훈련: 들어간다 · 안 들어간다 (Space 다음 문제)'], ['1 ~ 4 · Q W E', '오늘의 훈련: 답 고르기 · 확신도 (Space 다음 문제)'], ['I', 'AI 복기 (종이 기록부 · 주간 복기에서)'],
   ['F11', '전체 화면 켜기 · 끄기'], ['Alt+←', '책장으로 (Esc 도, 닫을 것이 없을 때)'], ['?', '단축키 보기']];
