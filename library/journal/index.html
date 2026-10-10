@@ -2048,6 +2048,27 @@ function rHist(L){
    ===================================================================== */
 const pbOf = s => db.playbooks[s] = db.playbooks[s] || {def: '', checks: '', stop: '', exit: '', avoid: '', memo: ''};
 function pbIn(i, k, v){ pbOf(db.setups[i])[k] = v; save(); }
+/* 플레이북 초안 파일 불러오기 (2026-10-10, 드림로드 기법부터) — {setups: [{name, def, checks(줄 목록 또는 글), stop, exit, avoid, memo}]}.
+   셋업이 없으면 셋업 목록 끝에 더하고, 칸은 비어 있을 때만 채운다 (내가 적어 둔 글은 덮어쓰지 않는다). 강의 노트로 만든 내용이라 코드 · 웹판에는 넣지 않고 data/플레이북/ 파일로만. */
+async function pbImport(f){
+  if (!f) return; let d;
+  try { d = JSON.parse(await f.text()); } catch(e){ toast('⚠ 플레이북 파일(.json)을 읽지 못했어요'); return; }
+  const L = Array.isArray(d) ? d : Array.isArray(d.setups) ? d.setups : null; if (!L){ toast('⚠ 셋업 목록이 없는 파일이에요'); return; }
+  let added = 0, filled = 0, kept = 0, first = -1;
+  for (const x of L){
+    const name = String(x && x.name || '').trim(); if (!name) continue;
+    if (!db.setups.includes(name)){ db.setups.push(name); added++; }
+    if (first < 0) first = db.setups.indexOf(name);
+    const pb = pbOf(name);
+    for (const k of ['def', 'checks', 'stop', 'exit', 'avoid', 'memo']){
+      const v = Array.isArray(x[k]) ? x[k].map(String).join('\n') : String(x[k] ?? '').trim(); if (!v) continue;
+      if (!String(pb[k] || '').trim()){ pb[k] = v; filled++; } else if (pb[k] !== v) kept++;
+    }
+  }
+  if (added || filled) save();
+  if (first >= 0){ pbSel = first; pbI = 0; } render();
+  toast(`셋업 ${added}개를 더하고 ${filled}칸을 채웠어요${kept ? ` · 이미 적어 둔 ${kept}칸은 그대로 뒀어요` : ''}`);
+}
 function pbExamples(s){
   const L = closedList().filter(x => x.t.setup === s && x.t.review.grade), A = L.filter(x => x.t.review.grade === 'A'), pool = (A.length ? A : L.filter(x => x.t.review.grade === 'B')).reverse(), out = [];
   pool.forEach(x => x.t.images.forEach((im, i) => out.push({x, im, i})));
@@ -2077,7 +2098,8 @@ function playV(){
       <div class="plist">${db.setups.map((x, i) => { const st = stat(x), has = checksOf(x).length; return `<div class="pr ${i === pbSel ? 'on' : ''}" onclick="pbSel=${i};pbI=0;render()"><span class="dt ${has ? 'open' : ''}"></span><span><b>${esc(x)}</b><small>${st.k.n}건 · 승률 ${st.k.n ? st.k.win.toFixed(0) + '%' : '–'} · A·B ${pct0(st.pr.ab)}${has ? '' : ' · 체크리스트 없음'}</small></span>
         <span class="${cls(st.k.exp)}" style="font-weight:700">${st.k.n ? sv(st.k.exp) : ''}</span></div>`; }).join('')}</div>
       <div class="note">오른쪽 숫자 = 건당 기대값. 못하는 셋업을 버리는 것도 실력입니다. 셋업 이름은 원칙 · 설정에서 고칩니다.</div></div></div>
-    <div class="book"><div class="bkbar"><span class="ttl">플레이북 — ${esc(s)}</span><span class="sp"></span><button onclick="lf.setup=db.setups[pbSel];lf.st='all';tSub='done';go('trades')">이 셋업의 매매 ${me.L.length}건</button><button onclick="focusToggle()">⛶ 집중 보기<kbd>F</kbd></button></div>
+    <div class="book"><div class="bkbar"><span class="ttl">플레이북 — ${esc(s)}</span><span class="sp"></span><button onclick="$('pbIn').click()" title="플레이북 초안 파일(.json)을 불러옵니다 — 셋업이 없으면 더하고, 이미 적어 둔 칸은 덮어쓰지 않습니다">⇪ 플레이북 불러오기</button><button onclick="lf.setup=db.setups[pbSel];lf.st='all';tSub='done';go('trades')">이 셋업의 매매 ${me.L.length}건</button><button onclick="focusToggle()">⛶ 집중 보기<kbd>F</kbd></button></div>
+      <input type="file" id="pbIn" accept=".json,application/json" hidden onchange="pbImport(this.files[0]);this.value=''">
       <div class="bkdesk" id="desk"><div class="spread" id="spread"><div class="sheetbox left">${left}</div><div class="sheetbox right">${right}</div></div></div>
       <div class="bkfoot"><button onclick="pbI--;render()" ${pbI <= 0 ? 'disabled' : ''}>◀ 사례</button><span id="bkInfo" style="font-weight:700">${ex.out.length ? (pbI + 1) + ' / ' + pages : '사례 없음'}</span><button onclick="pbI++;render()" ${pbI >= pages - 1 ? 'disabled' : ''}>사례 ▶</button><span class="keyhint">왼쪽 종이에 바로 쓰면 자동 저장 · ← → 모범 사례 넘기기 · ↑ ↓ 셋업</span></div></div></div>`;
 }
