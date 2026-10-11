@@ -61,6 +61,7 @@ main{max-width:640px;margin:0 auto;padding:10px 14px calc(92px + env(safe-area-i
 
 /* 쪽 카드 = 줄 친 종이 */
 .page{background:var(--paper);border-radius:var(--r3);box-shadow:0 0 0 1px var(--line2),0 1px 3px rgba(0,0,0,.05);padding:10px 14px 12px;margin-bottom:12px}
+html.bare .ph,html.bare .wxs{display:none}   /* 연습장: 쪽 위 글(쪽 번호 · 줄 수) · 날씨 없이 */
 .ph{display:flex;align-items:baseline;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px;min-height:18px}
 .ph .cnt.over{color:var(--warn);font-weight:600}
 .page textarea{display:block;width:100%;border:0;outline:none;resize:none;overflow:hidden;background:transparent;padding:0 2px;margin:0;
@@ -134,7 +135,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const LH = 26, LINES = 37, IMG_W = 686, IMG_MIN = 120;
 const WX = [['sun', '맑음'], ['cloud', '흐림'], ['rain', '비'], ['snow', '눈'], ['wind', '바람']];
 // 공책 세 권 (apps/diary.html 의 NOTEBOOKS 와 같은 표 — 바꾸면 함께): 이 주소의 공책
-const NOTEBOOKS = {diary: {name: '트레이딩 노트', old: ['나의 일기', '스프링노트'], tpl: true}, mydiary: {name: '나의 일기', old: [], tpl: false}, practice: {name: '연습장', old: [], tpl: false}};
+const NOTEBOOKS = {diary: {name: '트레이딩 노트', old: ['나의 일기', '스프링노트'], tpl: true}, mydiary: {name: '나의 일기', old: [], tpl: false}, practice: {name: '연습장', old: [], tpl: false, bare: true}};
 const NB_ID = location.pathname.split('/').find(s => NOTEBOOKS[s]) || 'diary', NB = NOTEBOOKS[NB_ID];
 const bookTitle = t => !t || NB.old.includes(t) ? NB.name : t;   // 옛 이름으로 저장된 책 제목 → 새 이름
 const hasText = e => !!(e && ((e.body && e.body.trim()) || e.weather));
@@ -315,7 +316,8 @@ function spot(){
   const p = parts.length - 1, segs = splitSegs(parts[p]), s = segs.length - 1, v = segs[s].replace(/\s+$/, '');
   return {p, s, at: v.length, end: segs[s].length, parts, segs};
 }
-if (!NB.tpl) $('tTpl').classList.add('hidden');   // 템플릿은 트레이딩 노트에만
+if (!NB.tpl) $('tTpl').classList.add('hidden');
+document.documentElement.classList.toggle('bare', !!NB.bare);   // 템플릿은 트레이딩 노트에만
 $('tTpl').onclick = () => {
   const {p, s, at, end, parts, segs} = spot(), v = segs[s], before = v.slice(0, at);
   const lead = !before.length || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
