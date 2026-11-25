@@ -1,0 +1,24 @@
+{
+ "name": "연습장",
+ "short_name": "연습장",
+ "start_url": "./",
+ "scope": "../",
+ "display": "standalone",
+ "display_override": [
+  "window-controls-overlay"
+ ],
+ "icons": [
+  {
+   "src": "app.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "app-mask.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
