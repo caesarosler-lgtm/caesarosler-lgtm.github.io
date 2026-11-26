@@ -627,12 +627,19 @@ const NEURAL = [   // 남성 음성 먼저 — 낮고 또렷하게 전달하는 
 ];
 const DEFAULT_VOICE = 'en-US-ChristopherNeural';
 let VOICES = [], speaking = false, player = null, sayId = 0;
-function loadVoices() { VOICES = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); }
+// 기기 음성 고르기: 맥 · 아이폰에는 장난용 목소리(로봇 · 노래 · 속삭임)와 옛 기계음이 함께 들어 있어 '처음 나오는 영어 목소리'를 고르면 이상한 소리가 났다 (2026-11-26 맥북 에어)
+const VOICE_ODD = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Good News|Hysterical|Jester|Junior|Kathy|Organ|Pipe Organ|Princess|Ralph|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/i;
+const VOICE_GOOD = /^(Samantha|Alex|Ava|Allison|Susan|Tom|Evan|Nathan|Zoe|Joelle|Noelle|Nicky|Aaron|Daniel|Karen|Moira|Serena|Kate|Oliver|Arthur|Martha)\b/i;
+function voiceScore(v) {   // 높을수록 자연스러운 목소리
+  return (/^en[-_]US/i.test(v.lang) ? 4 : 0) + (/Premium/i.test(v.name) ? 6 : /Enhanced|Natural/i.test(v.name) ? 5 : 0)
+    + (VOICE_GOOD.test(v.name) ? 3 : 0) + (/^Google/i.test(v.name) ? 2 : 0) + (v.default ? 1 : 0);
+}
+function loadVoices() { VOICES = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang) && !VOICE_ODD.test(v.name)).sort((a, b) => voiceScore(b) - voiceScore(a)); }
 if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.onvoiceschanged = () => { loadVoices(); if (view === 'stats') render(); }; }
 const voiceSel = () => S.settings.voice || DEFAULT_VOICE;
 const isNeural = () => TTS && NEURAL.some(n => n[0] === voiceSel());
 function pickVoice() {   // Windows 기본 음성 (신경망 음성을 못 쓸 때 대신)
-  return VOICES.find(v => v.name === S.settings.voice) || VOICES.find(v => /en-US/i.test(v.lang)) || VOICES[0];
+  return VOICES.find(v => v.name === S.settings.voice) || VOICES[0];   // VOICES 는 자연스러운 순서로 정렬돼 있다
 }
 const ttsUrl = (text, rate, voice) => `api/tts?v=${encodeURIComponent(voice || voiceSel())}&r=${Math.round(((rate || S.settings.rate || 0.9) - 1) * 100)}&t=${encodeURIComponent(text)}`;
 const PF = new Set();
